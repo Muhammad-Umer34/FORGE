@@ -1,0 +1,2590 @@
+[
+  {
+    "component_id": "booking-form",
+    "name": "Booking Form",
+    "category": "Interactive",
+    "feature": "Appointment booking",
+    "featureId": "booking",
+    "contentNeeds": [
+      "phone",
+      "email"
+    ],
+    "dataNeeds": [
+      "availability"
+    ],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "booking",
+      "home",
+      "contact"
+    ],
+    "description": "Booking and reservation form where a customer chooses a date and time, picks a service, enters the number of guests or people, adds contact details and notes, and submits a booking request. Use it whenever a business takes appointments or reservations: salon and spa visits, doctor and dental appointments, restaurant table reservations, consultations, classes, tutoring sessions, studio shoots, repair visits and site visits. Choose this when the visitor must pick a time. For a general message use contact-form; for ordering items use order-request-form.",
+    "keywords": [
+      "booking",
+      "book appointment",
+      "reservation",
+      "reserve a table",
+      "table booking",
+      "schedule a visit",
+      "appointment request",
+      "consultation booking",
+      "book online",
+      "book a slot",
+      "class booking",
+      "session booking",
+      "service booking",
+      "make an appointment",
+      "reserve a time"
+    ],
+    "userPhrases": [
+      "customers should be able to book",
+      "I take appointments",
+      "let people reserve a table",
+      "book a consultation",
+      "appointment book karna",
+      "table reserve karna"
+    ],
+    "businessTypes": [
+      "salon",
+      "spa",
+      "clinic",
+      "dentist",
+      "restaurant",
+      "gym",
+      "tutor",
+      "consultant",
+      "photography studio",
+      "repair shop"
+    ],
+    "notFor": [
+      {
+        "id": "contact-form",
+        "reason": "General message with no date or time choice."
+      },
+      {
+        "id": "order-request-form",
+        "reason": "Ordering specific items with quantities, not booking a time."
+      },
+      {
+        "id": "appointment-slot-picker",
+        "reason": "Only the date and time slot chooser, without the full form."
+      }
+    ],
+    "pairsWith": [
+      "appointment-slot-picker",
+      "business-hours",
+      "services-price-list",
+      "location-map",
+      "whatsapp-button"
+    ]
+  },
+  {
+    "component_id": "portfolio-grid",
+    "name": "Portfolio Grid",
+    "category": "Showcase",
+    "feature": "Portfolio showcase",
+    "featureId": "portfolio",
+    "contentNeeds": [
+      "photos"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "home",
+      "portfolio"
+    ],
+    "description": "Portfolio grid of past projects with images, titles and category filters. Use it to show previous work, completed jobs, client projects and creative samples as proof of quality for photographers, designers, architects, interior decorators, builders, agencies, wedding and event planners, freelancers and craftspeople. Each card stands for one project or piece of work. For a plain photo album use image-gallery; for one project explained in depth use case-study-detail.",
+    "keywords": [
+      "portfolio",
+      "previous work",
+      "past projects",
+      "our work",
+      "work samples",
+      "completed projects",
+      "case studies grid",
+      "creative work",
+      "projects showcase",
+      "recent work",
+      "selected work"
+    ],
+    "userPhrases": [
+      "show my previous work",
+      "portfolio of my projects",
+      "our past events",
+      "samples of what we have done",
+      "humara kaam dikhana"
+    ],
+    "businessTypes": [
+      "photographer",
+      "designer",
+      "architect",
+      "interior decorator",
+      "builder",
+      "agency",
+      "event planner",
+      "freelancer",
+      "artist"
+    ],
+    "notFor": [
+      {
+        "id": "image-gallery",
+        "reason": "Photos only, with no project titles or categories of work."
+      },
+      {
+        "id": "case-study-detail",
+        "reason": "One project told in depth, not a grid of many."
+      }
+    ],
+    "pairsWith": [
+      "case-study-detail",
+      "about-us",
+      "contact-form",
+      "testimonials"
+    ]
+  },
+  {
+    "component_id": "menu-catalog-grid",
+    "name": "Menu & Product Catalog Grid",
+    "category": "Commerce & Food",
+    "feature": "Menu and catalog",
+    "featureId": "menu-catalog",
+    "contentNeeds": [
+      "items",
+      "prices",
+      "photos"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "menu",
+      "home"
+    ],
+    "description": "Menu and catalogue grid that lists food, drinks or simple products by category with names, photos, descriptions, prices, dietary tags and order or enquiry buttons. Use it for restaurant, cafe, bakery and takeaway menus, cake and sweets lists, catering packages and any price list of edible or simple retail items. It displays items only; there is no shopping cart or online checkout. For image-led retail goods such as candles, clothing or crafts use product-card-grid.",
+    "keywords": [
+      "menu",
+      "food menu",
+      "drinks menu",
+      "price list food",
+      "dishes",
+      "bakery items",
+      "cake list",
+      "catalogue",
+      "catalog",
+      "meal list",
+      "takeaway menu",
+      "catering menu",
+      "coffee menu",
+      "dietary tags",
+      "category tabs"
+    ],
+    "userPhrases": [
+      "show our menu",
+      "list of cakes with prices",
+      "customers see what we sell",
+      "menu dikhana",
+      "menu aur rates"
+    ],
+    "businessTypes": [
+      "restaurant",
+      "cafe",
+      "bakery",
+      "takeaway",
+      "caterer",
+      "sweet shop",
+      "juice bar",
+      "food truck"
+    ],
+    "notFor": [
+      {
+        "id": "product-card-grid",
+        "reason": "Image-led retail goods that are not food or drink."
+      },
+      {
+        "id": "services-price-list",
+        "reason": "Services with durations, not dishes."
+      },
+      {
+        "id": "pricing-table",
+        "reason": "Subscription or package tiers, not a menu."
+      }
+    ],
+    "pairsWith": [
+      "order-request-form",
+      "whatsapp-button",
+      "business-hours",
+      "location-map",
+      "search-filter-bar"
+    ]
+  },
+  {
+    "component_id": "hero-banner",
+    "name": "Hero Banner",
+    "category": "Navigation & Headers",
+    "feature": "Hero header",
+    "featureId": "hero-header",
+    "contentNeeds": [
+      "business_name",
+      "photos"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "always",
+    "pages": [
+      "home"
+    ],
+    "description": "Hero banner at the very top of the home page: large headline, short value proposition, primary and secondary call-to-action buttons, background image and intro badge. Use it on every home page and landing page to show in one glance what the business does and what the visitor should do next, such as Book now, Order today or Get a quote. For inner pages use page-header instead.",
+    "keywords": [
+      "hero",
+      "banner",
+      "landing header",
+      "main headline",
+      "welcome section",
+      "top of page",
+      "intro section",
+      "above the fold",
+      "headline with button",
+      "cover image"
+    ],
+    "userPhrases": [
+      "a strong first screen",
+      "welcome message at the top",
+      "big banner with a button"
+    ],
+    "businessTypes": [
+      "any small business"
+    ],
+    "notFor": [
+      {
+        "id": "page-header",
+        "reason": "Secondary pages, not the home page."
+      },
+      {
+        "id": "cta-banner",
+        "reason": "A closing conversion strip, not the first screen."
+      }
+    ],
+    "pairsWith": [
+      "navbar",
+      "cta-banner",
+      "stats-counter"
+    ]
+  },
+  {
+    "component_id": "about-us",
+    "name": "About Us",
+    "category": "Content",
+    "feature": "About company story",
+    "featureId": "about-story",
+    "contentNeeds": [
+      "about_text",
+      "photos"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "about",
+      "home"
+    ],
+    "description": "About section that tells the story of the business or person: background, founder story, mission, values, history and a few highlight figures, with a photo. Use it for About pages and home-page introductions where visitors want to know who is behind the business and why to trust it, on any small business, clinic, studio, school, restaurant, agency or freelancer site. For a dated history use timeline; for staff profiles use team-grid.",
+    "keywords": [
+      "about us",
+      "our story",
+      "who we are",
+      "about me",
+      "founder story",
+      "mission",
+      "values",
+      "company background",
+      "introduction",
+      "bio",
+      "about the business"
+    ],
+    "userPhrases": [
+      "tell people about my business",
+      "about me section",
+      "our story",
+      "humare baare mein"
+    ],
+    "businessTypes": [
+      "any small business",
+      "freelancer",
+      "photographer",
+      "clinic",
+      "school",
+      "restaurant"
+    ],
+    "notFor": [
+      {
+        "id": "timeline",
+        "reason": "Dated milestones rather than a narrative."
+      },
+      {
+        "id": "team-grid",
+        "reason": "Several people with roles, not one story."
+      },
+      {
+        "id": "features-grid",
+        "reason": "What is offered, not who offers it."
+      }
+    ],
+    "pairsWith": [
+      "timeline",
+      "team-grid",
+      "stats-counter",
+      "image-text-rows"
+    ]
+  },
+  {
+    "component_id": "contact-form",
+    "name": "Contact Form",
+    "category": "Forms",
+    "feature": "Contact inquiry form",
+    "featureId": "contact-form",
+    "contentNeeds": [
+      "email",
+      "phone",
+      "address"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "contact",
+      "home"
+    ],
+    "description": "Contact form for general enquiries: the visitor enters name, email, phone, subject and message, with the business address and contact details beside it. Use it on Contact pages and wherever a visitor should send a message, ask a question, request a quote that has no item list, give feedback or ask for a call back. For choosing a time use booking-form; for ordering specific items use order-request-form; for showing details with no form use contact-info-block.",
+    "keywords": [
+      "contact form",
+      "contact us",
+      "enquiry form",
+      "inquiry",
+      "send a message",
+      "get in touch",
+      "request a quote",
+      "feedback form",
+      "customer support form",
+      "call back request",
+      "message form"
+    ],
+    "userPhrases": [
+      "a way to contact us",
+      "people can send me a message",
+      "quote request form",
+      "rabta karein"
+    ],
+    "businessTypes": [
+      "any small business"
+    ],
+    "notFor": [
+      {
+        "id": "contact-info-block",
+        "reason": "Shows phone and address without a form."
+      },
+      {
+        "id": "booking-form",
+        "reason": "Picks a date and time."
+      },
+      {
+        "id": "order-request-form",
+        "reason": "Selects items with quantities and a delivery date."
+      },
+      {
+        "id": "newsletter-signup",
+        "reason": "Collects only an email address for updates."
+      }
+    ],
+    "pairsWith": [
+      "contact-info-block",
+      "location-map",
+      "business-hours",
+      "whatsapp-button"
+    ]
+  },
+  {
+    "component_id": "image-gallery",
+    "name": "Image Gallery",
+    "category": "Media",
+    "feature": "Photo gallery",
+    "featureId": "gallery",
+    "contentNeeds": [
+      "photos"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "gallery",
+      "home"
+    ],
+    "description": "Photo gallery grid with category filter tabs and a lightbox that opens each picture full size. Use it for photo albums, event pictures, food photography, interior and venue photos, product shots and completed work photos on any website where many pictures should be browsed together: weddings, restaurants, salons, gyms, studios, hotels. For a slideshow showing one picture at a time use gallery-carousel; for projects with titles use portfolio-grid.",
+    "keywords": [
+      "gallery",
+      "photo gallery",
+      "image album",
+      "pictures",
+      "photos grid",
+      "lightbox",
+      "photo collection",
+      "event photos",
+      "image grid",
+      "photo showcase",
+      "media gallery"
+    ],
+    "userPhrases": [
+      "show photos of our work",
+      "a gallery of pictures",
+      "photo album",
+      "tasveerain dikhana"
+    ],
+    "businessTypes": [
+      "photographer",
+      "restaurant",
+      "salon",
+      "gym",
+      "wedding planner",
+      "hotel",
+      "studio",
+      "bakery"
+    ],
+    "notFor": [
+      {
+        "id": "gallery-carousel",
+        "reason": "Slideshow, one image at a time."
+      },
+      {
+        "id": "portfolio-grid",
+        "reason": "Projects with titles and categories."
+      },
+      {
+        "id": "before-after-slider",
+        "reason": "Two matching images compared."
+      }
+    ],
+    "pairsWith": [
+      "gallery-carousel",
+      "portfolio-grid",
+      "page-header",
+      "cta-banner"
+    ]
+  },
+  {
+    "component_id": "pricing-table",
+    "name": "Pricing Table",
+    "category": "Commerce",
+    "feature": "Pricing tiers",
+    "featureId": "pricing-table",
+    "contentNeeds": [
+      "prices"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "pricing",
+      "home"
+    ],
+    "description": "Tiered pricing table that compares plans side by side, with a monthly and yearly toggle, a feature checklist per plan, a highlighted popular plan and a button for each plan. Use it for gym and club memberships, coaching and tutoring packages, subscription services, maintenance contracts and bundle packages with Basic, Standard and Premium levels. It does not take payment; plan buttons lead to contact or booking. For a plain list of services with prices use services-price-list.",
+    "keywords": [
+      "pricing",
+      "plans",
+      "packages",
+      "membership plans",
+      "subscription",
+      "tiers",
+      "monthly annual toggle",
+      "compare plans",
+      "basic standard premium",
+      "membership fees",
+      "package comparison"
+    ],
+    "userPhrases": [
+      "our membership plans",
+      "different packages to choose from",
+      "monthly and yearly pricing",
+      "membership fee structure"
+    ],
+    "businessTypes": [
+      "gym",
+      "club",
+      "coach",
+      "tutor",
+      "software service",
+      "subscription service",
+      "maintenance provider"
+    ],
+    "notFor": [
+      {
+        "id": "services-price-list",
+        "reason": "An itemised list with one price per service, not tiers."
+      },
+      {
+        "id": "menu-catalog-grid",
+        "reason": "Food items, not plans."
+      }
+    ],
+    "pairsWith": [
+      "faq-accordion",
+      "cta-banner",
+      "contact-form",
+      "booking-form"
+    ]
+  },
+  {
+    "component_id": "testimonials",
+    "name": "Testimonials",
+    "category": "Social Proof",
+    "feature": "Customer reviews",
+    "featureId": "testimonials",
+    "contentNeeds": [
+      "photos"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "suggest",
+    "pages": [
+      "home",
+      "about"
+    ],
+    "description": "Testimonials section showing customer reviews, quotes, star ratings, names and photos. Use it to build trust on any business site: restaurants, salons, clinics, tutors, gyms, photographers, agencies and sellers. Typical phrases are customer reviews, client feedback, what people say about us, ratings and success stories. It shows reviews supplied by the owner; visitors cannot submit reviews here. For partner logos use logo-cloud; for numbers use stats-counter.",
+    "keywords": [
+      "testimonials",
+      "reviews",
+      "customer reviews",
+      "client feedback",
+      "star ratings",
+      "quotes",
+      "social proof",
+      "success stories",
+      "what people say",
+      "recommendations",
+      "happy customers"
+    ],
+    "userPhrases": [
+      "show customer reviews",
+      "what our clients say",
+      "ratings from customers",
+      "customers ki raay"
+    ],
+    "businessTypes": [
+      "any small business"
+    ],
+    "notFor": [
+      {
+        "id": "logo-cloud",
+        "reason": "Logos of partners, not quotes."
+      },
+      {
+        "id": "stats-counter",
+        "reason": "Numbers, not written reviews."
+      }
+    ],
+    "pairsWith": [
+      "stats-counter",
+      "cta-banner",
+      "logo-cloud"
+    ]
+  },
+  {
+    "component_id": "faq-accordion",
+    "name": "FAQ Accordion",
+    "category": "Content",
+    "feature": "FAQ accordion",
+    "featureId": "faq",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "suggest",
+    "pages": [
+      "faq",
+      "home",
+      "pricing",
+      "contact"
+    ],
+    "description": "FAQ accordion with collapsible questions and answers. Use it to answer common questions before customers call: pricing, delivery, cancellation policy, how booking works, what to bring, insurance, return policy and arrangements. Fits clinics, salons, schools, shops, restaurants and any service business. Also works as a simple help section with a link to contact.",
+    "keywords": [
+      "faq",
+      "frequently asked questions",
+      "questions and answers",
+      "help",
+      "common questions",
+      "accordion",
+      "support answers",
+      "policies",
+      "knowledge base",
+      "expandable answers"
+    ],
+    "userPhrases": [
+      "answer common questions",
+      "an FAQ section",
+      "people keep asking the same things"
+    ],
+    "businessTypes": [
+      "clinic",
+      "salon",
+      "school",
+      "shop",
+      "restaurant",
+      "service business"
+    ],
+    "notFor": [
+      {
+        "id": "process-steps",
+        "reason": "A numbered flow, not separate questions."
+      }
+    ],
+    "pairsWith": [
+      "contact-form",
+      "cta-banner",
+      "pricing-table",
+      "process-steps"
+    ]
+  },
+  {
+    "component_id": "navbar",
+    "name": "Navbar",
+    "category": "Navigation",
+    "feature": "Navigation bar",
+    "featureId": "navigation",
+    "contentNeeds": [
+      "business_name",
+      "logo"
+    ],
+    "dataNeeds": [],
+    "siteRole": "global",
+    "inclusion": "always",
+    "pages": [
+      "all"
+    ],
+    "description": "Top navigation bar with logo or business name, menu links, a call-to-action button, sticky behaviour and a hamburger drawer on mobile. Included on every page as the main header navigation, giving links to Home, About, Services, Gallery, Contact and other pages. Almost every website needs exactly one navbar.",
+    "keywords": [
+      "navbar",
+      "navigation",
+      "header menu",
+      "top menu",
+      "menu links",
+      "sticky header",
+      "hamburger menu",
+      "logo header",
+      "main navigation",
+      "site header"
+    ],
+    "userPhrases": [
+      "a menu at the top",
+      "navigation between pages"
+    ],
+    "businessTypes": [
+      "any small business"
+    ],
+    "notFor": [
+      {
+        "id": "footer",
+        "reason": "Bottom of the page, not the top."
+      },
+      {
+        "id": "menu-catalog-grid",
+        "reason": "A food menu is a different thing from a navigation menu."
+      }
+    ],
+    "pairsWith": [
+      "hero-banner",
+      "announcement-bar",
+      "footer"
+    ]
+  },
+  {
+    "component_id": "footer",
+    "name": "Footer",
+    "category": "Navigation & Footer",
+    "feature": "Website footer",
+    "featureId": "footer",
+    "contentNeeds": [
+      "business_name",
+      "email",
+      "social_handles"
+    ],
+    "dataNeeds": [
+      "subscribers"
+    ],
+    "siteRole": "global",
+    "inclusion": "always",
+    "pages": [
+      "all"
+    ],
+    "description": "Site footer at the bottom of every page: brand summary, copyright line, social media icons, grouped navigation links and an email newsletter signup box. Use it on every website to close the page and repeat key links such as contact, privacy policy and social profiles.",
+    "keywords": [
+      "footer",
+      "bottom of page",
+      "copyright",
+      "footer links",
+      "site map links",
+      "social icons footer",
+      "bottom navigation",
+      "page end"
+    ],
+    "userPhrases": [
+      "links at the bottom",
+      "copyright and social links"
+    ],
+    "businessTypes": [
+      "any small business"
+    ],
+    "notFor": [
+      {
+        "id": "navbar",
+        "reason": "Top of the page, not the bottom."
+      },
+      {
+        "id": "contact-info-block",
+        "reason": "A dedicated contact section, not the page footer."
+      }
+    ],
+    "pairsWith": [
+      "navbar",
+      "newsletter-signup",
+      "social-links-bar",
+      "legal-page"
+    ]
+  },
+  {
+    "component_id": "features-grid",
+    "name": "Features & Services Grid",
+    "category": "Features & Services",
+    "feature": "Features and services",
+    "featureId": "services-overview",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "home",
+      "services"
+    ],
+    "description": "Grid of cards with icon, title and short description that presents what the business offers: services, treatments, specialities, product features, benefits or reasons to choose us. Use it for a services overview where prices are not the focus: dental treatments, tutoring subjects, repair services, consulting areas, gym classes, event services. For services with prices and durations use services-price-list; for a step-by-step flow use process-steps.",
+    "keywords": [
+      "services",
+      "our services",
+      "what we offer",
+      "features",
+      "benefits",
+      "treatments",
+      "specialities",
+      "why choose us",
+      "offerings",
+      "service cards",
+      "capabilities",
+      "subjects offered"
+    ],
+    "userPhrases": [
+      "list our services",
+      "what we do",
+      "show the treatments we offer",
+      "hamari services"
+    ],
+    "businessTypes": [
+      "clinic",
+      "dentist",
+      "tutor",
+      "agency",
+      "repair shop",
+      "consultant",
+      "gym",
+      "event planner"
+    ],
+    "notFor": [
+      {
+        "id": "services-price-list",
+        "reason": "Services with prices and durations."
+      },
+      {
+        "id": "process-steps",
+        "reason": "Ordered steps, not a set of offers."
+      },
+      {
+        "id": "menu-catalog-grid",
+        "reason": "Food and drink items."
+      }
+    ],
+    "pairsWith": [
+      "services-price-list",
+      "process-steps",
+      "cta-banner",
+      "team-grid"
+    ]
+  },
+  {
+    "component_id": "cta-banner",
+    "name": "Call to Action (CTA) Banner",
+    "category": "Conversion & CTA",
+    "feature": "Call to action banner",
+    "featureId": "call-to-action",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "suggest",
+    "pages": [
+      "home",
+      "services",
+      "about"
+    ],
+    "description": "Call-to-action banner with a strong headline, supporting line, main action button, secondary link and accent background, usually placed before the footer or between sections. Use it to push one next step such as Book a visit, Request a quote, Order now or Call us. Fits any business site as a closing conversion section.",
+    "keywords": [
+      "call to action",
+      "cta",
+      "banner",
+      "conversion",
+      "get started",
+      "book now",
+      "order now",
+      "contact us today",
+      "pre-footer",
+      "action strip"
+    ],
+    "userPhrases": [
+      "a strong button asking people to act",
+      "encourage visitors to contact us"
+    ],
+    "businessTypes": [
+      "any small business"
+    ],
+    "notFor": [
+      {
+        "id": "hero-banner",
+        "reason": "First screen of the home page."
+      }
+    ],
+    "pairsWith": [
+      "footer",
+      "contact-form",
+      "booking-form"
+    ]
+  },
+  {
+    "component_id": "team-grid",
+    "name": "Team & Staff Grid",
+    "category": "Team & Staff",
+    "feature": "Team profiles",
+    "featureId": "team",
+    "contentNeeds": [
+      "photos"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "about",
+      "home",
+      "team"
+    ],
+    "description": "Team grid with photo, name, role, qualifications, short biography, specialities and contact links for each person. Use it to introduce doctors, dentists, specialists, trainers, coaches, teachers, instructors, stylists, chefs, lawyers, consultants or founders. Matches requests like our doctors, meet the team, our staff and our trainers. For one founder story use about-us.",
+    "keywords": [
+      "team",
+      "staff",
+      "doctors",
+      "our team",
+      "meet the team",
+      "instructors",
+      "trainers",
+      "teachers",
+      "stylists",
+      "specialists",
+      "lawyers",
+      "founders",
+      "practitioners",
+      "faculty"
+    ],
+    "userPhrases": [
+      "show our doctors",
+      "introduce my staff",
+      "meet our trainers",
+      "hamari team"
+    ],
+    "businessTypes": [
+      "clinic",
+      "dentist",
+      "gym",
+      "school",
+      "salon",
+      "law firm",
+      "agency"
+    ],
+    "notFor": [
+      {
+        "id": "about-us",
+        "reason": "One story, not a list of people."
+      }
+    ],
+    "pairsWith": [
+      "about-us",
+      "stats-counter",
+      "booking-form"
+    ]
+  },
+  {
+    "component_id": "stats-counter",
+    "name": "Stats & Metrics Counter",
+    "category": "Social Proof & Trust",
+    "feature": "Key statistics",
+    "featureId": "key-stats",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "suggest",
+    "pages": [
+      "home",
+      "about"
+    ],
+    "description": "Statistics counter showing large figures such as years of experience, happy customers, patients treated, projects completed, students taught or satisfaction rate. Use it to prove credibility with numbers on home or about pages. For written reviews use testimonials.",
+    "keywords": [
+      "statistics",
+      "stats",
+      "numbers",
+      "counters",
+      "years of experience",
+      "clients served",
+      "achievements",
+      "metrics",
+      "milestones in numbers",
+      "impact figures"
+    ],
+    "userPhrases": [
+      "show how many customers we have served",
+      "years of experience in numbers"
+    ],
+    "businessTypes": [
+      "clinic",
+      "school",
+      "agency",
+      "contractor",
+      "any established business"
+    ],
+    "notFor": [
+      {
+        "id": "testimonials",
+        "reason": "Written opinions, not figures."
+      },
+      {
+        "id": "timeline",
+        "reason": "Dated events, not totals."
+      }
+    ],
+    "pairsWith": [
+      "about-us",
+      "testimonials",
+      "hero-banner"
+    ]
+  },
+  {
+    "component_id": "process-steps",
+    "name": "Process / How It Works",
+    "category": "Process & Workflow",
+    "feature": "How it works process",
+    "featureId": "how-it-works",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "suggest",
+    "pages": [
+      "home",
+      "services"
+    ],
+    "description": "Step-by-step process section with numbered cards explaining how the service works, from first contact or booking to the final result. Use it for how it works, our process, how to order, what to expect at your first visit, treatment journey or project stages. Fits clinics, agencies, builders, caterers, tutors and custom order businesses.",
+    "keywords": [
+      "process",
+      "how it works",
+      "steps",
+      "workflow",
+      "our process",
+      "journey",
+      "what to expect",
+      "how to order",
+      "stages",
+      "numbered steps"
+    ],
+    "userPhrases": [
+      "explain how it works",
+      "steps a customer follows",
+      "how ordering works"
+    ],
+    "businessTypes": [
+      "clinic",
+      "agency",
+      "builder",
+      "caterer",
+      "tutor",
+      "custom order business"
+    ],
+    "notFor": [
+      {
+        "id": "faq-accordion",
+        "reason": "Separate questions rather than a sequence."
+      },
+      {
+        "id": "timeline",
+        "reason": "Dated history, not a service flow."
+      }
+    ],
+    "pairsWith": [
+      "features-grid",
+      "faq-accordion",
+      "cta-banner"
+    ]
+  },
+  {
+    "component_id": "logo-cloud",
+    "name": "Logo Cloud & Accreditations",
+    "category": "Social Proof & Trust",
+    "feature": "Partner logo cloud",
+    "featureId": "partner-logos",
+    "contentNeeds": [
+      "logo"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "suggest",
+    "pages": [
+      "home",
+      "about"
+    ],
+    "description": "Logo cloud strip of partner, client, brand, accreditation and certification logos or badges. Use it to show trusted by, our partners, as seen in, licences, memberships, awards and certifications that give credibility, for clinics, schools, agencies, contractors and suppliers. Needs logo images from the owner.",
+    "keywords": [
+      "logos",
+      "partners",
+      "clients",
+      "accreditations",
+      "certifications",
+      "badges",
+      "trusted by",
+      "as seen in",
+      "licences",
+      "affiliations",
+      "sponsors",
+      "brands we work with"
+    ],
+    "userPhrases": [
+      "show our partners",
+      "certifications we hold",
+      "brands we stock"
+    ],
+    "businessTypes": [
+      "clinic",
+      "school",
+      "agency",
+      "contractor",
+      "supplier"
+    ],
+    "notFor": [
+      {
+        "id": "testimonials",
+        "reason": "Quotes from people, not logos."
+      }
+    ],
+    "pairsWith": [
+      "testimonials",
+      "stats-counter",
+      "about-us"
+    ]
+  },
+  {
+    "component_id": "order-request-form",
+    "name": "Order Request Form",
+    "category": "Forms",
+    "feature": "Order request",
+    "featureId": "order-request",
+    "contentNeeds": [
+      "items",
+      "phone"
+    ],
+    "dataNeeds": [
+      "order_requests"
+    ],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "order",
+      "menu",
+      "products",
+      "contact"
+    ],
+    "description": "Order request form for businesses that take orders without online payment: the customer chooses one or more items from a list, sets a quantity for each, picks a required delivery or pickup date, adds a note and contact details (name, phone, optional email), then sees a summary and a success message. Use it for cake and bakery orders, custom food and catering orders, handmade goods, flowers, gifts, print jobs and quote requests that involve specific items. No payment is taken. For a request with no items use contact-form.",
+    "keywords": [
+      "order",
+      "place an order",
+      "custom order",
+      "cake order",
+      "pre-order",
+      "quote request",
+      "order request",
+      "delivery date",
+      "pickup date",
+      "catering order",
+      "order without payment",
+      "bulk order",
+      "request a quote with items"
+    ],
+    "userPhrases": [
+      "let customers order a cake",
+      "customers send me an order with a delivery date",
+      "I take orders by request",
+      "order karna",
+      "order ke saath delivery date"
+    ],
+    "businessTypes": [
+      "bakery",
+      "caterer",
+      "florist",
+      "handmade seller",
+      "gift shop",
+      "printer",
+      "sweet shop"
+    ],
+    "notFor": [
+      {
+        "id": "contact-form",
+        "reason": "A message with no item list."
+      },
+      {
+        "id": "booking-form",
+        "reason": "A time slot, not goods."
+      },
+      {
+        "id": "product-card-grid",
+        "reason": "Shows products; does not collect an order."
+      }
+    ],
+    "pairsWith": [
+      "menu-catalog-grid",
+      "product-card-grid",
+      "whatsapp-button",
+      "business-hours"
+    ]
+  },
+  {
+    "component_id": "location-map",
+    "name": "Location & Interactive Map",
+    "category": "Contact",
+    "feature": "Location map",
+    "featureId": "location-map",
+    "contentNeeds": [
+      "address",
+      "map_embed_url"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "suggest",
+    "pages": [
+      "contact",
+      "home"
+    ],
+    "description": "Location section with the business address, an embedded map and a Get directions button. Use it for any business with a physical place customers visit: shops, cafes, restaurants, clinics, salons, gyms, offices, studios and event venues. Matches where to find us, our address, how to reach us, directions and find us on the map. If no map link is provided it shows the address only.",
+    "keywords": [
+      "location",
+      "map",
+      "address",
+      "directions",
+      "find us",
+      "google map",
+      "how to reach us",
+      "store location",
+      "visit us",
+      "embedded map",
+      "get directions"
+    ],
+    "userPhrases": [
+      "show where our shop is",
+      "a map with directions",
+      "our address",
+      "location batana"
+    ],
+    "businessTypes": [
+      "shop",
+      "cafe",
+      "restaurant",
+      "clinic",
+      "salon",
+      "gym",
+      "office",
+      "studio",
+      "venue"
+    ],
+    "notFor": [
+      {
+        "id": "contact-info-block",
+        "reason": "Text contact details without a map."
+      }
+    ],
+    "pairsWith": [
+      "business-hours",
+      "contact-info-block",
+      "contact-form"
+    ]
+  },
+  {
+    "component_id": "business-hours",
+    "name": "Business Hours & Schedule",
+    "category": "Contact",
+    "feature": "Business hours",
+    "featureId": "opening-hours",
+    "contentNeeds": [
+      "hours"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "suggest",
+    "pages": [
+      "contact",
+      "home"
+    ],
+    "description": "Weekly business hours table that marks each day open or closed, highlights today, supports lunch breaks and shows a live Open now or Closed badge based on the visitor's local time. Use it for opening times, working hours, clinic timings, store hours and visiting hours. Fits restaurants, shops, clinics, salons, gyms and schools.",
+    "keywords": [
+      "opening hours",
+      "business hours",
+      "opening times",
+      "timings",
+      "working hours",
+      "open now",
+      "closed",
+      "schedule",
+      "lunch break",
+      "weekly hours",
+      "visiting hours",
+      "store hours"
+    ],
+    "userPhrases": [
+      "show opening times",
+      "when we are open",
+      "our timings",
+      "khulne ka waqt"
+    ],
+    "businessTypes": [
+      "restaurant",
+      "cafe",
+      "shop",
+      "clinic",
+      "salon",
+      "gym",
+      "school"
+    ],
+    "notFor": [
+      {
+        "id": "events-list",
+        "reason": "One-off dated events, not weekly hours."
+      },
+      {
+        "id": "appointment-slot-picker",
+        "reason": "Bookable slots, not a display of hours."
+      }
+    ],
+    "pairsWith": [
+      "location-map",
+      "contact-info-block",
+      "booking-form"
+    ]
+  },
+  {
+    "component_id": "contact-info-block",
+    "name": "Contact Information Block",
+    "category": "Contact",
+    "feature": "Contact info",
+    "featureId": "contact-info",
+    "contentNeeds": [
+      "phone",
+      "email",
+      "address",
+      "social_handles"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "contact",
+      "home"
+    ],
+    "description": "Contact details block listing phone with a tap-to-call link, email with a mailto link, address and social links with icons, without any form. Use it where visitors just need numbers and addresses: contact pages, sidebars and headers. Matches contact details, call us, phone number, email address and reach us. Rows with no value are hidden. For a message form use contact-form.",
+    "keywords": [
+      "contact details",
+      "phone number",
+      "email address",
+      "call us",
+      "tap to call",
+      "mailto",
+      "address block",
+      "reach us",
+      "contact information",
+      "telephone"
+    ],
+    "userPhrases": [
+      "show our phone number and email",
+      "just our contact details, no form"
+    ],
+    "businessTypes": [
+      "any small business"
+    ],
+    "notFor": [
+      {
+        "id": "contact-form",
+        "reason": "Has a form to send a message."
+      },
+      {
+        "id": "location-map",
+        "reason": "Shows a map and directions."
+      }
+    ],
+    "pairsWith": [
+      "contact-form",
+      "location-map",
+      "social-links-bar"
+    ]
+  },
+  {
+    "component_id": "whatsapp-button",
+    "name": "WhatsApp Chat Button",
+    "category": "Conversion",
+    "feature": "WhatsApp chat",
+    "featureId": "whatsapp-chat",
+    "contentNeeds": [
+      "whatsapp"
+    ],
+    "dataNeeds": [],
+    "siteRole": "global",
+    "inclusion": "requested",
+    "pages": [
+      "all"
+    ],
+    "description": "Floating WhatsApp button fixed to a screen corner that opens a chat with the business number, optionally with a prefilled message. Use it where customers prefer to message instead of filling forms: ordering by WhatsApp, asking prices, quick enquiries and support, common for bakeries, shops, home businesses, salons and clinics. Appears on every page and does not render without a number. It is a chat link, not an AI chatbot or live-chat system.",
+    "keywords": [
+      "whatsapp",
+      "chat on whatsapp",
+      "click to chat",
+      "floating button",
+      "message us",
+      "wa.me",
+      "order on whatsapp",
+      "quick message",
+      "chat button",
+      "instant message"
+    ],
+    "userPhrases": [
+      "customers can order on WhatsApp",
+      "a WhatsApp button",
+      "chat with us",
+      "WhatsApp pe order"
+    ],
+    "businessTypes": [
+      "bakery",
+      "shop",
+      "home business",
+      "salon",
+      "clinic",
+      "restaurant"
+    ],
+    "notFor": [
+      {
+        "id": "contact-form",
+        "reason": "A web form, not a chat link."
+      },
+      {
+        "id": "social-links-bar",
+        "reason": "A profile link in a row of icons, not a floating chat launcher."
+      }
+    ],
+    "pairsWith": [
+      "order-request-form",
+      "contact-info-block",
+      "menu-catalog-grid"
+    ]
+  },
+  {
+    "component_id": "product-card-grid",
+    "name": "Product Card Grid",
+    "category": "Commerce",
+    "feature": "Product showcase grid",
+    "featureId": "product-grid",
+    "contentNeeds": [
+      "items",
+      "prices",
+      "photos"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "products",
+      "home"
+    ],
+    "description": "Product card grid of image-led cards with name, price, short description, optional badge and an Enquire or similar button. Use it to display goods in a retail or home business: candles, clothing, jewellery, crafts, cosmetics, gifts, furniture, electronics. It is a showcase, not a store: no cart, no checkout and no payment. For food and drink menus use menu-catalog-grid; for a single product page use product-detail.",
+    "keywords": [
+      "products",
+      "product grid",
+      "shop items",
+      "retail goods",
+      "product cards",
+      "collection",
+      "for sale",
+      "price and photo",
+      "badges",
+      "enquire button",
+      "goods"
+    ],
+    "userPhrases": [
+      "show my products with prices",
+      "customers see what I sell",
+      "handmade candles on the site",
+      "products dikhana"
+    ],
+    "businessTypes": [
+      "retail shop",
+      "handmade seller",
+      "boutique",
+      "jeweller",
+      "gift shop",
+      "furniture shop"
+    ],
+    "notFor": [
+      {
+        "id": "menu-catalog-grid",
+        "reason": "Food and drink, listed by category."
+      },
+      {
+        "id": "product-detail",
+        "reason": "One product in depth."
+      }
+    ],
+    "pairsWith": [
+      "product-detail",
+      "order-request-form",
+      "search-filter-bar",
+      "whatsapp-button"
+    ]
+  },
+  {
+    "component_id": "gallery-carousel",
+    "name": "Gallery Carousel Slider",
+    "category": "Media",
+    "feature": "Image carousel",
+    "featureId": "gallery",
+    "contentNeeds": [
+      "photos"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "home",
+      "gallery"
+    ],
+    "description": "Image carousel and slideshow that shows one picture at a time with previous and next arrows, dots, touch swipe, keyboard control and optional autoplay that pauses on hover and respects reduced-motion settings. Use it for featured photos, studio shots, venue highlights and compact image showcases. For browsing many photos in a grid use image-gallery.",
+    "keywords": [
+      "carousel",
+      "slider",
+      "slideshow",
+      "image slider",
+      "photo slider",
+      "featured photos",
+      "swipe",
+      "autoplay",
+      "arrows and dots",
+      "rotating images"
+    ],
+    "userPhrases": [
+      "a slideshow of photos",
+      "photos that slide across"
+    ],
+    "businessTypes": [
+      "photographer",
+      "studio",
+      "venue",
+      "restaurant",
+      "hotel"
+    ],
+    "notFor": [
+      {
+        "id": "image-gallery",
+        "reason": "A grid for browsing many photos with a lightbox."
+      }
+    ],
+    "pairsWith": [
+      "image-gallery",
+      "hero-banner",
+      "portfolio-grid"
+    ]
+  },
+  {
+    "component_id": "newsletter-signup",
+    "name": "Newsletter Signup",
+    "category": "Forms",
+    "feature": "Newsletter signup",
+    "featureId": "newsletter",
+    "contentNeeds": [],
+    "dataNeeds": [
+      "subscribers"
+    ],
+    "siteRole": "section",
+    "inclusion": "suggest",
+    "pages": [
+      "home",
+      "blog"
+    ],
+    "description": "Newsletter signup form with an email field, consent line, validation and a thank-you state. Use it to collect email addresses for mailing lists, updates, offers, news and announcements on any site. Collected addresses are stored for the owner. For a popup version use lead-capture-popup.",
+    "keywords": [
+      "newsletter",
+      "subscribe",
+      "mailing list",
+      "email signup",
+      "updates",
+      "join our list",
+      "email capture",
+      "stay informed",
+      "consent checkbox"
+    ],
+    "userPhrases": [
+      "let people subscribe",
+      "collect emails",
+      "send offers by email"
+    ],
+    "businessTypes": [
+      "any small business",
+      "blogger",
+      "shop"
+    ],
+    "notFor": [
+      {
+        "id": "lead-capture-popup",
+        "reason": "A popup with an offer, not an inline form."
+      },
+      {
+        "id": "contact-form",
+        "reason": "A message form, not a list signup."
+      }
+    ],
+    "pairsWith": [
+      "footer",
+      "blog-list",
+      "lead-capture-popup"
+    ]
+  },
+  {
+    "component_id": "page-header",
+    "name": "Inner Page Header Banner",
+    "category": "Navigation & Headers",
+    "feature": "Page header",
+    "featureId": "page-header",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "page-layout",
+    "inclusion": "suggest",
+    "pages": [
+      "about",
+      "services",
+      "gallery",
+      "menu",
+      "blog",
+      "contact"
+    ],
+    "description": "Inner-page header with page title, subtitle, breadcrumb trail and optional background image. Use it at the top of secondary pages such as About, Services, Gallery, Menu, Blog and Contact. Not for the home page; use hero-banner there.",
+    "keywords": [
+      "page header",
+      "page title",
+      "breadcrumb",
+      "inner page banner",
+      "subtitle",
+      "section heading",
+      "title banner",
+      "secondary page top"
+    ],
+    "userPhrases": [
+      "a title at the top of each page"
+    ],
+    "businessTypes": [
+      "any small business"
+    ],
+    "notFor": [
+      {
+        "id": "hero-banner",
+        "reason": "The home page's first screen."
+      }
+    ],
+    "pairsWith": [
+      "navbar",
+      "hero-banner"
+    ]
+  },
+  {
+    "component_id": "social-links-bar",
+    "name": "Social Links Bar",
+    "category": "Social Proof & Trust",
+    "feature": "Social media links",
+    "featureId": "social-links",
+    "contentNeeds": [
+      "social_handles"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "suggest",
+    "pages": [
+      "home",
+      "contact"
+    ],
+    "description": "Row of social media icon links built from handles or URLs for Instagram, Facebook, TikTok, YouTube, X, LinkedIn and WhatsApp; platforms without a value are hidden. Use it to point visitors to the business profiles: follow us, find us on Instagram, our social media. Fits almost any small business, especially photographers, bakeries and salons. For full contact details use contact-info-block.",
+    "keywords": [
+      "social media",
+      "instagram",
+      "facebook",
+      "tiktok",
+      "youtube",
+      "linkedin",
+      "twitter",
+      "follow us",
+      "social icons",
+      "social handles",
+      "profiles"
+    ],
+    "userPhrases": [
+      "link to my Instagram",
+      "our social media pages",
+      "follow us on Facebook"
+    ],
+    "businessTypes": [
+      "photographer",
+      "bakery",
+      "salon",
+      "influencer",
+      "shop",
+      "restaurant"
+    ],
+    "notFor": [
+      {
+        "id": "contact-info-block",
+        "reason": "Phone, email and address, not only social profiles."
+      },
+      {
+        "id": "whatsapp-button",
+        "reason": "A floating chat launcher."
+      }
+    ],
+    "pairsWith": [
+      "footer",
+      "contact-info-block",
+      "gallery-carousel"
+    ]
+  },
+  {
+    "component_id": "blog-list",
+    "name": "Blog Posts & Articles Grid",
+    "category": "Content",
+    "feature": "Blog list",
+    "featureId": "blog",
+    "contentNeeds": [],
+    "dataNeeds": [
+      "blog_posts"
+    ],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "blog",
+      "home"
+    ],
+    "description": "Blog listing of posts as a grid or list with title, date, author, excerpt, image and optional category filter. Use it for blog, news, articles, updates, tips, recipes, announcements and journal pages that keep the site fresh and help customers find the business. Posts are stored in the database and open in blog-post.",
+    "keywords": [
+      "blog",
+      "articles",
+      "news",
+      "posts",
+      "updates",
+      "journal",
+      "tips",
+      "recipes",
+      "latest posts",
+      "category filter",
+      "read more",
+      "announcements"
+    ],
+    "userPhrases": [
+      "add a blog",
+      "post news and updates",
+      "write articles",
+      "blog bhi chahiye"
+    ],
+    "businessTypes": [
+      "cafe",
+      "clinic",
+      "school",
+      "agency",
+      "freelancer",
+      "shop"
+    ],
+    "notFor": [
+      {
+        "id": "blog-post",
+        "reason": "A single article, not the listing."
+      },
+      {
+        "id": "events-list",
+        "reason": "Dated happenings, not articles."
+      }
+    ],
+    "pairsWith": [
+      "blog-post",
+      "search-filter-bar",
+      "newsletter-signup"
+    ]
+  },
+  {
+    "component_id": "blog-post",
+    "name": "Blog Article Post",
+    "category": "Content",
+    "feature": "Blog post",
+    "featureId": "blog",
+    "contentNeeds": [],
+    "dataNeeds": [
+      "blog_posts"
+    ],
+    "siteRole": "page-layout",
+    "inclusion": "requested",
+    "pages": [
+      "blog"
+    ],
+    "description": "Single article layout with title, date, author, hero image, body text and a share row. Use it for each individual blog post, news item, recipe, tutorial or announcement page; it pairs with blog-list.",
+    "keywords": [
+      "article",
+      "single post",
+      "blog article",
+      "news item",
+      "recipe page",
+      "tutorial",
+      "story",
+      "share links",
+      "post page"
+    ],
+    "userPhrases": [
+      "a page for each blog post"
+    ],
+    "businessTypes": [
+      "cafe",
+      "clinic",
+      "school",
+      "agency",
+      "freelancer"
+    ],
+    "notFor": [
+      {
+        "id": "blog-list",
+        "reason": "The listing of many posts."
+      }
+    ],
+    "pairsWith": [
+      "blog-list",
+      "newsletter-signup",
+      "cta-banner"
+    ]
+  },
+  {
+    "component_id": "events-list",
+    "name": "Events & Workshops Schedule",
+    "category": "Content",
+    "feature": "Events list",
+    "featureId": "events",
+    "contentNeeds": [],
+    "dataNeeds": [
+      "events"
+    ],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "events",
+      "home"
+    ],
+    "description": "Upcoming events list with date badge, time, place and optional link; past events can be hidden or greyed out. Use it for workshops, classes, open days, launches, tastings, live music, community events, exhibitions and seminars. It lists events; it is not a live countdown timer or a ticket-sales system.",
+    "keywords": [
+      "events",
+      "upcoming events",
+      "workshops",
+      "schedule",
+      "calendar",
+      "classes",
+      "open day",
+      "what's on",
+      "dates",
+      "rsvp",
+      "seminars",
+      "happenings"
+    ],
+    "userPhrases": [
+      "list our upcoming events",
+      "workshops with dates",
+      "events ki list"
+    ],
+    "businessTypes": [
+      "event planner",
+      "gym",
+      "school",
+      "cafe",
+      "community group",
+      "studio"
+    ],
+    "notFor": [
+      {
+        "id": "business-hours",
+        "reason": "Weekly hours, not one-off events."
+      },
+      {
+        "id": "timeline",
+        "reason": "History in the past, not upcoming dates."
+      }
+    ],
+    "pairsWith": [
+      "booking-form",
+      "location-map",
+      "announcement-bar"
+    ]
+  },
+  {
+    "component_id": "services-price-list",
+    "name": "Services & Price Menu",
+    "category": "Commerce",
+    "feature": "Services price list",
+    "featureId": "services-price-list",
+    "contentNeeds": [
+      "items",
+      "prices"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "services",
+      "pricing",
+      "home"
+    ],
+    "description": "Itemised list of services with a price or starting-from price, a short note and an optional duration. Use it for price lists and rate cards: salon and spa treatments, dental and clinic services, repairs, tutoring rates, cleaning, photography packages and consultation fees. Matches our services and prices, rate list and treatment menu. This is a plain list, not tiered subscription plans; for plans use pricing-table.",
+    "keywords": [
+      "price list",
+      "rate card",
+      "services and prices",
+      "treatment menu",
+      "fees",
+      "starting from",
+      "duration",
+      "service charges",
+      "tariff",
+      "rates",
+      "cost of services"
+    ],
+    "userPhrases": [
+      "show our services with prices",
+      "price list for the salon",
+      "what each treatment costs",
+      "rate list"
+    ],
+    "businessTypes": [
+      "salon",
+      "spa",
+      "dentist",
+      "clinic",
+      "repair shop",
+      "tutor",
+      "cleaner",
+      "photographer",
+      "consultant"
+    ],
+    "notFor": [
+      {
+        "id": "pricing-table",
+        "reason": "Tiered plans compared side by side."
+      },
+      {
+        "id": "features-grid",
+        "reason": "Services without prices."
+      },
+      {
+        "id": "menu-catalog-grid",
+        "reason": "Food and drink."
+      }
+    ],
+    "pairsWith": [
+      "booking-form",
+      "features-grid",
+      "business-hours",
+      "faq-accordion"
+    ]
+  },
+  {
+    "component_id": "before-after-slider",
+    "name": "Before & After Comparison Slider",
+    "category": "Media",
+    "feature": "Before and after comparison",
+    "featureId": "before-after",
+    "contentNeeds": [
+      "photos"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "gallery",
+      "services",
+      "home"
+    ],
+    "description": "Before and after comparison slider with a draggable divider between two images, operable by touch and keyboard. Use it to show transformations and results: hair and makeup, dental and skin treatments, renovations, cleaning, painting, landscaping, fitness progress and photo retouching.",
+    "keywords": [
+      "before and after",
+      "comparison slider",
+      "transformation",
+      "results",
+      "draggable divider",
+      "makeover",
+      "renovation",
+      "image compare"
+    ],
+    "userPhrases": [
+      "show before and after photos",
+      "results of our work side by side"
+    ],
+    "businessTypes": [
+      "salon",
+      "dentist",
+      "renovation contractor",
+      "cleaner",
+      "landscaper",
+      "gym",
+      "retoucher"
+    ],
+    "notFor": [
+      {
+        "id": "image-gallery",
+        "reason": "Many photos, not a pair compared."
+      }
+    ],
+    "pairsWith": [
+      "image-gallery",
+      "services-price-list",
+      "testimonials"
+    ]
+  },
+  {
+    "component_id": "video-section",
+    "name": "Video Showcase & Spotlight",
+    "category": "Media",
+    "feature": "Video section",
+    "featureId": "video",
+    "contentNeeds": [
+      "video_url"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "home",
+      "about",
+      "gallery"
+    ],
+    "description": "Embedded video section for a YouTube or Vimeo link that loads when clicked, with a thumbnail and caption. Use it for promo videos, introductions, behind the scenes, tutorials, video testimonials and a recorded walkthrough of a venue or tour. Needs a video link from the owner; it plays a recorded video, not a live stream.",
+    "keywords": [
+      "video",
+      "youtube",
+      "vimeo",
+      "promo video",
+      "watch",
+      "intro video",
+      "walkthrough",
+      "tour video",
+      "video testimonial",
+      "embedded video",
+      "play"
+    ],
+    "userPhrases": [
+      "add a video",
+      "show our YouTube video",
+      "video of the venue"
+    ],
+    "businessTypes": [
+      "event planner",
+      "restaurant",
+      "agency",
+      "school",
+      "real estate",
+      "creator"
+    ],
+    "notFor": [
+      {
+        "id": "gallery-carousel",
+        "reason": "Still images, not video."
+      }
+    ],
+    "pairsWith": [
+      "about-us",
+      "hero-banner",
+      "testimonials"
+    ]
+  },
+  {
+    "component_id": "timeline",
+    "name": "Milestones & History Timeline",
+    "category": "Content",
+    "feature": "Milestone timeline",
+    "featureId": "timeline",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "about"
+    ],
+    "description": "Vertical timeline of dated milestones for company history, founding story, achievements and roadmap. Use it on About pages: our journey, since the founding year, milestones. For one person's career use resume-skills.",
+    "keywords": [
+      "timeline",
+      "history",
+      "milestones",
+      "our journey",
+      "since",
+      "founded",
+      "roadmap",
+      "chronology",
+      "achievements by year"
+    ],
+    "userPhrases": [
+      "our history year by year",
+      "milestones of the business"
+    ],
+    "businessTypes": [
+      "established business",
+      "school",
+      "agency",
+      "family business"
+    ],
+    "notFor": [
+      {
+        "id": "resume-skills",
+        "reason": "A person's career, not a company history."
+      },
+      {
+        "id": "process-steps",
+        "reason": "A service flow, not dated history."
+      }
+    ],
+    "pairsWith": [
+      "about-us",
+      "stats-counter"
+    ]
+  },
+  {
+    "component_id": "resume-skills",
+    "name": "Skills & Experience Resume",
+    "category": "Showcase",
+    "feature": "Resume and skills",
+    "featureId": "resume-skills",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "about",
+      "portfolio"
+    ],
+    "description": "Resume layout with skills shown with text-labelled levels, work experience and education lists. Use it for personal portfolio and freelancer sites where a person shows a CV: developers, designers, photographers, writers and consultants. Matches resume, CV, skills, experience and education.",
+    "keywords": [
+      "resume",
+      "cv",
+      "skills",
+      "experience",
+      "education",
+      "career",
+      "proficiency",
+      "qualifications",
+      "work history"
+    ],
+    "userPhrases": [
+      "my CV on the site",
+      "show my skills and experience",
+      "my education"
+    ],
+    "businessTypes": [
+      "freelancer",
+      "developer",
+      "designer",
+      "writer",
+      "consultant",
+      "job seeker"
+    ],
+    "notFor": [
+      {
+        "id": "timeline",
+        "reason": "A company's history, not one person's CV."
+      },
+      {
+        "id": "team-grid",
+        "reason": "Several people, not one."
+      }
+    ],
+    "pairsWith": [
+      "portfolio-grid",
+      "about-us",
+      "contact-form"
+    ]
+  },
+  {
+    "component_id": "case-study-detail",
+    "name": "Case Study & Project Showcase",
+    "category": "Showcase",
+    "feature": "Case study",
+    "featureId": "case-study",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "page-layout",
+    "inclusion": "requested",
+    "pages": [
+      "portfolio"
+    ],
+    "description": "Detail layout for one portfolio project: title, summary, role, gallery, challenge, solution and result. Use it for an in-depth project story reached from a portfolio card: design projects, building projects, campaigns, events and client work.",
+    "keywords": [
+      "case study",
+      "project detail",
+      "challenge solution result",
+      "project story",
+      "client project",
+      "role",
+      "project page",
+      "work breakdown"
+    ],
+    "userPhrases": [
+      "explain one project in detail",
+      "a page for each project"
+    ],
+    "businessTypes": [
+      "designer",
+      "agency",
+      "architect",
+      "freelancer",
+      "event planner"
+    ],
+    "notFor": [
+      {
+        "id": "portfolio-grid",
+        "reason": "A grid of many projects."
+      }
+    ],
+    "pairsWith": [
+      "portfolio-grid",
+      "testimonials",
+      "contact-form"
+    ]
+  },
+  {
+    "component_id": "product-detail",
+    "name": "Product Detail & Variant Selector",
+    "category": "Commerce",
+    "feature": "Product detail",
+    "featureId": "product-detail",
+    "contentNeeds": [
+      "items",
+      "prices",
+      "photos"
+    ],
+    "dataNeeds": [],
+    "siteRole": "page-layout",
+    "inclusion": "requested",
+    "pages": [
+      "products"
+    ],
+    "description": "Detail layout for one product: large image with thumbnails, name, price, description, a variant selector (size, flavour, colour) and an Enquire button. No cart. Use it for single product pages reached from a product grid, or for items needing choices such as a custom cake flavour or a clothing size.",
+    "keywords": [
+      "product page",
+      "product detail",
+      "variants",
+      "size",
+      "flavour",
+      "colour",
+      "thumbnails",
+      "single product",
+      "item page",
+      "enquire"
+    ],
+    "userPhrases": [
+      "a page for each product",
+      "choose size or flavour then enquire"
+    ],
+    "businessTypes": [
+      "retail shop",
+      "bakery",
+      "boutique",
+      "handmade seller"
+    ],
+    "notFor": [
+      {
+        "id": "product-card-grid",
+        "reason": "Many products at a glance."
+      }
+    ],
+    "pairsWith": [
+      "product-card-grid",
+      "order-request-form",
+      "whatsapp-button"
+    ]
+  },
+  {
+    "component_id": "search-filter-bar",
+    "name": "Search & Filter Bar",
+    "category": "Interactive",
+    "feature": "Search and filter",
+    "featureId": "search-filter",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "only-if-asked",
+    "pages": [
+      "menu",
+      "products",
+      "blog"
+    ],
+    "description": "Search box with debounced typing and category filter chips that narrows a list passed to it. Use it above long lists such as menus, products, blog posts, services, FAQs and events, when there are many items to browse.",
+    "keywords": [
+      "search",
+      "filter",
+      "category chips",
+      "find items",
+      "narrow results",
+      "search bar",
+      "result counter",
+      "filter by category"
+    ],
+    "userPhrases": [
+      "let customers search the menu",
+      "filter products by category"
+    ],
+    "businessTypes": [
+      "restaurant",
+      "shop",
+      "blogger",
+      "directory"
+    ],
+    "notFor": [
+      {
+        "id": "menu-catalog-grid",
+        "reason": "Shows items; the bar only filters them."
+      }
+    ],
+    "pairsWith": [
+      "menu-catalog-grid",
+      "product-card-grid",
+      "blog-list"
+    ]
+  },
+  {
+    "component_id": "appointment-slot-picker",
+    "name": "Appointment Slot & Availability Picker",
+    "category": "Interactive",
+    "feature": "Appointment slot picker",
+    "featureId": "booking",
+    "contentNeeds": [],
+    "dataNeeds": [
+      "availability"
+    ],
+    "siteRole": "section",
+    "inclusion": "requested",
+    "pages": [
+      "booking"
+    ],
+    "description": "Date picker with selectable time slots from availability data, with a selected state. Use it inside booking flows when visitors must choose from open times: consultations, haircuts, clinic visits, classes and tutoring sessions. Needs availability data from the business. For the complete booking form with contact details use booking-form.",
+    "keywords": [
+      "time slots",
+      "slot picker",
+      "availability",
+      "calendar",
+      "pick a date",
+      "available times",
+      "choose a time",
+      "open slots",
+      "schedule picker"
+    ],
+    "userPhrases": [
+      "let customers pick a free time",
+      "show available slots"
+    ],
+    "businessTypes": [
+      "clinic",
+      "salon",
+      "tutor",
+      "consultant",
+      "studio"
+    ],
+    "notFor": [
+      {
+        "id": "booking-form",
+        "reason": "The full form with contact details."
+      }
+    ],
+    "pairsWith": [
+      "booking-form",
+      "business-hours"
+    ]
+  },
+  {
+    "component_id": "announcement-bar",
+    "name": "Top Announcement Bar",
+    "category": "Navigation & Headers",
+    "feature": "Announcement banner",
+    "featureId": "announcement",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "global",
+    "inclusion": "only-if-asked",
+    "pages": [
+      "all"
+    ],
+    "description": "Thin banner above the navigation for short announcements with an optional link and a dismiss button remembered for the session. Use it for sales, offers, holiday closures, new openings, Eid timings, delivery notices and event reminders.",
+    "keywords": [
+      "announcement",
+      "notice",
+      "promo banner",
+      "top bar",
+      "alert",
+      "offer strip",
+      "closure notice",
+      "dismissible banner",
+      "ribbon"
+    ],
+    "userPhrases": [
+      "a notice at the top about our sale",
+      "announce holiday timings"
+    ],
+    "businessTypes": [
+      "any small business"
+    ],
+    "notFor": [
+      {
+        "id": "cta-banner",
+        "reason": "A section inside the page, not a thin top strip."
+      }
+    ],
+    "pairsWith": [
+      "navbar",
+      "events-list"
+    ]
+  },
+  {
+    "component_id": "lead-capture-popup",
+    "name": "Lead Capture & Discount Modal",
+    "category": "Conversion",
+    "feature": "Lead capture popup",
+    "featureId": "lead-capture",
+    "contentNeeds": [],
+    "dataNeeds": [
+      "subscribers"
+    ],
+    "siteRole": "overlay",
+    "inclusion": "only-if-asked",
+    "pages": [
+      "all"
+    ],
+    "description": "Modal popup offering a discount or free guide in exchange for an email, opening after a delay or on exit intent once per session, with a focus trap and Escape to close. Use it only when the owner wants more subscribers or a welcome discount. It interrupts visitors, so add it only when asked.",
+    "keywords": [
+      "popup",
+      "modal",
+      "discount offer",
+      "exit intent",
+      "lead capture",
+      "welcome offer",
+      "email for discount",
+      "free guide",
+      "subscribe popup"
+    ],
+    "userPhrases": [
+      "a popup offering a discount",
+      "ask for email before they leave"
+    ],
+    "businessTypes": [
+      "shop",
+      "online seller",
+      "course seller"
+    ],
+    "notFor": [
+      {
+        "id": "newsletter-signup",
+        "reason": "An inline form, not a popup."
+      }
+    ],
+    "pairsWith": [
+      "newsletter-signup",
+      "announcement-bar"
+    ]
+  },
+  {
+    "component_id": "image-text-rows",
+    "name": "Alternating Image & Text Rows",
+    "category": "Content",
+    "feature": "Alternating editorial rows",
+    "featureId": "content-rows",
+    "contentNeeds": [
+      "photos",
+      "about_text"
+    ],
+    "dataNeeds": [],
+    "siteRole": "section",
+    "inclusion": "suggest",
+    "pages": [
+      "home",
+      "about",
+      "services"
+    ],
+    "description": "Alternating image and text rows that stack into one column on mobile, with optional bullet checklists, badges and buttons. Use it to explain services, story sections, product benefits and features with photos, when about-us or features-grid is too small for the content.",
+    "keywords": [
+      "image and text",
+      "alternating rows",
+      "content blocks",
+      "editorial",
+      "feature rows",
+      "zigzag",
+      "text with photo",
+      "split sections"
+    ],
+    "userPhrases": [
+      "sections with a photo and text side by side"
+    ],
+    "businessTypes": [
+      "any small business"
+    ],
+    "notFor": [
+      {
+        "id": "features-grid",
+        "reason": "Short cards, not long image-led rows."
+      },
+      {
+        "id": "about-us",
+        "reason": "One story block."
+      }
+    ],
+    "pairsWith": [
+      "about-us",
+      "features-grid",
+      "cta-banner"
+    ]
+  },
+  {
+    "component_id": "cookie-notice",
+    "name": "Cookie Consent & Privacy Notice",
+    "category": "Conversion",
+    "feature": "Cookie consent notice",
+    "featureId": "cookie-notice",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "global",
+    "inclusion": "only-if-asked",
+    "pages": [
+      "all"
+    ],
+    "description": "Cookie notice: a short privacy message with an accept button, remembered in the browser's local storage. Use it for sites that need cookie consent or a GDPR-style notice, typically added site-wide when visitors come from regions that require consent.",
+    "keywords": [
+      "cookie",
+      "cookies",
+      "consent",
+      "gdpr",
+      "privacy notice",
+      "accept cookies",
+      "cookie banner",
+      "privacy banner"
+    ],
+    "userPhrases": [
+      "a cookie consent banner"
+    ],
+    "businessTypes": [
+      "any business with international visitors"
+    ],
+    "notFor": [
+      {
+        "id": "legal-page",
+        "reason": "The full policy text, not the banner."
+      }
+    ],
+    "pairsWith": [
+      "legal-page",
+      "footer"
+    ]
+  },
+  {
+    "component_id": "back-to-top",
+    "name": "Back To Top Button",
+    "category": "Navigation",
+    "feature": "Back to top button",
+    "featureId": "back-to-top",
+    "contentNeeds": [],
+    "dataNeeds": [],
+    "siteRole": "global",
+    "inclusion": "suggest",
+    "pages": [
+      "all"
+    ],
+    "description": "Floating back-to-top button that appears after scrolling and scrolls smoothly to the top, respecting reduced-motion settings. Use it on long pages such as long menus, galleries, blogs and one-page sites.",
+    "keywords": [
+      "back to top",
+      "scroll to top",
+      "up arrow",
+      "floating button",
+      "return to top"
+    ],
+    "userPhrases": [
+      "a button to go back up on long pages"
+    ],
+    "businessTypes": [
+      "any small business"
+    ],
+    "notFor": [
+      {
+        "id": "whatsapp-button",
+        "reason": "A chat launcher, not scrolling."
+      }
+    ],
+    "pairsWith": [
+      "footer"
+    ]
+  },
+  {
+    "component_id": "legal-page",
+    "name": "Privacy Policy & Terms Layout",
+    "category": "Content",
+    "feature": "Privacy policy and terms of service",
+    "featureId": "legal-pages",
+    "contentNeeds": [
+      "about_text"
+    ],
+    "dataNeeds": [],
+    "siteRole": "page-layout",
+    "inclusion": "suggest",
+    "pages": [
+      "legal"
+    ],
+    "description": "Layout for privacy policy, terms of service and similar legal text, with numbered clauses, section anchors and contact details; the text is supplied by the owner. Use it for privacy policy, terms and conditions, refund, delivery and return policies, and disclaimers.",
+    "keywords": [
+      "privacy policy",
+      "terms",
+      "terms of service",
+      "terms and conditions",
+      "refund policy",
+      "return policy",
+      "disclaimer",
+      "legal",
+      "policy page"
+    ],
+    "userPhrases": [
+      "a privacy policy page",
+      "terms and conditions"
+    ],
+    "businessTypes": [
+      "any small business",
+      "online seller"
+    ],
+    "notFor": [
+      {
+        "id": "cookie-notice",
+        "reason": "A small banner, not a full page."
+      }
+    ],
+    "pairsWith": [
+      "footer",
+      "cookie-notice",
+      "page-header"
+    ]
+  }
+]

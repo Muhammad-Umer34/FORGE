@@ -1,0 +1,629 @@
+[
+  {
+    "capability_id": "online-payments",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "online payments",
+      "pay online",
+      "accept cards",
+      "credit card",
+      "debit card",
+      "JazzCash",
+      "Easypaisa",
+      "Stripe",
+      "PayPal",
+      "checkout",
+      "deposit online",
+      "payment gateway",
+      "Razorpay",
+      "Square payments",
+      "Apple Pay",
+      "Google Pay",
+      "Raast",
+      "SadaPay",
+      "NayaPay",
+      "bank transfer verification",
+      "cash on delivery tracking"
+    ],
+    "reason": "Payments are out of FORGE's scope.",
+    "alternativeComponents": [
+      "order-request-form",
+      "whatsapp-button",
+      "booking-form"
+    ],
+    "alternativeText": "Customers send an order or booking request and the owner arranges payment directly."
+  },
+  {
+    "capability_id": "shopping-cart-store",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "shopping cart",
+      "add to cart",
+      "e-commerce store",
+      "online store like Daraz",
+      "marketplace",
+      "sell online with checkout",
+      "multi-vendor",
+      "web shop with orders and payment"
+    ],
+    "reason": "No cart, checkout or order management; the library showcases products and collects requests.",
+    "alternativeComponents": [
+      "product-card-grid",
+      "product-detail",
+      "order-request-form",
+      "whatsapp-button"
+    ],
+    "alternativeText": "A product showcase with an enquiry or order-request form."
+  },
+  {
+    "capability_id": "user-accounts-login",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "login",
+      "log in",
+      "sign in",
+      "user accounts",
+      "member area",
+      "student portal",
+      "customer portal",
+      "see their results",
+      "fee status",
+      "my account",
+      "register an account",
+      "password",
+      "sign in with Google",
+      "Google login",
+      "Facebook login",
+      "single sign-on",
+      "OTP login"
+    ],
+    "reason": "Authentication and private user areas are out of FORGE's scope.",
+    "alternativeComponents": [
+      "contact-form",
+      "contact-info-block",
+      "whatsapp-button"
+    ],
+    "alternativeText": "Public information pages, with results or fee queries handled through contact or WhatsApp."
+  },
+  {
+    "capability_id": "admin-dashboard-cms",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "admin panel",
+      "admin dashboard",
+      "content management system",
+      "CMS",
+      "edit the site myself",
+      "back office",
+      "manage orders in a dashboard",
+      "staff login"
+    ],
+    "reason": "Admin screens are out of FORGE's scope.",
+    "alternativeComponents": [],
+    "alternativeText": "Changes are requested through FORGE as a revision."
+  },
+  {
+    "capability_id": "ai-chatbot-live-chat",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "chat bot",
+      "chatbot",
+      "AI assistant on the site",
+      "answers customer questions using AI",
+      "live chat",
+      "live chat with agents",
+      "virtual assistant",
+      "Intercom",
+      "Tawk.to",
+      "Crisp",
+      "Zendesk chat",
+      "Drift",
+      "Facebook Messenger chat plugin",
+      "ChatGPT on my site"
+    ],
+    "reason": "No chatbot or live-chat component in the library.",
+    "alternativeComponents": [
+      "whatsapp-button",
+      "faq-accordion",
+      "contact-form"
+    ],
+    "alternativeText": "A WhatsApp chat button plus an FAQ section."
+  },
+  {
+    "capability_id": "countdown-timer",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "countdown",
+      "countdown timer",
+      "days left",
+      "launch countdown",
+      "time until the event"
+    ],
+    "reason": "No countdown component in the library.",
+    "alternativeComponents": [
+      "events-list",
+      "announcement-bar"
+    ],
+    "alternativeText": "List the next event with its date, or announce it in a top banner."
+  },
+  {
+    "capability_id": "virtual-tour-360",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "virtual tour",
+      "360 tour",
+      "360 degree view",
+      "virtual venue tour",
+      "walkthrough in 3D",
+      "VR tour"
+    ],
+    "reason": "No 360 or 3D viewer in the library.",
+    "alternativeComponents": [
+      "video-section",
+      "gallery-carousel",
+      "image-gallery"
+    ],
+    "alternativeText": "A recorded walkthrough video and a photo gallery of the venue."
+  },
+  {
+    "capability_id": "live-streaming-webinars",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "live stream",
+      "live streaming",
+      "webinar",
+      "live classes online",
+      "video calls",
+      "online meeting room",
+      "Zoom",
+      "Google Meet",
+      "Microsoft Teams",
+      "Zoom meeting link inside the site"
+    ],
+    "reason": "Only recorded video embeds are supported.",
+    "alternativeComponents": [
+      "video-section",
+      "events-list"
+    ],
+    "alternativeText": "Embed recorded videos and list upcoming sessions with a link."
+  },
+  {
+    "capability_id": "booking-with-payment-or-calendar-sync",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "pay a deposit when booking",
+      "sync with Google Calendar",
+      "automatic confirmation emails and reminders",
+      "SMS reminders",
+      "two-way calendar sync",
+      "Calendly",
+      "Acuity",
+      "Fresha",
+      "Booksy",
+      "OpenTable",
+      "Treatwell",
+      "Google Calendar"
+    ],
+    "reason": "Booking collects a request; payment, reminders and calendar sync are not provided.",
+    "alternativeComponents": [
+      "booking-form",
+      "appointment-slot-picker"
+    ],
+    "alternativeText": "A booking request that the owner confirms by phone or WhatsApp."
+  },
+  {
+    "capability_id": "user-generated-content",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "let visitors post reviews",
+      "comments section",
+      "forum",
+      "community board",
+      "user submitted photos",
+      "rate and review form"
+    ],
+    "reason": "Reviews and posts shown on the site are supplied by the owner; visitors cannot publish content.",
+    "alternativeComponents": [
+      "testimonials",
+      "contact-form"
+    ],
+    "alternativeText": "Owner-curated testimonials, with a contact form for feedback."
+  },
+  {
+    "capability_id": "inventory-delivery-tracking",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "stock levels",
+      "real-time inventory",
+      "track my order",
+      "delivery tracking",
+      "order status page",
+      "out of stock indicator"
+    ],
+    "reason": "No order management or stock data in the library.",
+    "alternativeComponents": [
+      "order-request-form",
+      "whatsapp-button"
+    ],
+    "alternativeText": "Orders are confirmed and updated by the owner through phone or WhatsApp."
+  },
+  {
+    "capability_id": "multi-language-switch",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "multiple languages",
+      "Urdu and English switch",
+      "language selector",
+      "translate the site",
+      "bilingual website"
+    ],
+    "reason": "No language switcher in the current library. Confirm before relying on this.",
+    "alternativeComponents": [],
+    "alternativeText": "A single-language site, or separate pages written in each language."
+  },
+  {
+    "capability_id": "multiple-branches-locator",
+    "group": "feature",
+    "tier": "partial",
+    "phrases": [
+      "store locator",
+      "multiple branches",
+      "several outlets",
+      "find the nearest branch"
+    ],
+    "reason": "location-map shows one address and map. Several branches would need one block per branch. Confirm how the component handles this.",
+    "alternativeComponents": [
+      "location-map",
+      "contact-info-block"
+    ],
+    "alternativeText": "One location block per branch."
+  },
+  {
+    "capability_id": "email-marketing-automation",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "automated email campaigns",
+      "email sequences",
+      "send newsletters from the site",
+      "mailchimp integration",
+      "Klaviyo",
+      "SendGrid",
+      "Brevo",
+      "ConvertKit"
+    ],
+    "reason": "The signup form collects addresses only; sending is outside FORGE.",
+    "alternativeComponents": [
+      "newsletter-signup"
+    ],
+    "alternativeText": "Collect subscribers; the owner sends emails with an external tool."
+  },
+  {
+    "capability_id": "mobile-app",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "mobile app",
+      "Android app",
+      "iOS app",
+      "app store",
+      "push notifications"
+    ],
+    "reason": "FORGE builds websites only.",
+    "alternativeComponents": [],
+    "alternativeText": "A mobile-friendly website."
+  },
+  {
+    "capability_id": "food-delivery-platforms",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "Foodpanda",
+      "DoorDash",
+      "Uber Eats",
+      "Deliveroo",
+      "Careem Food",
+      "Talabat",
+      "Zomato",
+      "Swiggy",
+      "Grubhub",
+      "Just Eat",
+      "order through delivery apps",
+      "integrate with food delivery",
+      "sync menu with Foodpanda",
+      "receive orders from Foodpanda"
+    ],
+    "reason": "No integration with delivery platforms. Components take no API keys, so menus and orders cannot sync with them.",
+    "alternativeComponents": [
+      "menu-catalog-grid",
+      "order-request-form",
+      "whatsapp-button",
+      "cta-banner"
+    ],
+    "alternativeText": "Show the menu, take order requests through the form or WhatsApp, and add a button that links to the business's own page on the delivery platform (a link, not an integration)."
+  },
+  {
+    "capability_id": "courier-shipping-integration",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "DHL",
+      "FedEx",
+      "UPS",
+      "TCS",
+      "Leopards",
+      "Trax",
+      "Bykea",
+      "Pandago",
+      "courier integration",
+      "shipping rates",
+      "calculate delivery charges automatically",
+      "print shipping labels",
+      "track parcel"
+    ],
+    "reason": "No courier or shipping API integration, and no order data to ship.",
+    "alternativeComponents": [
+      "order-request-form",
+      "faq-accordion",
+      "contact-info-block"
+    ],
+    "alternativeText": "State delivery areas and charges in text or an FAQ, and confirm delivery with the customer."
+  },
+  {
+    "capability_id": "ecommerce-platform-sync",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "Shopify",
+      "WooCommerce",
+      "Etsy",
+      "Amazon",
+      "Daraz seller",
+      "eBay",
+      "BigCommerce",
+      "sync products with my store",
+      "import products from Shopify",
+      "connect my online shop"
+    ],
+    "reason": "No connection to external store platforms; products are entered by the owner.",
+    "alternativeComponents": [
+      "product-card-grid",
+      "product-detail",
+      "cta-banner"
+    ],
+    "alternativeText": "A product showcase, with a button linking to the external store (a link, not an integration)."
+  },
+  {
+    "capability_id": "pos-crm-erp-accounting",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "POS",
+      "point of sale",
+      "Square POS",
+      "Loyverse",
+      "Salesforce",
+      "HubSpot",
+      "Zoho",
+      "Odoo",
+      "QuickBooks",
+      "Xero",
+      "SAP",
+      "CRM integration",
+      "sync with accounting software",
+      "send invoices",
+      "generate invoices"
+    ],
+    "reason": "No integration with business back-office systems.",
+    "alternativeComponents": [
+      "contact-form",
+      "order-request-form"
+    ],
+    "alternativeText": "Requests are stored for the owner, who handles them in their own systems."
+  },
+  {
+    "capability_id": "third-party-booking-platforms",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "Booking.com",
+      "Airbnb",
+      "Expedia",
+      "channel manager",
+      "hotel booking engine",
+      "OpenTable widget",
+      "Calendly embed",
+      "Fresha booking widget",
+      "embed my Booksy page",
+      "Uber ride button"
+    ],
+    "reason": "No embeds of external booking or reservation engines. Only map and video embeds are supported.",
+    "alternativeComponents": [
+      "booking-form",
+      "appointment-slot-picker",
+      "cta-banner"
+    ],
+    "alternativeText": "FORGE's own booking request form, or a button linking to the external booking page (a link, not an embed)."
+  },
+  {
+    "capability_id": "ticketing-platforms",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "Eventbrite",
+      "Ticketmaster",
+      "sell tickets",
+      "ticket sales",
+      "event registration with payment",
+      "Tickettailor",
+      "QR code tickets"
+    ],
+    "reason": "Ticket sales and external ticketing are not supported.",
+    "alternativeComponents": [
+      "events-list",
+      "contact-form"
+    ],
+    "alternativeText": "List events with dates, with a link out to the ticketing page or a contact form for reservations."
+  },
+  {
+    "capability_id": "messaging-sms-whatsapp-api",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "Twilio",
+      "SMS notifications",
+      "WhatsApp Business API",
+      "automatic WhatsApp messages",
+      "WhatsApp order confirmations",
+      "send OTP by SMS",
+      "bulk SMS",
+      "Telegram bot",
+      "automated replies"
+    ],
+    "reason": "The WhatsApp button only opens a chat link. Sending automated messages needs API keys, which components do not use.",
+    "alternativeComponents": [
+      "whatsapp-button",
+      "contact-info-block"
+    ],
+    "alternativeText": "A chat link the customer taps; the owner replies manually."
+  },
+  {
+    "capability_id": "social-feed-embeds",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "Instagram feed",
+      "show my Instagram posts live",
+      "Facebook page plugin",
+      "TikTok feed",
+      "Twitter timeline",
+      "X feed",
+      "YouTube channel feed",
+      "social wall",
+      "Instagram widget"
+    ],
+    "reason": "No live social feed embeds. Only icon links are supported.",
+    "alternativeComponents": [
+      "social-links-bar",
+      "image-gallery",
+      "video-section"
+    ],
+    "alternativeText": "Social profile links, plus selected photos or a video added by the owner."
+  },
+  {
+    "capability_id": "review-platform-sync",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "Google reviews",
+      "Google Business reviews",
+      "Trustpilot",
+      "Yelp",
+      "TripAdvisor",
+      "pull reviews automatically",
+      "show my Google rating live",
+      "review widget"
+    ],
+    "reason": "Reviews cannot be pulled from review platforms; testimonials are entered by the owner.",
+    "alternativeComponents": [
+      "testimonials",
+      "cta-banner"
+    ],
+    "alternativeText": "Owner-selected testimonials, with a button linking to the review page."
+  },
+  {
+    "capability_id": "analytics-ads-tracking",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "Google Analytics",
+      "Google Tag Manager",
+      "Meta Pixel",
+      "Facebook Pixel",
+      "Hotjar",
+      "Google Ads conversion tracking",
+      "TikTok Pixel",
+      "Microsoft Clarity",
+      "track visitors"
+    ],
+    "reason": "No tracking or analytics components in the current library. Confirm before relying on this.",
+    "alternativeComponents": [],
+    "alternativeText": "Not available now; could be added later as a site-wide script option."
+  },
+  {
+    "capability_id": "automation-webhooks-spreadsheet-sync",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "Zapier",
+      "Make.com",
+      "n8n",
+      "webhook",
+      "send form submissions to Google Sheets",
+      "send enquiries to Slack",
+      "connect to Airtable",
+      "Notion database",
+      "custom API",
+      "REST API integration",
+      "connect to my own backend"
+    ],
+    "reason": "Forms store submissions in FORGE's database. Forwarding to external tools or custom APIs is not provided. Confirm whether email notifications exist.",
+    "alternativeComponents": [
+      "contact-form",
+      "order-request-form"
+    ],
+    "alternativeText": "Submissions are stored for the owner to view."
+  },
+  {
+    "capability_id": "maps-advanced-services",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "live traffic",
+      "route planner",
+      "Google Places API",
+      "nearby search",
+      "delivery radius calculator",
+      "distance from my address",
+      "Mapbox",
+      "custom styled map",
+      "multiple markers map"
+    ],
+    "reason": "Only a simple embedded map from an embed URL is supported.",
+    "alternativeComponents": [
+      "location-map",
+      "contact-info-block"
+    ],
+    "alternativeText": "One embedded map with a Get directions link."
+  },
+  {
+    "capability_id": "third-party-identity-verification-kyc",
+    "group": "integration",
+    "tier": "unsupported",
+    "phrases": [
+      "identity verification",
+      "KYC",
+      "age verification",
+      "CNIC verification",
+      "document upload and verification",
+      "fraud check"
+    ],
+    "reason": "Requires accounts, private data handling and external APIs, all out of scope.",
+    "alternativeComponents": [
+      "contact-form"
+    ],
+    "alternativeText": "A contact form; the owner verifies customers outside the site."
+  }
+]

@@ -1,0 +1,38 @@
+{
+  "version": "1",
+  "note": "Baselines are starting templates, not the scope limit (decision D-134). FORGE builds small-to-medium websites of any kind. A request with no matching signal gets 'brochure' when it is for a business or organisation, otherwise 'none'.",
+  "baselines": [
+    {
+      "baseline_id": "booking",
+      "label": "Take bookings or appointments",
+      "priority": 1,
+      "signal_features": ["booking"],
+      "default_features": ["services-overview", "contact-info"],
+      "default_pages": ["home", "booking", "contact"]
+    },
+    {
+      "baseline_id": "catalog",
+      "label": "Show products, a menu or prices",
+      "priority": 2,
+      "signal_features": ["menu-catalog", "product-grid", "product-detail", "services-price-list", "order-request", "pricing-table"],
+      "default_features": ["about-story", "contact-info"],
+      "default_pages": ["home", "contact"]
+    },
+    {
+      "baseline_id": "portfolio",
+      "label": "Show my work",
+      "priority": 3,
+      "signal_features": ["portfolio", "case-study", "resume-skills", "before-after"],
+      "default_features": ["about-story", "contact-form"],
+      "default_pages": ["home", "portfolio", "contact"]
+    },
+    {
+      "baseline_id": "brochure",
+      "label": "Tell people about my business",
+      "priority": 4,
+      "signal_features": [],
+      "default_features": ["about-story", "services-overview", "contact-info"],
+      "default_pages": ["home", "about", "contact"]
+    }
+  ]
+}
