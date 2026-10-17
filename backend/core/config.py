@@ -24,6 +24,13 @@ class Settings:
     # Paused runs (LangGraph checkpoints, D-123). SQLite file at the FORGE-1 root, gitignored by *.db
     CHECKPOINT_DB: str = os.getenv("CHECKPOINT_DB", str(ROOT_DIR / "forge_checkpoints.db"))
 
+    # PostgreSQL (Supabase). App database and a separate one for the integration tests (D-172).
+    # Both may be pooler URLs; the engine disables prepared-statement caching for that (backend/db/session.py).
+    SUPABASE_DB_URL: str = os.getenv("SUPABASE_DB_URL", "")
+    TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL", "")
+    # How long project creation waits for the per-user lock before answering 503 (D-174)
+    DB_LOCK_TIMEOUT_MS: int = int(os.getenv("DB_LOCK_TIMEOUT_MS", "3000"))
+
     # Server config
     PORT: int = int(os.getenv("BACKEND_PORT", "8000"))
     HOST: str = os.getenv("HOST", "0.0.0.0")

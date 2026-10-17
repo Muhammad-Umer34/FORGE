@@ -26,3 +26,8 @@ materialyoucolor==3.0.4
 # After installing, run once: python -m playwright install chromium
 playwright==1.64.0
 python-multipart==0.0.32
+
+# PostgreSQL (Supabase): async ORM, driver and migrations (D-172)
+sqlalchemy[asyncio]==2.1.5
+asyncpg==0.32.0
+alembic==1.20.0
