@@ -17,7 +17,7 @@ from backend.routes.auth import REFRESH_COOKIE
 from backend.routes.auth import router as auth_router
 from backend.routes.projects import router as projects_router
 from backend.services import auth as service
-from pg_support import migrate_test_database, new_engine, requires_db, session_dependency, wait_for_lock_waiters
+from pg_support import EmptyGraph, migrate_test_database, new_engine, requires_db, session_dependency, wait_for_lock_waiters
 
 pytestmark = requires_db
 PASSWORD = "correct horse battery"
@@ -80,6 +80,7 @@ async def harness():
     app = FastAPI()
     app.include_router(auth_router)
     app.include_router(projects_router)
+    app.state.forge_graph = EmptyGraph()
     app.dependency_overrides[get_session] = session_dependency(engine)
     transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
     async with httpx.AsyncClient(transport=transport, base_url="http://test", timeout=60) as client:

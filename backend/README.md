@@ -7,10 +7,10 @@ Model calls go through the LLM gateway in `agents/gateway.py` (Google Gemini; mo
 
 - `core/`: settings and environment configuration (`config.py`); shared dependencies (`deps.py`, incl. the signed-in user); passwords and tokens (`security.py`); the old chat prompt (`prompts.py`).
 - `db/`: PostgreSQL (Supabase) connection (`session.py`) and table definitions (`tables.py`) (D-172).
-- `migrations/`: Alembic migrations; `versions/0001_users_and_projects.py` creates users, projects and the 3-project limit (D-173, D-175); `0002_refresh_tokens.py` adds sign-in sessions (D-178).
+- `migrations/`: Alembic migrations; `versions/0001_users_and_projects.py` creates users, projects and the 3-project limit (D-173, D-175); `0002_refresh_tokens.py` adds sign-in sessions (D-178); `0003_requests.py` links website requests to projects (D-179).
 - `models/`: Pydantic request and response schemas (`requests.py` for the website-request API; `auth.py`; `projects.py`; `chat.py`, `session.py` for the old chat).
-- `routes/`: `requests.py` (website-request API), `auth.py` (sign-in), `projects.py` (registered in Phase C), `health.py`, and the old `chat.py`.
-- `services/`: `auth.py` (accounts and sign-in sessions, D-176 – D-178); `projects.py` (the only code that creates or deletes projects, D-174); the old chat's Gemini and memory services.
+- `routes/`: `requests.py` (website-request API), `auth.py` (sign-in), `projects.py`, `health.py`, and the old `chat.py`.
+- `services/`: `auth.py` (accounts and sign-in sessions, D-176 – D-178); `projects.py` (the only code that creates or deletes projects, D-174); `requests.py` (which requests belong to whom, D-179, D-180); the old chat's Gemini and memory services.
 - `main.py`: application bootstrap, CORS, and the checkpointer that keeps paused runs.
 
 The old free chat (`/api/chat`, `services/`, `models/chat.py`, `models/session.py`, `core/prompts.py`) stays until the
@@ -49,17 +49,30 @@ same as a safety net. Any new code that creates projects must call `create_proje
 
 ## Website-request API (Clarification Agent)
 
+Every request belongs to a project of the signed-in user, so every path starts with `/api/projects/{pid}/requests`
+and needs `Authorization: Bearer <access token>` (D-179). A request in someone else's project, or in another project
+of the same user, answers 404 before the agent is touched.
+
 Every response has the same envelope: `{ "request_id", "status", "data" }`.
-`status` is one of `needs_clarification`, `awaiting_confirmation`, `complete`, `out_of_scope`, `failed`, `cancelled`.
+`status` is one of `needs_clarification`, `awaiting_confirmation`, `complete`, `out_of_scope`, `failed`, `cancelled`, `reply`.
 
-| Method and path | Body | Notes |
+| Method and path (prefix `/api/projects/{pid}/requests`) | Body | Notes |
 |---|---|---|
-| `POST /api/requests` | `{ "prompt": "...", "project_id": null }` | Starts a run |
-| `POST /api/requests/{id}/answer` | `{ "question_id", "kind": "option \| you_decide \| other", "option_ids": [], "text": null }` | 422 if the answer does not fit the question |
-| `POST /api/requests/{id}/confirmation` | `{ "decision": "confirm \| edit \| cancel", "ticked_extra_ids": [], "unticked_default_ids": [], "style": null, "edit_text": null }` | 422 if the action is not available |
-| `GET /api/requests/{id}` | — | Current envelope (for page reloads) |
+| `GET` | — | The project's requests, newest first: id, prompt, status, times |
+| `POST` | `{ "prompt": "..." }` | Starts a run; a greeting (`reply`) is answered but not kept |
+| `GET /{id}` | — | Current envelope (for page reloads) |
+| `POST /{id}/answer` | `{ "question_id", "kind": "option \| you_decide \| other", "option_ids": [], "text": null }` | 422 if the answer does not fit the question |
+| `POST /{id}/confirmation` | `{ "decision": "confirm \| edit \| cancel \| theme_source", ... }` | 422 if the action is not available |
+| `POST /{id}/image?kind=logo\|screenshot` | multipart file | Colours from a logo or screenshot |
 
-Paused runs are stored in `forge_checkpoints.db` at the FORGE-1 root (gitignored), so they survive a restart.
+The `requests` table keeps each request's project, prompt and latest status. Paused runs are stored in
+`forge_checkpoints.db` at the FORGE-1 root (gitignored), so they survive a restart. Deleting a project deletes its
+requests and their paused runs (D-180).
+
+## Projects API (D-174)
+
+`GET /api/projects`, `POST /api/projects` `{ "name", "description" }` (409 `project_limit_reached` at 3),
+`DELETE /api/projects/{pid}` (for good, with everything in it). All need the access token.
 
 ## Setup (once)
 

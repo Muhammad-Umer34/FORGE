@@ -1,18 +1,19 @@
 # D:\FYP\FORGE-1\backend\routes\projects.py
 """
 Projects API (D-174): list, create (at most 3 per user) and delete for good. All work happens in
-backend/services/projects.py; this file only maps its results to HTTP answers. Not registered in
-main.py until projects are linked to website requests (Phase C).
+backend/services/projects.py; this file only maps its results to HTTP answers. Deleting a project
+also deletes its website requests and their paused runs (D-180).
 """
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.deps import get_current_user_id
 from backend.db.session import get_session
 from backend.models.projects import CreateProject, ProjectOut
 from backend.services import projects as service
+from backend.services import requests as request_service
 
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
@@ -45,8 +46,10 @@ async def create_project(body: CreateProject, user_id: uuid.UUID = Depends(get_c
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(project_id: uuid.UUID, user_id: uuid.UUID = Depends(get_current_user_id),
+async def delete_project(project_id: uuid.UUID, http: Request, user_id: uuid.UUID = Depends(get_current_user_id),
                          session: AsyncSession = Depends(get_session)):
-    if not await service.delete_project(session, user_id, project_id):
+    request_ids = await service.delete_project(session, user_id, project_id)
+    if request_ids is None:
         raise _problem(status.HTTP_404_NOT_FOUND, "project_not_found", "Project not found.")
+    await request_service.delete_runs(http.app.state.forge_graph.checkpointer, request_ids)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -1,7 +1,8 @@
 # D:\FYP\FORGE-1\backend\db\tables.py
 """
-Table definitions (ER design: USER owns many PROJECT; refresh tokens for sign-in). The schema itself is created by Alembic
-migrations in backend/migrations/; these classes must match the latest migration.
+Table definitions (ER design: USER owns many PROJECT, PROJECT receives many REQUEST; refresh tokens for
+sign-in). The schema itself is created by Alembic migrations in backend/migrations/; these classes must
+match the latest migration.
 """
 import uuid
 from datetime import datetime
@@ -61,3 +62,15 @@ class RefreshToken(Base):
     replaced_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("refresh_tokens.id", ondelete="SET NULL"))
     user_agent: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class WebsiteRequest(Base):
+    """One website request (one LangGraph run). Named so it is not confused with an HTTP request."""
+    __tablename__ = "requests"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"))
+    prompt: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(32), server_default="processing")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

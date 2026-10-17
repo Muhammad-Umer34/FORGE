@@ -24,7 +24,7 @@ from backend.core.deps import get_current_user_id
 from backend.db.session import get_session, sqlstate
 from backend.routes.projects import router as projects_router
 from backend.services import projects as service
-from pg_support import (MIGRATIONS, migrate_test_database, new_engine, open_transactions, requires_db,
+from pg_support import (MIGRATIONS, EmptyGraph, migrate_test_database, new_engine, open_transactions, requires_db,
                         session_dependency, wait_for_lock_waiters)
 
 pytestmark = requires_db
@@ -93,6 +93,7 @@ async def harness():
 
     app = FastAPI()
     app.include_router(projects_router)
+    app.state.forge_graph = EmptyGraph()
     app.dependency_overrides[get_session] = session_dependency(engine)
     app.dependency_overrides[get_current_user_id] = test_user
     transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)

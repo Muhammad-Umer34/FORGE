@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.config import settings
 from backend.db.session import sqlstate
-from backend.db.tables import Project, User
+from backend.db.tables import Project, User, WebsiteRequest
 
 MAX_PROJECTS_PER_USER = 3
 LOCK_TIMEOUT_MS = settings.DB_LOCK_TIMEOUT_MS
@@ -101,10 +101,17 @@ async def list_projects(session: AsyncSession, owner_id: uuid.UUID) -> list[Proj
         return list(result)
 
 
-async def delete_project(session: AsyncSession, owner_id: uuid.UUID, project_id: uuid.UUID) -> bool:
-    """Delete for good (D-174). False when the project does not exist or belongs to someone else."""
+async def delete_project(session: AsyncSession, owner_id: uuid.UUID, project_id: uuid.UUID) -> list[str] | None:
+    """Delete for good, with its requests (D-174, D-180). Returns the deleted request ids, so the
+    caller can remove their paused runs; None when the project does not exist or is someone else's.
+    The project row is locked first, so a request being added at the same moment either commits
+    before (and is listed here) or fails because the project is gone."""
     async with session.begin():
-        deleted = await session.scalar(
-            delete(Project).where(Project.id == project_id, Project.owner_id == owner_id).returning(Project.id)
+        owned = await session.scalar(
+            select(Project.id).where(Project.id == project_id, Project.owner_id == owner_id).with_for_update()
         )
-    return deleted is not None
+        if owned is None:
+            return None
+        request_ids = list(await session.scalars(select(WebsiteRequest.id).where(WebsiteRequest.project_id == project_id)))
+        await session.execute(delete(Project).where(Project.id == project_id))
+    return request_ids

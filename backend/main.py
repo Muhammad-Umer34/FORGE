@@ -11,7 +11,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from agents.orchestrator import build_forge_graph
 from agents.state import msgpack_allowlist
 from backend.core.config import settings
-from backend.routes import auth_router, chat_router, health_router, requests_router
+from backend.routes import auth_router, chat_router, health_router, projects_router, requests_router
 
 
 @asynccontextmanager
@@ -43,6 +43,7 @@ app.add_middleware(
 # Register API Routers
 app.include_router(health_router)
 app.include_router(auth_router)
+app.include_router(projects_router)
 app.include_router(requests_router)
 app.include_router(chat_router)   # old free chat, kept until the new clarification screen exists (D-137)
 

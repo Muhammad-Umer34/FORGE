@@ -2,7 +2,7 @@
 from backend.routes.auth import router as auth_router
 from backend.routes.chat import router as chat_router
 from backend.routes.health import router as health_router
-from backend.routes.projects import router as projects_router  # registered once sign-in exists
+from backend.routes.projects import router as projects_router
 from backend.routes.requests import router as requests_router
 
 __all__ = ["auth_router", "chat_router", "health_router", "projects_router", "requests_router"]

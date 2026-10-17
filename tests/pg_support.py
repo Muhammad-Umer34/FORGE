@@ -65,3 +65,15 @@ async def open_transactions(engine, table: str) -> int:
             "SELECT count(*) FROM pg_stat_activity WHERE pid <> pg_backend_pid() "
             "AND datname = current_database() AND state LIKE 'idle in transaction%' AND query ILIKE :pattern"
         ), {"pattern": f"%{table}%"})
+
+
+class EmptyGraph:
+    """Stand-in for app.state.forge_graph in tests that never run the agent: deleting a project
+    asks the checkpointer to drop that project's paused runs (D-180)."""
+
+    def __init__(self):
+        self.checkpointer = self
+        self.deleted: list[str] = []
+
+    async def adelete_thread(self, thread_id: str) -> None:
+        self.deleted.append(thread_id)
