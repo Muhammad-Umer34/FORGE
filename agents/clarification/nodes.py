@@ -252,9 +252,10 @@ def check_brief(state: GraphState) -> dict:
                                prompts.review_user(_prompt(state), answers, briefs.brief_view_for_model(brief)))
             update["usage"] = usage
             reviewed = True
-            names = {f.id: f.name for f in brief.features}
-            review_notes += [f'We added "{names[i]}". Remove it with Edit if you did not want it.'
-                             for i in out.invented_feature_ids if i in names]
+            # Only features read from the request itself can be "invented"; the user chose, delegated or saw the rest (D-148).
+            stated = {f.id: f.name for f in brief.features if f.source == "user_stated"}
+            review_notes += [f'We added "{stated[i]}". Remove it with Edit if you did not want it.'
+                             for i in out.invented_feature_ids if i in stated]
             review_notes += [f'We may not have covered: "{m}". Use Edit to add it.' for m in out.missed_requests]
         except ModelCallError:
             pass

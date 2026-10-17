@@ -12,7 +12,7 @@ PROMPT_VERSIONS = {
     "intake": "v6.2",
     "answer": "v6.1",
     "edit": "v6.1",
-    "review": "v6.1",
+    "review": "v6.2",
     "tests": "v6.1",
 }
 
@@ -106,7 +106,8 @@ def edit_user(current_features: list[dict], edit_text: str, feature_list: str) -
 
 REVIEW_SYSTEM = f"""You review a website brief written by FORGE against what the user said.
 List feature ids in the brief that the user neither asked for nor chose (invented_feature_ids),
-excluding features marked source=baseline_default or source=proposed_accepted, which the user saw and kept.
+excluding features marked source=user_confirmed, user_delegated, baseline_default or proposed_accepted:
+the user chose those, left them to FORGE, or saw and kept them.
 List things the user asked for that the brief does not cover (missed_requests), in the user's words.
 Unsupported items listed under NOT INCLUDED count as covered. Return empty lists when everything matches.
 {_DATA_RULE}"""

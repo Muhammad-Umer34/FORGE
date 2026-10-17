@@ -81,6 +81,33 @@ def test_baseline_is_a_template_not_a_limit():
     assert grounding.choose_baseline(c, CAT) == "portfolio"
 
 
+def site(c) -> dict[str, str]:
+    return dict(grounding.site_feature_ids(c, CAT))
+
+
+def test_chosen_baseline_gets_its_core_feature():          # D-149
+    c = state(baseline_hint="catalog")
+    assert site(c)["product-grid"] == "baseline_default"
+    grounding.add_match(c, CAT, "order-request", "user_delegated")   # an order form is not the main feature
+    assert "product-grid" in site(c)
+    c.business_type = "bakery"
+    assert "menu-catalog" in site(c) and "product-grid" not in site(c)
+
+
+def test_core_feature_is_not_added_when_present_or_removed():
+    c = state(baseline_hint="catalog", business_type="bakery")
+    grounding.add_match(c, CAT, "menu-catalog", "user_stated")
+    assert [f for f in site(c) if f in ("product-grid", "menu-catalog")] == ["menu-catalog"]
+    c2 = state(baseline_hint="catalog", removed_feature_ids=["product-grid"])
+    assert "product-grid" not in site(c2) and "menu-catalog" not in site(c2)   # unticked stays unticked
+
+
+def test_core_feature_for_booking_and_none_for_brochure():
+    assert "booking" in site(state(baseline_hint="booking"))
+    brochure = site(state(baseline_hint="brochure"))
+    assert set(brochure) == {"about-story", "services-overview", "contact-info"}
+
+
 def test_pages_start_with_home_and_follow_features():
     c = state()
     grounding.add_match(c, CAT, "menu-catalog", "user_stated")

@@ -7,7 +7,7 @@ The model only suggests ids; this module checks every id exists before using it 
 import re
 
 from agents.catalogue import Catalogue
-from agents.clarification.schemas import IntakeItem
+from agents.clarification.schemas import VISITOR_ACTION_FEATURES, IntakeItem
 from agents.state import ClarificationState, FeatureMatch, Limits, ProposedExtra, RequestedItem
 
 _WORD = re.compile(r"[\w']+", re.UNICODE)
@@ -159,9 +159,31 @@ def site_feature_ids(c: ClarificationState, cat: Catalogue) -> list[tuple[str, s
             result.setdefault(e.feature_id, "proposed_accepted")
     baseline = _baseline(cat, choose_baseline(c, cat))
     if baseline:
+        candidates = _core_candidates(baseline)
+        if candidates and not set(candidates) & set(result):
+            result.setdefault(_core_feature(candidates, c, cat), "baseline_default")
         for fid in baseline.default_features:
             result.setdefault(fid, "baseline_default")
     return [(fid, src) for fid, src in result.items() if fid not in c.removed_feature_ids]
+
+
+def _core_candidates(baseline) -> tuple[str, ...]:
+    """The baseline's main features. Contact and order forms only count when they are all it has (booking)."""
+    shown = tuple(f for f in baseline.signal_features if f not in VISITOR_ACTION_FEATURES)
+    return shown or baseline.signal_features
+
+
+def _core_feature(candidates: tuple[str, ...], c: ClarificationState, cat: Catalogue) -> str:
+    """
+    A baseline chosen without its main feature still needs one (D-149): the candidate that
+    fits the business, else the first one listed.
+    """
+    business = (c.business_type or "").lower()
+    if business:
+        for fid in candidates:
+            if any(business in t or t in business for t in cat.features[fid].business_types):
+                return fid
+    return candidates[0]
 
 
 def site_pages(c: ClarificationState, cat: Catalogue) -> list[str]:

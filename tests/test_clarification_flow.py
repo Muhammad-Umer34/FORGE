@@ -141,6 +141,27 @@ def test_unhelpful_answers_fail_with_missing_info(graph, monkeypatch):
     assert failure.category == "missing_info" and "what the website is for" in failure.missing   # TC-05
 
 
+def test_review_never_flags_what_the_user_delegated(graph, monkeypatch):     # D-148, D-149
+    monkeypatch.setattr(nodes, "call_structured", fake_model({
+        IntakeOutput: IntakeOutput(is_website_request=True, detected_language="en", romanized=False,
+                                   purpose_known=False, is_business=True),
+        # The model wrongly reports the delegated order form and the default product grid as invented.
+        BriefReview: BriefReview(invented_feature_ids=["order-request", "product-grid"]),
+    }))
+    result, config = start(graph, "a website for my shop")
+    q = pending(result)
+    result = graph.invoke(Command(resume={"question_id": q["question_id"], "kind": "option", "option_ids": ["catalog"]}), config)
+    q = pending(result)
+    assert q["kind"] == "B"
+    result = graph.invoke(Command(resume={"question_id": q["question_id"], "kind": "you_decide"}), config)
+    screen = pending(result)
+    assert screen["type"] == "confirmation"
+    assert screen["please_check"] == []
+    features = {f["id"]: f["source"] for f in screen["features"]}
+    assert features["order-request"] == "user_delegated"
+    assert features["product-grid"] == "baseline_default"
+
+
 def test_cancel_at_confirmation(graph, monkeypatch):
     monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: BAKERY_INTAKE.model_copy(
         update={"no_visitor_actions": True})}))

@@ -14,7 +14,7 @@
       "baseline_id": "catalog",
       "label": "Show products, a menu or prices",
       "priority": 2,
-      "signal_features": ["menu-catalog", "product-grid", "product-detail", "services-price-list", "order-request", "pricing-table"],
+      "signal_features": ["product-grid", "menu-catalog", "product-detail", "services-price-list", "order-request", "pricing-table"],
       "default_features": ["about-story", "contact-info"],
       "default_pages": ["home", "contact"]
     },
