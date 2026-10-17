@@ -53,6 +53,11 @@ class InvalidRefresh(AuthError):
     pass
 
 
+class RefreshRaced(InvalidRefresh):
+    """The token was replaced seconds ago by another tab. Not theft: the browser already holds the
+    new token, so the caller should simply retry."""
+
+
 @dataclass(frozen=True)
 class SignIn:
     user: User
@@ -147,6 +152,7 @@ async def refresh(session: AsyncSession, token: str | None, user_agent: str | No
         raise InvalidRefresh() from error
 
     signed_in: SignIn | None = None
+    raced = False
     async with session.begin():
         await _begin_read_committed(session)
         now = _now()
@@ -158,8 +164,8 @@ async def refresh(session: AsyncSession, token: str | None, user_agent: str | No
         if row is None or row.user_id != claims.user_id or row.family_id != claims.family_id:
             pass
         elif row.revoked_at is not None:
-            just_rotated = row.replaced_by is not None and now - row.revoked_at <= ROTATION_GRACE
-            if not just_rotated:
+            raced = row.replaced_by is not None and now - row.revoked_at <= ROTATION_GRACE
+            if not raced:
                 await _revoke_family(session, row.family_id, now)  # reuse of an old token: theft
         elif row.expires_at <= now:
             pass
@@ -170,6 +176,8 @@ async def refresh(session: AsyncSession, token: str | None, user_agent: str | No
             else:
                 signed_in, new_row = await _issue(session, user, row.family_id, user_agent, now)
                 row.revoked_at, row.replaced_by = now, new_row.id
+    if raced:
+        raise RefreshRaced()
     if signed_in is None:
         raise InvalidRefresh()
     return signed_in

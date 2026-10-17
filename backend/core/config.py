@@ -16,10 +16,8 @@ class Settings:
 
     # API Keys & Models
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    CHAT_MODEL: str = os.getenv("CHAT_MODEL", "gemini-3.8-flash")
     CLARIFICATION_MODEL: str = os.getenv("CLARIFICATION_MODEL", "gemini-3.8-flash")
     FALLBACK_MODEL: str = os.getenv("FALLBACK_MODEL", "gemini-3.1-flash-lite")
-    MODEL_TEMPERATURE: float = float(os.getenv("MODEL_TEMPERATURE", "0.7"))
 
     # Paused runs (LangGraph checkpoints, D-123). SQLite file at the FORGE-1 root, gitignored by *.db
     CHECKPOINT_DB: str = os.getenv("CHECKPOINT_DB", str(ROOT_DIR / "forge_checkpoints.db"))

@@ -29,7 +29,6 @@ T = TypeVar("T", bound=BaseModel)
 # task -> environment variable holding its model id
 _TASK_MODEL_ENV = {
     "clarification": "CLARIFICATION_MODEL",
-    "chat": "CHAT_MODEL",
 }
 _DEFAULT_MODEL = "gemini-3.8-flash"
 _TRANSIENT_CODES = {408, 429, 500, 502, 503, 504}

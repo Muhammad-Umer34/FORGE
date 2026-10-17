@@ -235,10 +235,11 @@ def test_refresh_rotates_the_token():
             assert second != first
             assert (await h.get("/api/auth/me", bearer=rotated.json()["access_token"])).status_code == 200
 
-            # The old token is refused; used again within seconds (two tabs) the session survives
+            # The old token used again within seconds (another tab) gets "try again" (409); the
+            # browser's new cookie is left alone and the session survives
             stale = await h.refresh(first)
-            assert stale.status_code == 401
-            assert f'{REFRESH_COOKIE}=""' in stale.headers["set-cookie"] or "max-age=0" in stale.headers["set-cookie"].lower()
+            assert stale.status_code == 409 and stale.json()["detail"]["code"] == "refresh_in_progress"
+            assert "set-cookie" not in stale.headers
             assert (await h.refresh(second)).status_code == 200
     run(scenario())
 
@@ -249,6 +250,7 @@ def test_reusing_an_old_refresh_token_revokes_the_whole_session(monkeypatch):
     async def scenario():
         async with harness() as h:
             stolen = refresh_cookie(await h.register())
+            # (grace period 0: a replay is never mistaken for a second tab)
             current = refresh_cookie(await h.refresh(stolen))  # the real user moves on
             assert (await h.refresh(stolen)).status_code == 401  # the thief replays the old token
             assert (await h.refresh(current)).status_code == 401  # so the real session is ended too
@@ -267,7 +269,7 @@ def test_two_simultaneous_refreshes_with_one_token():
                 await wait_for_lock_waiters(h.engine, 2, "refresh_tokens")
                 await trans.rollback()
             responses = await asyncio.gather(*tasks)
-            assert sorted(r.status_code for r in responses) == [200, 401]
+            assert sorted(r.status_code for r in responses) == [200, 409]
             winner = next(r for r in responses if r.status_code == 200)
             assert (await h.refresh(refresh_cookie(winner))).status_code == 200  # session still alive
     run(scenario())

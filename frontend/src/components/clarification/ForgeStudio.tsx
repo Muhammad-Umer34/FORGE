@@ -1,19 +1,20 @@
 // D:\FYP\FORGE-1\frontend\src\components\clarification\ForgeStudio.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { ApiError, answerQuestion, confirmBrief, createRequest, getRequest, readImageColours } from "@/services/api";
+import { useCallback, useEffect, useState } from "react";
+import { ApiError } from "@/services/client";
+import { listRequests } from "@/services/projects";
+import { answerQuestion, confirmBrief, createRequest, getRequest, readImageColours } from "@/services/requests";
+import { RequestSummary } from "@/types/auth";
 import { ConfirmationDecision, ReplyData, RequestEnvelope, UserAnswer } from "@/types/request";
 import { ConfirmationPanel } from "./ConfirmationPanel";
 import { OutcomeView } from "./OutcomeView";
 import { QuestionCard } from "./QuestionCard";
 import { ComposerReply, RequestComposer } from "./RequestComposer";
+import { RequestHistory } from "./RequestHistory";
 import { Step, StudioHeader } from "./StudioHeader";
 
 type Busy = "start" | "answer" | "confirm" | "restore" | "theme";
-
-// Only the request id is kept in the browser; the run itself lives on the server (resumable).
-const STORAGE_KEY = "forge_request_id";
 
 // Live runs took roughly 4-13 s per step, so the wait shows what is happening.
 const PROGRESS: Record<Busy, string[]> = {
@@ -24,29 +25,34 @@ const PROGRESS: Record<Busy, string[]> = {
   theme: ["Building your theme", "Reading the website's colours and fonts", "Checking every colour is easy to read"],
 };
 
-const storage = {
-  get: () => {
-    try {
-      return window.localStorage.getItem(STORAGE_KEY);
-    } catch {
-      return null;
-    }
-  },
-  set: (id: string) => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, id);
-    } catch {
-      /* private mode: the request simply won't survive a reload */
-    }
-  },
-  clear: () => {
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      /* nothing to clear */
-    }
-  },
-};
+// Only the open request's id is kept in the browser, per project; the run itself lives on the
+// server (resumable), and the server checks it belongs to this user's project (D-179).
+function requestStorage(projectId: string) {
+  const key = `forge_request_id:${projectId}`;
+  return {
+    get: () => {
+      try {
+        return window.localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
+    set: (id: string) => {
+      try {
+        window.localStorage.setItem(key, id);
+      } catch {
+        /* private mode: the request simply won't survive a reload */
+      }
+    },
+    clear: () => {
+      try {
+        window.localStorage.removeItem(key);
+      } catch {
+        /* nothing to clear */
+      }
+    },
+  };
+}
 
 function ProgressNote({ busy }: { busy: Busy }) {
   const [index, setIndex] = useState(0);
@@ -80,7 +86,14 @@ function stepFor(envelope: RequestEnvelope | null): Step {
   return "brief";
 }
 
-export default function ForgeStudio() {
+interface ForgeStudioProps {
+  projectId: string;
+  projectName: string;
+}
+
+export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps) {
+  const [storage] = useState(() => requestStorage(projectId));
+  const [history, setHistory] = useState<RequestSummary[]>([]);
   const [envelope, setEnvelope] = useState<RequestEnvelope | null>(null);
   const [busy, setBusy] = useState<Busy | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +125,12 @@ export default function ForgeStudio() {
     }
   };
 
+  const refreshHistory = useCallback(() => {
+    listRequests(projectId)
+      .then(setHistory)
+      .catch(() => setHistory([])); // the list is a convenience; the studio works without it
+  }, [projectId]);
+
   // Resume a request that was in progress before the page was reloaded.
   useEffect(() => {
     const saved = storage.get();
@@ -120,10 +139,10 @@ export default function ForgeStudio() {
     const restore = async () => {
       setBusy("restore");
       try {
-        const env = await getRequest(saved);
+        const env = await getRequest(projectId, saved);
         if (active) setEnvelope(env);
       } catch {
-        storage.clear(); // unknown or expired request: start fresh
+        storage.clear(); // unknown, deleted or someone else's request: start fresh
       } finally {
         if (active) setBusy(null);
       }
@@ -132,7 +151,15 @@ export default function ForgeStudio() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [projectId, storage]);
+
+  // The project's earlier requests, shown under the composer; refreshed whenever it shows again.
+  useEffect(() => {
+    if (!envelope) refreshHistory();
+  }, [envelope, refreshHistory]);
+
+  const openRequest = (requestId: string) =>
+    run("restore", () => getRequest(projectId, requestId));
 
   // Each new screen (question, confirmation, outcome) starts at the top of the page.
   const screenKey = envelope
@@ -152,40 +179,48 @@ export default function ForgeStudio() {
 
   const start = (prompt: string) => {
     setLastPrompt(prompt);
-    run("start", () => createRequest(prompt), prompt);
+    run("start", () => createRequest(projectId, prompt), prompt);
   };
 
   const answer = (a: UserAnswer) => {
-    if (envelope) run("answer", () => answerQuestion(envelope.request_id, a));
+    if (envelope) run("answer", () => answerQuestion(projectId, envelope.request_id, a));
   };
 
   const decide = (d: ConfirmationDecision) => {
     const kind: Busy = d.decision === "confirm" ? "confirm" : d.decision === "theme_source" ? "theme" : "answer";
-    if (envelope) run(kind, () => confirmBrief(envelope.request_id, d));
+    if (envelope) run(kind, () => confirmBrief(projectId, envelope.request_id, d));
   };
 
   const readImage = (kind: "logo" | "screenshot", file: File) => {
     if (!envelope) return Promise.reject(new Error("No request is open."));
-    return readImageColours(envelope.request_id, kind, file);
+    return readImageColours(projectId, envelope.request_id, kind, file);
   };
 
   return (
     <>
-      <StudioHeader step={stepFor(envelope)} onStartOver={envelope ? startOver : undefined} busy={busy !== null} />
+      <StudioHeader
+        step={stepFor(envelope)}
+        projectName={projectName}
+        onStartOver={envelope ? startOver : undefined}
+        busy={busy !== null}
+      />
 
       <main id="main" className="relative z-[1] mx-auto w-full max-w-3xl flex-1 px-5 pt-12 pb-16 sm:px-8 sm:pt-16">
         {busy && <ProgressNote key={busy} busy={busy} />}
 
         <div aria-busy={busy !== null} className={busy ? "pointer-events-none opacity-50 transition-opacity duration-300" : "transition-opacity duration-300"}>
           {!envelope && (
-            <RequestComposer
-              key={composerKey}
-              onSubmit={start}
-              busy={busy !== null}
-              error={error}
-              initialText={lastPrompt}
-              reply={reply}
-            />
+            <>
+              <RequestComposer
+                key={composerKey}
+                onSubmit={start}
+                busy={busy !== null}
+                error={error}
+                initialText={lastPrompt}
+                reply={reply}
+              />
+              <RequestHistory requests={history} onOpen={openRequest} busy={busy !== null} />
+            </>
           )}
 
           {envelope?.status === "needs_clarification" && (

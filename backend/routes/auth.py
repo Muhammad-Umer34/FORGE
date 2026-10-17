@@ -73,6 +73,9 @@ async def refresh(request: Request, response: Response, session: AsyncSession = 
                   forge_refresh: str | None = Cookie(default=None)):
     try:
         result = await service.refresh(session, forge_refresh, request.headers.get("user-agent"))
+    except service.RefreshRaced:
+        # Another tab refreshed a moment ago and the browser already has its new cookie: keep it.
+        raise _problem(status.HTTP_409_CONFLICT, "refresh_in_progress", "Please try again.")
     except service.InvalidRefresh:
         return _signed_out(status.HTTP_401_UNAUTHORIZED, "signed_out", "Please sign in again.")
     return _signed_in(response, result)

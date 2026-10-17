@@ -11,7 +11,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from agents.orchestrator import build_forge_graph
 from agents.state import msgpack_allowlist
 from backend.core.config import settings
-from backend.routes import auth_router, chat_router, health_router, projects_router, requests_router
+from backend.routes import auth_router, health_router, projects_router, requests_router
 
 
 @asynccontextmanager
@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="Modular Conversational AI Agent for FORGE Website Builder Studio",
+    description="FORGE: describe a website in plain words; FORGE clarifies it and plans the build.",
     lifespan=lifespan,
 )
 
@@ -45,7 +45,6 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(requests_router)
-app.include_router(chat_router)   # old free chat, kept until the new clarification screen exists (D-137)
 
 if __name__ == "__main__":
     uvicorn.run("backend.main:app", host=settings.HOST, port=settings.PORT, reload=True)

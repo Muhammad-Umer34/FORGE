@@ -11,5 +11,5 @@ def health_check():
         "status": "ok",
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
-        "model": settings.CHAT_MODEL
+        "model": settings.CLARIFICATION_MODEL
     }

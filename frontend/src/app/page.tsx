@@ -1,6 +1,6 @@
 // D:\FYP\FORGE-1\frontend\src\app\page.tsx
-import ForgeStudio from "@/components/clarification/ForgeStudio";
+import { HomeRedirect } from "@/components/auth/RequireAuth";
 
 export default function Home() {
-  return <ForgeStudio />;
+  return <HomeRedirect />;
 }

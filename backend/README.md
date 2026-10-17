@@ -5,16 +5,15 @@ Model calls go through the LLM gateway in `agents/gateway.py` (Google Gemini; mo
 
 ## Architecture
 
-- `core/`: settings and environment configuration (`config.py`); shared dependencies (`deps.py`, incl. the signed-in user); passwords and tokens (`security.py`); the old chat prompt (`prompts.py`).
+- `core/`: settings and environment configuration (`config.py`); shared dependencies (`deps.py`, incl. the signed-in user); passwords and tokens (`security.py`).
 - `db/`: PostgreSQL (Supabase) connection (`session.py`) and table definitions (`tables.py`) (D-172).
 - `migrations/`: Alembic migrations; `versions/0001_users_and_projects.py` creates users, projects and the 3-project limit (D-173, D-175); `0002_refresh_tokens.py` adds sign-in sessions (D-178); `0003_requests.py` links website requests to projects (D-179).
-- `models/`: Pydantic request and response schemas (`requests.py` for the website-request API; `auth.py`; `projects.py`; `chat.py`, `session.py` for the old chat).
-- `routes/`: `requests.py` (website-request API), `auth.py` (sign-in), `projects.py`, `health.py`, and the old `chat.py`.
-- `services/`: `auth.py` (accounts and sign-in sessions, D-176 – D-178); `projects.py` (the only code that creates or deletes projects, D-174); `requests.py` (which requests belong to whom, D-179, D-180); the old chat's Gemini and memory services.
+- `models/`: Pydantic request and response schemas (`requests.py` for the website-request API; `auth.py`; `projects.py`).
+- `routes/`: `requests.py` (website-request API), `auth.py` (sign-in), `projects.py`, `health.py`.
+- `services/`: `auth.py` (accounts and sign-in sessions, D-176 – D-178); `projects.py` (the only code that creates or deletes projects, D-174); `requests.py` (which requests belong to whom, D-179, D-180).
 - `main.py`: application bootstrap, CORS, and the checkpointer that keeps paused runs.
 
-The old free chat (`/api/chat`, `services/`, `models/chat.py`, `models/session.py`, `core/prompts.py`) stays until the
-new clarification screen exists, then it is deleted in one cleanup step (decision D-137).
+The old free chat (`/api/chat`) was removed once the sign-in, projects and studio screens replaced it (D-137, D-182).
 
 Configuration is read from the single `.env` file at the FORGE-1 root. Agents never write to the database (D-133); only the API layer does.
 
@@ -33,7 +32,7 @@ Configuration is read from the single `.env` file at the FORGE-1 root. Agents ne
 |---|---|---|
 | `POST /api/auth/register` | `{ "email", "password" (8–128), "display_name" }` | 201 + access token; 409 `email_taken` |
 | `POST /api/auth/login` | `{ "email", "password" }` | 200 + access token; 401 `invalid_credentials`; 429 `account_locked` after 5 wrong passwords (15 min) |
-| `POST /api/auth/refresh` | — (cookie) | 200 + new access token and new cookie; 401 `signed_out` |
+| `POST /api/auth/refresh` | — (cookie) | 200 + new access token and new cookie; 401 `signed_out`; 409 `refresh_in_progress` (another tab renewed a moment ago: retry, cookie kept) |
 | `POST /api/auth/logout` | — (cookie) | 204, ends this sign-in on every device it reached |
 | `GET /api/auth/me` | — (`Authorization: Bearer <access token>`) | the signed-in user |
 

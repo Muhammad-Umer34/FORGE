@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FORGE-1 Frontend
 
-## Getting Started
+Next.js 16 (App Router, Cache Components) + React 19 + Tailwind v4. The browser talks only to this site;
+`next.config.ts` forwards every `/api/*` call to the FastAPI backend (D-181).
 
-First, run the development server:
+## Pages
+
+| Path | What it shows |
+|---|---|
+| `/` | Sends signed-in users to `/projects`, others to `/login` |
+| `/login`, `/register` | Sign in / create an account (`?next=` returns to the page you came from) |
+| `/projects` | Your projects (at most 3), create and delete (type the name to confirm) |
+| `/projects/[projectId]` | The studio for one project: Describe → Answer → Confirm → Brief, plus earlier requests |
+
+## Structure
+
+- `src/app/`: one folder per page (the App Router needs it).
+- `src/components/auth/`: `AuthProvider` (who is signed in), `RequireAuth` (page guard), `AuthForm`.
+- `src/components/projects/`: projects list, delete dialog, the project page wrapper.
+- `src/components/clarification/`: the studio screens and the shared header.
+- `src/services/`: `client.ts` (every backend call, token handling), `auth.ts`, `projects.ts`, `requests.ts`.
+- `src/types/`: API types mirroring the backend models.
+
+## Sign-in in the browser (D-181)
+
+- The **access token** (15 min) is kept in memory only, never in `localStorage`.
+- The **refresh token** is an HttpOnly cookie that only `/api/auth/*` receives, so scripts can't read it.
+- On page load the app renews the session from that cookie. A call that answers 401 renews once and retries;
+  tabs take turns renewing (Web Locks), and a 409 from the backend means "another tab just did it, retry".
+- The page guard only redirects; the backend checks the token on every projects and requests call.
+
+## Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The backend must run on `http://localhost:8000` (or set `BACKEND_URL` for the dev server). Open http://localhost:3000.
