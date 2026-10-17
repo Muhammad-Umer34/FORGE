@@ -1,6 +1,6 @@
 # D:\FYP\FORGE-1\backend\db\tables.py
 """
-Table definitions (ER design: USER owns many PROJECT). The schema itself is created by Alembic
+Table definitions (ER design: USER owns many PROJECT; refresh tokens for sign-in). The schema itself is created by Alembic
 migrations in backend/migrations/; these classes must match the latest migration.
 """
 import uuid
@@ -47,3 +47,17 @@ class Project(Base):
     description: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    family_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    replaced_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("refresh_tokens.id", ondelete="SET NULL"))
+    user_agent: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -20,6 +20,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.config import settings
+from backend.db.session import sqlstate
 from backend.db.tables import Project, User
 
 MAX_PROJECTS_PER_USER = 3
@@ -52,10 +53,6 @@ class ProjectBusy(ProjectError):
     """Another request held this user's lock for longer than LOCK_TIMEOUT_MS."""
 
 
-def _sqlstate(error: DBAPIError) -> str | None:
-    return getattr(error.orig, "sqlstate", None) or getattr(error.orig, "pgcode", None)
-
-
 async def _insert(session: AsyncSession, project: Project) -> None:
     session.add(project)
     await session.flush()
@@ -84,7 +81,7 @@ async def create_project(session: AsyncSession, owner_id: uuid.UUID, name: str,
             await session.refresh(project)
         return project
     except DBAPIError as error:
-        code = _sqlstate(error)
+        code = sqlstate(error)
         if code == _LIMIT_REACHED:
             raise ProjectLimitReached(owner_id) from error
         if code == _LOCK_NOT_AVAILABLE:

@@ -2,7 +2,7 @@
 """
 Projects API (D-174): list, create (at most 3 per user) and delete for good. All work happens in
 backend/services/projects.py; this file only maps its results to HTTP answers. Not registered in
-main.py until sign-in exists, so it cannot be reached without a real user.
+main.py until projects are linked to website requests (Phase C).
 """
 import uuid
 

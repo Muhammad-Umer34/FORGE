@@ -16,31 +16,23 @@ from contextlib import asynccontextmanager
 
 import httpx
 import pytest
-from alembic import command
-from alembic.config import Config
 from fastapi import FastAPI, Header
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.pool import NullPool
 
-from backend.core.config import ROOT_DIR, settings
 from backend.core.deps import get_current_user_id
-from backend.db.session import get_session, make_engine, make_sessionmaker
+from backend.db.session import get_session, sqlstate
 from backend.routes.projects import router as projects_router
 from backend.services import projects as service
+from pg_support import (MIGRATIONS, migrate_test_database, new_engine, open_transactions, requires_db,
+                        session_dependency, wait_for_lock_waiters)
 
-pytestmark = pytest.mark.skipif(not settings.TEST_DATABASE_URL, reason="TEST_DATABASE_URL is not set")
-
-MIGRATIONS = ROOT_DIR / "backend" / "migrations"
-WAIT_FOR_LOCK_S = 30
+pytestmark = requires_db
 
 
 @pytest.fixture(scope="module", autouse=True)
 def migrated_database():
-    cfg = Config(str(MIGRATIONS / "alembic.ini"))
-    cfg.attributes["url"] = settings.TEST_DATABASE_URL
-    cfg.attributes["configure_logger"] = False
-    command.upgrade(cfg, "head")
+    migrate_test_database()
 
 
 @pytest.fixture(autouse=True)
@@ -86,42 +78,22 @@ class Harness:
                 await trans.rollback()
 
     async def wait_for_lock_waiters(self, count: int, statement: str = "FOR UPDATE") -> None:
-        """Wait until `count` sessions are blocked on a row lock while running `statement`."""
-        deadline = time.monotonic() + WAIT_FOR_LOCK_S
-        while time.monotonic() < deadline:
-            async with self.engine.connect() as conn:
-                waiting = await conn.scalar(text(
-                    "SELECT count(*) FROM pg_stat_activity WHERE pid <> pg_backend_pid() "
-                    "AND datname = current_database() AND wait_event_type = 'Lock' AND query ILIKE :pattern"
-                ), {"pattern": f"%{statement}%"})
-            if waiting >= count:
-                return
-            await asyncio.sleep(0.1)
-        raise AssertionError(f"expected {count} sessions waiting on the lock; saw fewer")
+        await wait_for_lock_waiters(self.engine, count, statement)
 
     async def open_transactions(self) -> int:
-        async with self.engine.connect() as conn:
-            return await conn.scalar(text(
-                "SELECT count(*) FROM pg_stat_activity WHERE pid <> pg_backend_pid() "
-                "AND datname = current_database() AND state LIKE 'idle in transaction%' AND query ILIKE '%projects%'"
-            ))
+        return await open_transactions(self.engine, "projects")
 
 
 @asynccontextmanager
 async def harness():
-    engine = make_engine(settings.TEST_DATABASE_URL, poolclass=NullPool)
-    maker = make_sessionmaker(engine)
-
-    async def test_session():
-        async with maker() as session:
-            yield session
+    engine = new_engine()
 
     def test_user(x_test_user: uuid.UUID = Header()) -> uuid.UUID:
         return x_test_user
 
     app = FastAPI()
     app.include_router(projects_router)
-    app.dependency_overrides[get_session] = test_session
+    app.dependency_overrides[get_session] = session_dependency(engine)
     app.dependency_overrides[get_current_user_id] = test_user
     transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
     async with httpx.AsyncClient(transport=transport, base_url="http://test", timeout=60) as client:
@@ -302,7 +274,7 @@ async def _raw_insert(engine, uid: uuid.UUID, name: str, isolation: str = "READ 
                 await conn.execute(text("INSERT INTO projects (owner_id, name) VALUES (:o, :n)"), {"o": uid, "n": name})
             return "ok"
         except DBAPIError as error:
-            return service._sqlstate(error)
+            return sqlstate(error)
 
 
 def test_trigger_rejects_a_direct_fourth_insert():

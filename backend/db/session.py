@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException, status
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.core.config import settings
@@ -33,6 +34,11 @@ def make_engine(url: str, **kwargs) -> AsyncEngine:
         },
         **kwargs,
     )
+
+
+def sqlstate(error: DBAPIError) -> str | None:
+    """PostgreSQL's 5-character error code behind a SQLAlchemy error (e.g. 23505 = duplicate)."""
+    return getattr(error.orig, "sqlstate", None) or getattr(error.orig, "pgcode", None)
 
 
 def make_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:

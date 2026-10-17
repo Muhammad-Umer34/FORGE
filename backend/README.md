@@ -5,12 +5,12 @@ Model calls go through the LLM gateway in `agents/gateway.py` (Google Gemini; mo
 
 ## Architecture
 
-- `core/`: settings and environment configuration (`config.py`); shared dependencies (`deps.py`); the old chat prompt (`prompts.py`).
+- `core/`: settings and environment configuration (`config.py`); shared dependencies (`deps.py`, incl. the signed-in user); passwords and tokens (`security.py`); the old chat prompt (`prompts.py`).
 - `db/`: PostgreSQL (Supabase) connection (`session.py`) and table definitions (`tables.py`) (D-172).
-- `migrations/`: Alembic migrations; `versions/0001_users_and_projects.py` creates users, projects and the 3-project limit (D-173, D-175).
-- `models/`: Pydantic request and response schemas (`requests.py` for the website-request API; `projects.py`; `chat.py`, `session.py` for the old chat).
-- `routes/`: `requests.py` (website-request API), `projects.py` (not registered until sign-in exists), `health.py`, and the old `chat.py`.
-- `services/`: `projects.py` (the only code that creates or deletes projects, D-174); the old chat's Gemini and memory services.
+- `migrations/`: Alembic migrations; `versions/0001_users_and_projects.py` creates users, projects and the 3-project limit (D-173, D-175); `0002_refresh_tokens.py` adds sign-in sessions (D-178).
+- `models/`: Pydantic request and response schemas (`requests.py` for the website-request API; `auth.py`; `projects.py`; `chat.py`, `session.py` for the old chat).
+- `routes/`: `requests.py` (website-request API), `auth.py` (sign-in), `projects.py` (registered in Phase C), `health.py`, and the old `chat.py`.
+- `services/`: `auth.py` (accounts and sign-in sessions, D-176 – D-178); `projects.py` (the only code that creates or deletes projects, D-174); the old chat's Gemini and memory services.
 - `main.py`: application bootstrap, CORS, and the checkpointer that keeps paused runs.
 
 The old free chat (`/api/chat`, `services/`, `models/chat.py`, `models/session.py`, `core/prompts.py`) stays until the
@@ -26,6 +26,22 @@ Configuration is read from the single `.env` file at the FORGE-1 root. Agents ne
 .venv\Scripts\python.exe -m alembic -c backend/migrations/alembic.ini upgrade head            # app database
 .venv\Scripts\python.exe -m alembic -c backend/migrations/alembic.ini -x db=test upgrade head  # test database
 ```
+
+## Sign-in API (D-176 – D-178)
+
+| Method and path | Body | Answer |
+|---|---|---|
+| `POST /api/auth/register` | `{ "email", "password" (8–128), "display_name" }` | 201 + access token; 409 `email_taken` |
+| `POST /api/auth/login` | `{ "email", "password" }` | 200 + access token; 401 `invalid_credentials`; 429 `account_locked` after 5 wrong passwords (15 min) |
+| `POST /api/auth/refresh` | — (cookie) | 200 + new access token and new cookie; 401 `signed_out` |
+| `POST /api/auth/logout` | — (cookie) | 204, ends this sign-in on every device it reached |
+| `GET /api/auth/me` | — (`Authorization: Bearer <access token>`) | the signed-in user |
+
+- **Access token:** JWT (HS256), 15 minutes, sent as `Authorization: Bearer …`. The frontend keeps it in memory only.
+- **Refresh token:** JWT with its own secret, 14 days, only in the `forge_refresh` cookie (HttpOnly, SameSite=Lax,
+  Path=/api/auth, Secure outside development). Stored as a SHA-256 hash. Every refresh replaces it; an old one used
+  again later revokes the whole sign-in (theft detection). Used again within 10 seconds (two tabs) it is just refused.
+- **Passwords:** Argon2id. `.env` needs `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` (different, at least 32 characters).
 
 **Project limit (D-174, D-175):** at most 3 projects per user. `services/projects.create_project` locks the user's row
 (`SELECT ... FOR UPDATE`), counts, then inserts, all in one READ COMMITTED transaction; a trigger in the database does the
@@ -76,5 +92,6 @@ cd d:\FYP\FORGE-1
 ```
 
 Live tests call Gemini and use API credits; they run only with `FORGE_LIVE_TESTS=1`.
-PostgreSQL integration tests (`tests/test_project_limit.py`) run only when `TEST_DATABASE_URL` is set; they apply the
-migrations, create their own users and delete them afterwards (about 4 minutes against the Supabase pooler).
+PostgreSQL integration tests (`tests/test_project_limit.py`, `tests/test_auth.py`; helpers in `tests/pg_support.py`) run only
+when `TEST_DATABASE_URL` is set; they apply the migrations, create their own users and delete them afterwards (about 8
+minutes against the Supabase pooler).

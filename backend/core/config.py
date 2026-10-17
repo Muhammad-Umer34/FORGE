@@ -31,6 +31,16 @@ class Settings:
     # How long project creation waits for the per-user lock before answering 503 (D-174)
     DB_LOCK_TIMEOUT_MS: int = int(os.getenv("DB_LOCK_TIMEOUT_MS", "3000"))
 
+    # Sign-in (D-176 - D-178). Secrets live only in .env; tokens are refused if a secret is missing or short.
+    JWT_ACCESS_SECRET: str = os.getenv("JWT_ACCESS_SECRET", "")
+    JWT_REFRESH_SECRET: str = os.getenv("JWT_REFRESH_SECRET", "")
+    JWT_ISSUER: str = "forge-api"
+    JWT_AUDIENCE: str = "forge-app"
+    ACCESS_TOKEN_MINUTES: int = int(os.getenv("ACCESS_TOKEN_MINUTES", "15"))
+    REFRESH_TOKEN_DAYS: int = int(os.getenv("REFRESH_TOKEN_DAYS", "14"))
+    # The refresh cookie is sent over HTTPS only outside development
+    COOKIE_SECURE: bool = os.getenv("ENVIRONMENT", "development").lower() != "development"
+
     # Server config
     PORT: int = int(os.getenv("BACKEND_PORT", "8000"))
     HOST: str = os.getenv("HOST", "0.0.0.0")
