@@ -1,5 +1,6 @@
 # D:\FYP\FORGE-1\backend\routes\health.py
 from fastapi import APIRouter
+from agents.gateway import provider
 from backend.core.config import settings
 
 router = APIRouter(tags=["Health"])
@@ -11,5 +12,6 @@ def health_check():
         "status": "ok",
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
-        "model": settings.CLARIFICATION_MODEL
+        "model": settings.CLARIFICATION_MODEL,
+        "provider": provider(),
     }

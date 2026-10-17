@@ -3,6 +3,8 @@
 Minimal LLM gateway (decisions D-128, D-138). Every model call made by an agent goes through
 call_structured(), so agents contain no provider code. The gateway:
   * picks the model for a task from the environment (the single FORGE-1/.env),
+  * sends every call to one provider: Vertex AI (Google Cloud, uses the project's credits) or the
+    Google AI Studio API, chosen by LLM_PROVIDER (D-184),
   * asks for structured output that matches a Pydantic schema,
   * retries an invalid output once, sending the parse error back to the model,
   * retries transient provider errors (HTTP 429/5xx, timeouts) with backoff, then tries
@@ -57,6 +59,34 @@ def model_for(task: str) -> str:
     return os.getenv(_TASK_MODEL_ENV.get(task, ""), "") or _DEFAULT_MODEL
 
 
+def provider() -> str:
+    """'vertex' or 'studio'. LLM_PROVIDER decides; if it is not set, Vertex AI is used whenever
+    VERTEX_API_KEY exists. Primary and fallback model always use the same provider, so all spending
+    lands on one bill (D-184)."""
+    chosen = os.getenv("LLM_PROVIDER", "").strip().lower()
+    if chosen in ("vertex", "studio"):
+        return chosen
+    return "vertex" if os.getenv("VERTEX_API_KEY") else "studio"
+
+
+# The Google SDK reads these two by itself and, in Vertex mode, prefers them over the key we pass,
+# so the AI Studio key is stored as STUDIO_API_KEY instead (D-184).
+_SDK_KEY_VARIABLES = ("GOOGLE_API_KEY", "GEMINI_API_KEY")
+
+
+def api_key() -> str:
+    return os.getenv("VERTEX_API_KEY" if provider() == "vertex" else "STUDIO_API_KEY", "")
+
+
+def _check_vertex_environment() -> None:
+    found = [name for name in _SDK_KEY_VARIABLES if os.getenv(name)]
+    if found:
+        raise ModelCallError(
+            f"{' and '.join(found)} is set, so the Google SDK would use it instead of VERTEX_API_KEY. "
+            "Rename it to STUDIO_API_KEY in FORGE-1/.env."
+        )
+
+
 def _fallback_model() -> str | None:
     return os.getenv("FALLBACK_MODEL") or None
 
@@ -76,9 +106,14 @@ def _llm(model: str):
     # Imported here so modules that never call a model (and unit tests) do not need the provider package.
     from langchain_google_genai import ChatGoogleGenerativeAI
 
+    if provider() == "vertex":
+        _check_vertex_environment()
+    # Vertex AI with an API key bound to the project ("express mode"): the key carries the project,
+    # and project/location would require a service-account login instead of a key.
     return ChatGoogleGenerativeAI(
         model=model,
-        google_api_key=os.getenv("GEMINI_API_KEY", ""),
+        google_api_key=api_key(),
+        vertexai=provider() == "vertex",
         temperature=0,          # extraction should be repeatable (D-127)
         max_retries=0,          # retries are handled here
         timeout=60,

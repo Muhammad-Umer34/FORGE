@@ -14,8 +14,11 @@ class Settings:
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api"
 
-    # API Keys & Models
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    # Model provider (D-184): Vertex AI (Google Cloud credits) when VERTEX_API_KEY is set, else AI Studio.
+    # The choice itself lives in agents/gateway.py; these are read here only to check the setup at start.
+    STUDIO_API_KEY: str = os.getenv("STUDIO_API_KEY", "")   # not GEMINI_API_KEY: see agents/gateway.py
+    VERTEX_API_KEY: str = os.getenv("VERTEX_API_KEY", "")
+    VERTEX_PROJECT: str = os.getenv("VERTEX_PROJECT", "")   # informational: the key already names it
     CLARIFICATION_MODEL: str = os.getenv("CLARIFICATION_MODEL", "gemini-3.8-flash")
     FALLBACK_MODEL: str = os.getenv("FALLBACK_MODEL", "gemini-3.1-flash-lite")
 
@@ -53,5 +56,5 @@ class Settings:
 
 settings = Settings()
 
-if not settings.GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY is missing! Please configure it in the FORGE-1/.env file.")
+if not (settings.VERTEX_API_KEY or settings.STUDIO_API_KEY):
+    raise ValueError("No model key: set VERTEX_API_KEY (Vertex AI) or STUDIO_API_KEY (AI Studio) in FORGE-1/.env.")

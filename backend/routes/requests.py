@@ -22,7 +22,7 @@ from agents import logo_colours
 from agents.catalogue import load_catalogue
 from agents.clarification import slots
 from agents.clarification.prompts import PROMPT_VERSIONS
-from agents.gateway import model_for
+from agents.gateway import model_for, provider
 from agents.state import Question, RequestInfo, RunConfig, initial_state
 from backend.core.deps import get_current_user_id
 from backend.db.session import get_session
@@ -39,7 +39,7 @@ def _config(request_id: str) -> dict:
 def _run_config() -> RunConfig:
     cat = load_catalogue()
     return RunConfig(
-        model_per_task={"clarification": f"google/{model_for('clarification')}"},
+        model_per_task={"clarification": f"{provider()}/{model_for('clarification')}"},
         catalogue_version=cat.version,
         catalogue_hash=cat.catalogue_hash,
         unsupported_list_hash=cat.unsupported_list_hash,

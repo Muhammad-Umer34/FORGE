@@ -3,6 +3,15 @@
 FastAPI server for FORGE. It runs the agent pipeline (`agents/`) behind a small HTTP API.
 Model calls go through the LLM gateway in `agents/gateway.py` (Google Gemini; model ids from `.env`).
 
+**Model provider (D-184).** Calls go to **Vertex AI** (Google Cloud project `gen-lang-client-0455463515`, so they use the
+project's credits) whenever `VERTEX_API_KEY` is set; otherwise to the Google AI Studio API with `STUDIO_API_KEY`.
+`LLM_PROVIDER=vertex|studio` forces one. Primary and fallback model always use the same provider. Two traps, handled:
+- The Google SDK reads `GEMINI_API_KEY` / `GOOGLE_API_KEY` by itself and prefers them in Vertex mode, so the AI Studio key
+  is stored as `STUDIO_API_KEY`; the gateway refuses to start a call if either old name is set.
+- `GOOGLE_CLOUD_PROJECT` / `GOOGLE_CLOUD_LOCATION` would switch the SDK to service-account login, so `.env` uses
+  `VERTEX_PROJECT` / `VERTEX_LOCATION` (for reference only; the key already names the project).
+Gemini 3 models are served from the `global` location only (`us-central1` answers 404 for them).
+
 ## Architecture
 
 - `core/`: settings and environment configuration (`config.py`); shared dependencies (`deps.py`, incl. the signed-in user); passwords and tokens (`security.py`).
