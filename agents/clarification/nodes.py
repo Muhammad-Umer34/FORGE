@@ -74,11 +74,12 @@ def _pending_question(c: ClarificationState):
     return next(q for q in c.questions if q.question_id == c.pending_question_id)
 
 
-def question_payload(q) -> dict:
+def question_payload(q, max_questions: int) -> dict:
     """What the client sees for a question (v6 Section 4)."""
     return {
         "type": "question",
-        "question_id": q.question_id, "number": q.number, "kind": q.kind, "slot": q.slot, "text": q.text,
+        "question_id": q.question_id, "number": q.number, "max_questions": max_questions,
+        "kind": q.kind, "slot": q.slot, "text": q.text,
         "options": [o.model_dump() for o in q.options],
         "multi_select": q.multi_select, "max_selections": q.max_selections,
         "allow_you_decide": q.allow_you_decide, "allow_other_text": q.allow_other_text,
@@ -168,7 +169,8 @@ def select_question(state: GraphState) -> dict:
 def ask_user(state: GraphState) -> dict:
     """Interrupt only (N7)."""
     c = state["clarification"]
-    raw = interrupt(question_payload(_pending_question(c)), response_schema=UserAnswer)
+    payload = question_payload(_pending_question(c), state["run_config"].limits.max_questions)
+    raw = interrupt(payload, response_schema=UserAnswer)
     answer = UserAnswer.model_validate(raw if isinstance(raw, dict) else raw.model_dump())
     c = c.model_copy(deep=True)
     q = _pending_question(c)
