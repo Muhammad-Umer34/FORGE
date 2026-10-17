@@ -10,6 +10,7 @@ _STAGE_AFTER_CLARIFICATION = {
     "failed": Stage.FAILED,
     "out_of_scope": Stage.OUT_OF_SCOPE,
     "cancelled": Stage.CANCELLED,
+    "replied": Stage.REPLIED,
 }
 
 

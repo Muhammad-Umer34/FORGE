@@ -9,7 +9,7 @@ import json
 import re
 
 PROMPT_VERSIONS = {
-    "intake": "v6.2",
+    "intake": "v6.4",
     "answer": "v6.1",
     "edit": "v6.1",
     "review": "v6.2",
@@ -54,14 +54,19 @@ Rules:
 - candidate_feature_id must be an id from the FEATURE LIST, or null. Do not make up ids.
 - Set alternative_feature_id only when two FEATURE LIST ids are truly equally likely.
 - candidate_capability_id must be an id from the UNSUPPORTED LIST, or null. Use it when the item needs that capability.
-- is_core is true only for the item that is the main purpose of the site (for example "an online store with card payments").
+- is_core is true for the items the site's main purpose depends on. An UNSUPPORTED LIST item is core only when
+  the site cannot do its main job without it (card payments for an online store). An extra wish such as a
+  chatbot on a salon booking site is not core.
 - retracted is true when the user later takes the item back ("actually no payments").
 - Layout parts such as a top menu, header or footer are always included; do not list them unless the user asked.
 - Business details (phone number, prices, opening times, photos) are content: kind "content".
 - The website itself and the business itself are not items ("a website for my shop" has no items).
 - goal and business_type are short, in your own words. Never copy long parts of the request.
   The goal never mentions anything from the UNSUPPORTED LIST.
-- is_website_request is false only when the user does not want a website (for example "write my CV text")."""
+- message_kind: decide first whether the user wants a website. A greeting together with a website request is
+  website_request. Questions about FORGE itself are about_forge. Maths, science, general knowledge, writing
+  tasks and other unrelated questions are off_topic: do not answer them. When message_kind is not
+  website_request, return no items."""
 
 
 def intake_user(request_text: str, feature_list: str, unsupported_list: str) -> str:

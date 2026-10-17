@@ -3,11 +3,11 @@
 
 import { useEffect, useState } from "react";
 import { ApiError, answerQuestion, confirmBrief, createRequest, getRequest } from "@/services/api";
-import { ConfirmationDecision, RequestEnvelope, UserAnswer } from "@/types/request";
+import { ConfirmationDecision, ReplyData, RequestEnvelope, UserAnswer } from "@/types/request";
 import { ConfirmationPanel } from "./ConfirmationPanel";
 import { OutcomeView } from "./OutcomeView";
 import { QuestionCard } from "./QuestionCard";
-import { RequestComposer } from "./RequestComposer";
+import { ComposerReply, RequestComposer } from "./RequestComposer";
 import { Step, StudioHeader } from "./StudioHeader";
 
 type Busy = "start" | "answer" | "confirm" | "restore";
@@ -84,12 +84,24 @@ export default function ForgeStudio() {
   const [busy, setBusy] = useState<Busy | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastPrompt, setLastPrompt] = useState("");
+  const [reply, setReply] = useState<ComposerReply | null>(null);
+  const [composerKey, setComposerKey] = useState(0);
 
-  const run = async (kind: Busy, call: () => Promise<RequestEnvelope>) => {
+  const run = async (kind: Busy, call: () => Promise<RequestEnvelope>, said?: string) => {
     setBusy(kind);
     setError(null);
     try {
       const next = await call();
+      if (next.status === "reply") {
+        // Not a website request: answer on the start screen; no run to resume (D-150).
+        setReply({ said: said ?? "", data: next.data as ReplyData });
+        setEnvelope(null);
+        setLastPrompt("");
+        setComposerKey((k) => k + 1);
+        storage.clear();
+        return;
+      }
+      setReply(null);
       setEnvelope(next);
       storage.set(next.request_id);
     } catch (err) {
@@ -134,11 +146,12 @@ export default function ForgeStudio() {
     setEnvelope(null);
     setError(null);
     setLastPrompt(""); // a fresh start gets an empty box; the prompt is kept only for "Try again"
+    setReply(null);
   };
 
   const start = (prompt: string) => {
     setLastPrompt(prompt);
-    run("start", () => createRequest(prompt));
+    run("start", () => createRequest(prompt), prompt);
   };
 
   const answer = (a: UserAnswer) => {
@@ -158,7 +171,14 @@ export default function ForgeStudio() {
 
         <div aria-busy={busy !== null} className={busy ? "pointer-events-none opacity-50 transition-opacity duration-300" : "transition-opacity duration-300"}>
           {!envelope && (
-            <RequestComposer onSubmit={start} busy={busy !== null} error={error} initialText={lastPrompt} />
+            <RequestComposer
+              key={composerKey}
+              onSubmit={start}
+              busy={busy !== null}
+              error={error}
+              initialText={lastPrompt}
+              reply={reply}
+            />
           )}
 
           {envelope?.status === "needs_clarification" && (

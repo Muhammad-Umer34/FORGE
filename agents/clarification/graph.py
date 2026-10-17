@@ -14,7 +14,7 @@ from langgraph.graph import END, START, StateGraph
 from agents.clarification import nodes
 from agents.state import GraphState
 
-_ENDED = ("failed", "out_of_scope", "cancelled")
+_ENDED = ("failed", "out_of_scope", "cancelled", "replied")
 
 
 def _ended(state: GraphState) -> bool:

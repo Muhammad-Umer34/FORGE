@@ -13,7 +13,7 @@ from typing import Any
 from langgraph.types import interrupt
 
 from agents.catalogue import Catalogue, load_catalogue
-from agents.clarification import acceptance, grounding, prompts, slots
+from agents.clarification import acceptance, grounding, intent, prompts, slots
 from agents.clarification import brief as briefs
 from agents.clarification.schemas import (
     NO_VISITOR_ACTION, AnswerInterpretation, BriefReview, ConfirmationDecision, EditInterpretation,
@@ -21,7 +21,7 @@ from agents.clarification.schemas import (
 )
 from agents.gateway import CallUsage, InvalidOutputError, ModelCallError, call_structured
 from agents.state import (
-    BriefCheck, ClarificationState, ClarifiedBrief, FailureInfo, GraphState, Limits, OutOfScopeInfo,
+    BriefCheck, ClarificationState, ClarifiedBrief, FailureInfo, GraphState, Limits,
     UsageSummary, can_freeze, sum_usage,
 )
 
@@ -32,7 +32,6 @@ FAILURE_MESSAGES = {   # D-121: three categories, three different messages
     "missing_info": "We still need a few details before we can build your website.",
     "system": "FORGE had a technical problem. Your request was fine. Please try again in a few minutes.",
 }
-NOT_A_WEBSITE = "FORGE builds small-to-medium websites. This request isn't for a website."
 
 
 # ---------------------------------------------------------------- helpers
@@ -74,11 +73,11 @@ def _pending_question(c: ClarificationState):
     return next(q for q in c.questions if q.question_id == c.pending_question_id)
 
 
-def question_payload(q, max_questions: int) -> dict:
-    """What the client sees for a question (v6 Section 4)."""
+def question_payload(q, max_questions: int, reask: bool = False) -> dict:
+    """What the client sees for a question (v6 Section 4). `reask`: the last answer did not fill this slot (D-153)."""
     return {
         "type": "question",
-        "question_id": q.question_id, "number": q.number, "max_questions": max_questions,
+        "question_id": q.question_id, "number": q.number, "max_questions": max_questions, "reask": reask,
         "kind": q.kind, "slot": q.slot, "text": q.text,
         "options": [o.model_dump() for o in q.options],
         "multi_select": q.multi_select, "max_selections": q.max_selections,
@@ -111,9 +110,20 @@ def sanitise_input(state: GraphState) -> dict:
     return {"clarification": c}
 
 
+def _reply(c: ClarificationState, kind: str, text: str) -> ClarificationState:
+    """Not a website request: a fixed reply, no build run (D-150)."""
+    c.is_website_request = False
+    c.reply = intent.reply_for(kind, text)
+    c.status = "replied"
+    return c
+
+
 def intake(state: GraphState) -> dict:
     c, limits, cat = _ctx(state)
     text = _prompt(state)
+    obvious = intent.prefilter(text)          # greetings and word-less text: no model call (D-151)
+    if obvious:
+        return {"clarification": _reply(c, obvious, text)}
     try:
         out, usage = _call(c, IntakeOutput, prompts.INTAKE_SYSTEM,
                            prompts.intake_user(text, cat.feature_summary(), cat.unsupported_summary()))
@@ -122,11 +132,9 @@ def intake(state: GraphState) -> dict:
     except ModelCallError as error:
         return {"clarification": _fail(c, "intake", "system", str(error))}
 
-    c.is_website_request = out.is_website_request
-    if not out.is_website_request:           # N3: request-level scope (D-108)
-        c.out_of_scope = OutOfScopeInfo(reason=NOT_A_WEBSITE)
-        c.status = "out_of_scope"
-        return {"clarification": c, "usage": usage}
+    if out.message_kind != "website_request":    # N3: greeting, question about FORGE, off-topic, unclear
+        return {"clarification": _reply(c, out.message_kind, text), "usage": usage}
+    c.is_website_request = True
 
     c.detected_language, c.romanized = out.detected_language, out.romanized
     c.is_business, c.business_type, c.goal, c.style_hint = out.is_business, out.business_type, out.goal, out.style_hint
@@ -169,7 +177,9 @@ def select_question(state: GraphState) -> dict:
 def ask_user(state: GraphState) -> dict:
     """Interrupt only (N7)."""
     c = state["clarification"]
-    payload = question_payload(_pending_question(c), state["run_config"].limits.max_questions)
+    q = _pending_question(c)
+    reask = sum(1 for other in c.questions if other.slot == q.slot) > 1
+    payload = question_payload(q, state["run_config"].limits.max_questions, reask)
     raw = interrupt(payload, response_schema=UserAnswer)
     answer = UserAnswer.model_validate(raw if isinstance(raw, dict) else raw.model_dump())
     c = c.model_copy(deep=True)

@@ -52,6 +52,8 @@ def _envelope(request_id: str, values: dict, interrupts) -> RequestEnvelope:
         })
     if c.status == "out_of_scope" and c.out_of_scope:
         return RequestEnvelope(request_id=request_id, status="out_of_scope", data=c.out_of_scope.model_dump())
+    if c.status == "replied" and c.reply:
+        return RequestEnvelope(request_id=request_id, status="reply", data=c.reply.model_dump())
     if c.status == "cancelled":
         return RequestEnvelope(request_id=request_id, status="cancelled")
     failure = c.failure

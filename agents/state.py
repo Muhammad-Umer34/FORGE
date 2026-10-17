@@ -56,6 +56,7 @@ class Stage(str, Enum):
     DONE = "done"
     FAILED = "failed"
     OUT_OF_SCOPE = "out_of_scope"            # request cannot be built; nothing passed on
+    REPLIED = "replied"                      # not a website request (greeting, question, off-topic): answered, no run
     CANCELLED = "cancelled"                  # the user cancelled at confirmation
 
 
@@ -193,6 +194,12 @@ class FailureInfo(BaseModel):
     at: datetime
 
 
+class ReplyInfo(BaseModel):
+    """A message that is not a website request gets a fixed reply chosen by code (D-150); no build run follows."""
+    kind: Literal["greeting", "about_forge", "off_topic", "unclear"]
+    message: str                               # plain-language text shown to the user
+
+
 class OutOfScopeInfo(BaseModel):
     reason: str                                # plain-language text shown to the user
     alternatives: list[str] = Field(default_factory=list)
@@ -202,7 +209,7 @@ class ClarificationState(BaseModel):
     """Working data of the Clarification Agent. No other agent reads this."""
     status: Literal[
         "idle", "analysing", "awaiting_answer", "drafting", "checking",
-        "awaiting_confirmation", "generating_tests", "done", "failed", "out_of_scope", "cancelled",
+        "awaiting_confirmation", "generating_tests", "done", "failed", "out_of_scope", "cancelled", "replied",
     ] = "idle"
     detected_language: Optional[str] = None    # e.g. "en", "ur", "ur-Latn" (Roman Urdu)
     romanized: bool = False
@@ -229,6 +236,7 @@ class ClarificationState(BaseModel):
     confirmation: ConfirmationState = Field(default_factory=ConfirmationState)
     pending_edit_text: Optional[str] = None    # free-text edit waiting to be interpreted
     out_of_scope: Optional[OutOfScopeInfo] = None
+    reply: Optional[ReplyInfo] = None          # set when the message was not a website request
     failure: Optional[FailureInfo] = None
 
 

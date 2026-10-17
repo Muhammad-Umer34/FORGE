@@ -31,7 +31,11 @@ class IntakeItem(BaseModel):
 
 
 class IntakeOutput(BaseModel):
-    is_website_request: bool = Field(description="True if the user wants a website built. False for anything else.")
+    message_kind: Literal["website_request", "greeting", "about_forge", "off_topic", "unclear"] = Field(
+        description="website_request: the user wants a website built or changed (even if the message also greets). "
+                    "greeting: hello or small talk only. about_forge: a question about FORGE itself (what it can build, "
+                    "how it works, prices, payments). off_topic: anything else, such as maths, science, general "
+                    "knowledge or writing tasks. unclear: cannot tell what the user wants.")
     detected_language: str = Field(description="Language of the request, e.g. 'en', 'ur', 'ur-Latn' for Roman Urdu.")
     romanized: bool = Field(description="True if a non-English language is written in Latin letters.")
     purpose_known: bool = Field(description="True if the request says what the site is for or what the business is.")

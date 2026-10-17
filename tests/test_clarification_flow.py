@@ -59,7 +59,7 @@ def bakery_tests(_user):
 
 
 BAKERY_INTAKE = IntakeOutput(
-    is_website_request=True, detected_language="en", romanized=False, purpose_known=True, is_business=True,
+    message_kind="website_request", detected_language="en", romanized=False, purpose_known=True, is_business=True,
     business_type="bakery", goal="Show the menu", items=[
         IntakeItem(text="our menu", kind="feature", evidence="our menu", candidate_feature_id="menu-catalog")],
 )
@@ -95,13 +95,39 @@ def test_vague_request_asks_then_confirms_then_freezes(graph, monkeypatch):
     assert result["usage"].calls == 2                                          # intake + tests
 
 
-def test_not_a_website_is_out_of_scope_without_questions(graph, monkeypatch):
-    monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: IntakeOutput(
-        is_website_request=False, detected_language="en", romanized=False, purpose_known=False, is_business=False)}))
-    result, _ = start(graph, "write my CV text")
-    assert pending(result) is None
-    assert result["clarification"].status == "out_of_scope"                   # TC-06
-    assert result["control"].stage == Stage.OUT_OF_SCOPE
+def not_a_request(kind: str) -> IntakeOutput:
+    return IntakeOutput(message_kind=kind, detected_language="en", romanized=False, purpose_known=False, is_business=False)
+
+
+@pytest.mark.parametrize("prompt, kind, words", [
+    ("write my CV text", "off_topic", "only help with building websites"),             # TC-06
+    ("what is the derivative of x squared", "off_topic", "can't answer that"),         # TC-13
+    ("what can you build? can you take payments?", "about_forge", "can't take online payments"),  # TC-14
+    ("asdf qwer zxcv", "unclear", "couldn't tell what you need"),
+])
+def test_messages_that_are_not_requests_get_a_reply(graph, monkeypatch, prompt, kind, words):
+    monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: not_a_request(kind)}))
+    result, _ = start(graph, prompt)
+    c = result["clarification"]
+    assert pending(result) is None and not c.questions
+    assert c.status == "replied" and c.reply.kind == kind and words in c.reply.message
+    assert result["control"].stage == Stage.REPLIED and not result["control"].failed
+
+
+def test_greeting_is_answered_without_a_model_call(graph, monkeypatch):          # TC-12, D-151
+    monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: ModelCallError("must not be called")}))
+    result, _ = start(graph, "Hi how are you ?")
+    c = result["clarification"]
+    assert c.status == "replied" and c.reply.kind == "greeting"
+    assert c.reply.message.startswith("I'm doing well")
+    assert c.calls_used == 0 and result["usage"].calls == 0
+
+
+def test_greeting_with_a_request_starts_the_workflow(graph, monkeypatch):          # TC-15
+    monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: BAKERY_INTAKE, BriefReview: BriefReview()}))
+    result, _ = start(graph, "Hi! I need a website for my bakery with our menu")
+    assert pending(result)["type"] == "question"
+    assert result.get("clarification") is None or result["clarification"].status != "replied"
 
 
 def test_provider_failure_says_the_request_was_fine(graph, monkeypatch):
@@ -114,7 +140,7 @@ def test_provider_failure_says_the_request_was_fine(graph, monkeypatch):
 
 def test_declining_the_alternative_ends_out_of_scope(graph, monkeypatch):
     monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: IntakeOutput(
-        is_website_request=True, detected_language="en", romanized=False, purpose_known=True, is_business=True,
+        message_kind="website_request", detected_language="en", romanized=False, purpose_known=True, is_business=True,
         business_type="clothing shop", items=[IntakeItem(
             text="online store with card payments", kind="feature", evidence="online store with card payments",
             candidate_capability_id="online-payments", is_core=True)])}))
@@ -127,23 +153,26 @@ def test_declining_the_alternative_ends_out_of_scope(graph, monkeypatch):
 
 def test_unhelpful_answers_fail_with_missing_info(graph, monkeypatch):
     monkeypatch.setattr(nodes, "call_structured", fake_model({
-        IntakeOutput: IntakeOutput(is_website_request=True, detected_language="en", romanized=False,
+        IntakeOutput: IntakeOutput(message_kind="website_request", detected_language="en", romanized=False,
                                    purpose_known=False, is_business=True),
         AnswerInterpretation: AnswerInterpretation(understood=False),
     }))
     result, config = start(graph, "build me a website")
+    reasks = []
     for _ in range(3):
         q = pending(result)
         if q is None:
             break
+        reasks.append(q["reask"])
         result = graph.invoke(Command(resume={"question_id": q["question_id"], "kind": "other", "text": "dunno"}), config)
+    assert reasks == [False, True]                                                # D-153 notice on the second ask
     failure = result["clarification"].failure
     assert failure.category == "missing_info" and "what the website is for" in failure.missing   # TC-05
 
 
 def test_review_never_flags_what_the_user_delegated(graph, monkeypatch):     # D-148, D-149
     monkeypatch.setattr(nodes, "call_structured", fake_model({
-        IntakeOutput: IntakeOutput(is_website_request=True, detected_language="en", romanized=False,
+        IntakeOutput: IntakeOutput(message_kind="website_request", detected_language="en", romanized=False,
                                    purpose_known=False, is_business=True),
         # The model wrongly reports the delegated order form and the default product grid as invented.
         BriefReview: BriefReview(invented_feature_ids=["order-request", "product-grid"]),
@@ -207,4 +236,12 @@ def test_live_card_payments_store(graph):
 @live
 def test_live_not_a_website(graph):
     result, _ = start(graph, "Write a cover letter for a junior accountant job.")
-    assert result["clarification"].status == "out_of_scope"                   # TC-06
+    assert result["clarification"].status == "replied"                        # TC-06
+    assert result["clarification"].reply.kind == "off_topic"
+
+
+@live
+def test_live_maths_question_is_declined(graph):
+    result, _ = start(graph, "What is 15% of 240?")
+    c = result["clarification"]
+    assert c.status == "replied" and c.reply.kind == "off_topic"             # TC-13

@@ -56,6 +56,11 @@ export function QuestionCard({ question, busy, error, onAnswer }: QuestionCardPr
       >
         {question.text}
       </h1>
+      {question.reask && (
+        <p role="alert" className="mt-4 rounded-lg bg-ember-soft px-4 py-2.5 text-[14px] text-ember-strong">
+          That didn&apos;t answer the question. Please pick an option, or say it in your own words.
+        </p>
+      )}
       {question.multi_select && (
         <p className="mt-3 text-[14px] text-ink-muted">
           {question.max_selections ? `Choose up to ${question.max_selections}.` : "Choose all that apply."}

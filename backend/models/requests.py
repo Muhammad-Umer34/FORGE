@@ -9,6 +9,7 @@ from agents.clarification.schemas import ConfirmationDecision, UserAnswer
 
 RequestStatus = Literal[
     "needs_clarification", "awaiting_confirmation", "complete", "out_of_scope", "failed", "cancelled",
+    "reply",   # not a website request: data = {kind, message}; no run to resume (D-150)
 ]
 
 

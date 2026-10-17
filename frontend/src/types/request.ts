@@ -8,7 +8,8 @@ export type RequestStatus =
   | "complete"
   | "out_of_scope"
   | "failed"
-  | "cancelled";
+  | "cancelled"
+  | "reply";
 
 export interface QuestionOption {
   option_id: string;
@@ -21,6 +22,7 @@ export interface QuestionData {
   question_id: string;
   number: number;
   max_questions: number;
+  reask: boolean; // the last answer did not answer this question
   kind: "A" | "B" | "C" | "D" | "E";
   slot: string;
   text: string;
@@ -101,13 +103,20 @@ export interface FailedData {
   missing: string[];
 }
 
+/** A message that was not a website request (greeting, question about FORGE, off-topic, unclear). */
+export interface ReplyData {
+  kind: "greeting" | "about_forge" | "off_topic" | "unclear";
+  message: string;
+}
+
 export type RequestEnvelope =
   | { request_id: string; status: "needs_clarification"; data: QuestionData }
   | { request_id: string; status: "awaiting_confirmation"; data: ConfirmationData }
   | { request_id: string; status: "complete"; data: CompleteData }
   | { request_id: string; status: "out_of_scope"; data: OutOfScopeData }
   | { request_id: string; status: "failed"; data: FailedData }
-  | { request_id: string; status: "cancelled"; data: Record<string, never> };
+  | { request_id: string; status: "cancelled"; data: Record<string, never> }
+  | { request_id: string; status: "reply"; data: ReplyData };
 
 export interface UserAnswer {
   question_id: string;

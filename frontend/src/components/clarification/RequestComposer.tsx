@@ -2,9 +2,16 @@
 "use client";
 
 import { useState } from "react";
+import { ReplyData } from "@/types/request";
 
 const MAX_CHARS = 2000; // same cap as the agent's input sanitiser
-const MIN_CHARS = 10;
+const MIN_CHARS = 2; // short messages like "hi" get a reply too (D-150)
+
+/** FORGE's answer to a message that was not a website request, with what the user said. */
+export interface ComposerReply {
+  said: string;
+  data: ReplyData;
+}
 
 const EXAMPLES = [
   "A website for my bakery with our cake menu, pre-order requests and a map to the shop.",
@@ -17,9 +24,10 @@ interface RequestComposerProps {
   busy: boolean;
   error: string | null;
   initialText?: string;
+  reply?: ComposerReply | null;
 }
 
-export function RequestComposer({ onSubmit, busy, error, initialText = "" }: RequestComposerProps) {
+export function RequestComposer({ onSubmit, busy, error, initialText = "", reply = null }: RequestComposerProps) {
   const [text, setText] = useState(initialText);
   const [touched, setTouched] = useState(false);
   const trimmed = text.trim();
@@ -44,6 +52,21 @@ export function RequestComposer({ onSubmit, busy, error, initialText = "" }: Req
         Write it the way you would tell a friend. If something is missing, FORGE asks a few quick
         questions, then shows you a summary to confirm before anything is built.
       </p>
+
+      {reply && (
+        <div role="status" aria-live="polite" className="mt-8 animate-rise space-y-3">
+          {reply.said && (
+            <p className="ml-auto w-fit max-w-[85%] rounded-lg bg-surface-sunk px-4 py-2.5 text-[15px] text-ink">
+              <span className="sr-only">You said: </span>
+              {reply.said}
+            </p>
+          )}
+          <div className="max-w-[62ch] rounded-lg border-l-2 border-ember bg-surface px-4 py-3 shadow-card">
+            <p className="text-[12px] font-semibold tracking-[0.14em] text-ember-strong">FORGE</p>
+            <p className="mt-1 text-[15px] leading-relaxed text-ink">{reply.data.message}</p>
+          </div>
+        </div>
+      )}
 
       <form
         className="mt-8"
@@ -87,7 +110,7 @@ export function RequestComposer({ onSubmit, busy, error, initialText = "" }: Req
           </div>
         </div>
         {touched && tooShort && (
-          <p className="mt-2 text-[13px] text-alert">Add a little more detail: what is the website for?</p>
+          <p className="mt-2 text-[13px] text-alert">Type a little more so FORGE can help.</p>
         )}
         {error && (
           <p role="alert" className="mt-3 rounded-lg bg-alert-soft px-4 py-3 text-[14px] text-alert">
