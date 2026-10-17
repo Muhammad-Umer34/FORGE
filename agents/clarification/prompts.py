@@ -9,7 +9,7 @@ import json
 import re
 
 PROMPT_VERSIONS = {
-    "intake": "v6.4",
+    "intake": "v6.5",
     "answer": "v6.1",
     "edit": "v6.1",
     "review": "v6.2",
@@ -61,6 +61,8 @@ Rules:
 - Layout parts such as a top menu, header or footer are always included; do not list them unless the user asked.
 - Business details (phone number, prices, opening times, photos) are content: kind "content".
 - The website itself and the business itself are not items ("a website for my shop" has no items).
+- personality, hue_family and brand_colour describe the look ONLY when the user said something about it;
+  otherwise leave them null. Colour words map to the nearest hue_family (gold -> amber, maroon -> red, beige -> brown).
 - goal and business_type are short, in your own words. Never copy long parts of the request.
   The goal never mentions anything from the UNSUPPORTED LIST.
 - message_kind: decide first whether the user wants a website. A greeting together with a website request is

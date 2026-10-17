@@ -225,12 +225,12 @@ export function MenuCatalogGrid({
                       onClick={() => handleOrder(item)}
                       className={cn(
                         "h-8 px-3 text-xs gap-1 transition-all",
-                        isAdded && "text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800"
+                        isAdded && "text-success bg-success/10 border-success/30"
                       )}
                     >
                       {isAdded ? (
                         <>
-                          <Check className="h-3.5 w-3.5 text-emerald-600" />
+                          <Check className="h-3.5 w-3.5 text-success" />
                           Added
                         </>
                       ) : (

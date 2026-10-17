@@ -102,7 +102,7 @@ export function StatsCounter({
               </div>
 
               {stat.trend && (
-                <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-medium text-emerald-500 flex items-center justify-center gap-1">
+                <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-medium text-success flex items-center justify-center gap-1">
                   <TrendingUp className="h-3.5 w-3.5" />
                   {stat.trend}
                 </div>

@@ -151,7 +151,7 @@ export function TeamGrid({
               {/* Card Footer */}
               <div className="px-6 py-4 border-t border-border/50 bg-muted/20 flex items-center justify-between text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <Award className="h-3.5 w-3.5 text-amber-500" />
+                  <Award className="h-3.5 w-3.5 text-primary" />
                   Verified Specialist
                 </span>
                 <div className="flex items-center gap-2">

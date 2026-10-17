@@ -154,8 +154,8 @@ export function BookingForm({
 
         {/* Confirmation State */}
         {isConfirmed ? (
-          <Card className="max-w-xl mx-auto border-emerald-500/30 bg-emerald-500/5 shadow-lg p-8 text-center space-y-4">
-            <div className="h-16 w-16 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mx-auto">
+          <Card className="max-w-xl mx-auto border-success/30 bg-success/5 shadow-lg p-8 text-center space-y-4">
+            <div className="h-16 w-16 rounded-full bg-success/15 text-success flex items-center justify-center mx-auto">
               <CalendarCheck className="h-8 w-8" />
             </div>
             <h3 className="text-2xl font-bold text-foreground">Booking Confirmed!</h3>

@@ -104,7 +104,7 @@ export function Testimonials({
                         key={sIdx}
                         className={cn(
                           "h-4 w-4 fill-current",
-                          sIdx < rating ? "text-amber-500" : "text-zinc-300 dark:text-zinc-700"
+                          sIdx < rating ? "text-amber-500" : "text-muted-foreground/30"
                         )}
                       />
                     ))}

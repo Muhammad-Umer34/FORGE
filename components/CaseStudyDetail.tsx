@@ -158,7 +158,7 @@ export function CaseStudyDetail({
 
           {/* Result */}
           <Card className="border-border bg-card p-6 space-y-3">
-            <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl bg-success/10 text-success flex items-center justify-center">
               <TrendingUp className="h-5 w-5" />
             </div>
             <h3 className="font-bold text-lg text-foreground">The Result</h3>

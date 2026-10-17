@@ -102,7 +102,7 @@ export function CtaBanner({
             <div className="mt-8 pt-8 border-t border-border/40 flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground">
               {highlights.map((highlight, hIdx) => (
                 <div key={hIdx} className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                   <span>{highlight}</span>
                 </div>
               ))}

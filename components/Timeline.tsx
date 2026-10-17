@@ -91,7 +91,7 @@ export function Timeline({
             <div key={item.id} className="relative pl-6 sm:pl-8 group">
               {/* Bullet Node */}
               <div className="absolute -left-[9px] top-1.5 h-4 w-4 rounded-full bg-background border-2 border-primary group-hover:bg-primary transition-colors flex items-center justify-center">
-                <div className="h-1.5 w-1.5 rounded-full bg-primary group-hover:bg-white" />
+                <div className="h-1.5 w-1.5 rounded-full bg-primary group-hover:bg-primary-foreground" />
               </div>
 
               {/* Date Marker (on left for sm+ screens) */}

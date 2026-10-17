@@ -9,7 +9,8 @@ import re
 from agents.catalogue import Catalogue
 from agents.clarification import grounding
 from agents.clarification.schemas import NO_VISITOR_ACTION, VISITOR_ACTION_FEATURES
-from agents.clarification.slots import STYLE_THEMES, get_slot
+from agents import theming
+from agents.clarification.slots import get_slot
 from agents.state import (
     BriefFeature, ClarificationState, ClarifiedBrief, Limits, UnsupportedItem,
 )
@@ -75,7 +76,6 @@ def draft_brief(c: ClarificationState, cat: Catalogue, version: int = 1) -> Clar
             acknowledged_by_user=item.alternative_accepted,
         ))
 
-    style = get_slot(c, "style")
     brief = ClarifiedBrief(
         version=version,
         baseline=grounding.choose_baseline(c, cat),
@@ -84,13 +84,25 @@ def draft_brief(c: ClarificationState, cat: Catalogue, version: int = 1) -> Clar
         features=features,
         pages=pages,
         content_needs=sorted({k for fid in feature_ids for k in cat.features[fid].content_needs}),
-        style={"theme": style.values[0]} if style.values else ({"hint": c.style_hint} if c.style_hint else {}),
+        theme=chosen_theme(c),
         integrations=[{"kind": _EMBED_FEATURES[fid], "feature_id": fid} for fid in feature_ids if fid in _EMBED_FEATURES],
         unsupported=unsupported,
         assumptions=list(c.assumptions),
     )
     brief.clarified_text = clarified_text(brief, c)
     return brief
+
+
+def theme_candidates(c: ClarificationState) -> list[dict]:
+    """Three generated themes for this request (D-157). Deterministic: same request, same themes."""
+    return theming.candidates(c.business_type, c.personality, c.hue_family, c.brand_colour, c.prefers_dark)
+
+
+def chosen_theme(c: ClarificationState) -> dict:
+    """The theme the user picked on the confirmation screen, else the pre-selected candidate."""
+    themes = theme_candidates(c)
+    picked = get_slot(c, "style").values
+    return next((t for t in themes if picked and t["theme_id"] == picked[0]), None) or next(t for t in themes if t["selected"])
 
 
 def clarified_text(brief: ClarifiedBrief, c: ClarificationState) -> str:
@@ -113,6 +125,8 @@ def clarified_text(brief: ClarifiedBrief, c: ClarificationState) -> str:
     names = [f.name for f in brief.features if f.id not in VISITOR_ACTION_FEATURES]
     if names:
         parts.append("It includes: " + ", ".join(names) + ".")
+    if brief.theme:
+        parts.append(f"Look: {brief.theme['label']}, with {brief.theme['fonts']['heading']} headings.")
     for u in brief.unsupported:
         note = u.alternative_text or u.reason
         parts.append(f'Not included: "{u.asked}" ({note.rstrip(".")}).')
@@ -173,6 +187,18 @@ def repair(brief: ClarifiedBrief, c: ClarificationState) -> ClarifiedBrief:
     return brief
 
 
+_SWATCH_TOKENS = ("background", "card", "foreground", "muted", "primary", "primary-foreground", "accent")
+
+
+def _theme_card(theme: dict) -> dict:
+    """What the confirmation screen needs to preview a theme: real computed colours, fonts and radius."""
+    return {
+        "id": theme["theme_id"], "kind": theme["kind"], "label": theme["label"], "reason": theme["reason"],
+        "fonts": theme["fonts"], "radius": theme["radius"], "default_mode": theme["default_mode"],
+        "swatch": {mode: {k: theme["tokens"][mode][k] for k in _SWATCH_TOKENS} for mode in ("light", "dark")},
+    }
+
+
 def brief_view_for_model(brief: ClarifiedBrief) -> dict:
     """What the review and test-generation calls see: no business detail values, no raw prompt."""
     return {
@@ -187,7 +213,7 @@ def brief_view_for_model(brief: ClarifiedBrief) -> dict:
 
 def confirmation_payload(brief: ClarifiedBrief, c: ClarificationState, limits: Limits, edit_allowed: bool) -> dict:
     """The confirmation screen (v6 Section 12). Built by code; shown at the second interrupt."""
-    style = get_slot(c, "style")
+    selected = chosen_theme(c)["theme_id"]
     return {
         "type": "confirmation",
         "summary": brief.clarified_text,
@@ -196,8 +222,8 @@ def confirmation_payload(brief: ClarifiedBrief, c: ClarificationState, limits: L
                       "can_untick": f.source == "baseline_default"} for f in brief.features],
         "extras": [{"id": e.feature_id, "name": e.name, "reason": e.reason}
                    for e in c.proposed_extras if e.status == "pending"],
-        "style_options": list(STYLE_THEMES),
-        "style_selected": style.values[0] if style.values else STYLE_THEMES[0],
+        "themes": [_theme_card(t) for t in theme_candidates(c)],
+        "theme_selected": selected,
         "limits_notice": [{"asked": u.asked, "reason": u.reason, "alternative": u.alternative_text}
                           for u in brief.unsupported],
         "assumptions": [a.text for a in brief.assumptions],

@@ -219,6 +219,10 @@ class ClarificationState(BaseModel):
     business_type: Optional[str] = None        # short label written by the agent, e.g. "bakery"
     goal: Optional[str] = None                 # one short sentence written by the agent
     style_hint: Optional[str] = None
+    personality: Optional[str] = None          # theme feel the user described (agents/theming.py PERSONALITIES)
+    hue_family: Optional[str] = None           # colour family the user named (agents/theming.py HUE_FAMILIES)
+    brand_colour: Optional[str] = None         # '#rrggbb' the user gave, checked by code
+    prefers_dark: bool = False                 # the user asked for a dark site: the theme opens in dark mode
     baseline_hint: Optional[str] = None        # set when the user picked a baseline in question A
     requested_items: list[RequestedItem] = Field(default_factory=list)
     slots: list[Slot] = Field(default_factory=list)
@@ -292,7 +296,7 @@ class ClarifiedBrief(BaseModel):
     features: list[BriefFeature] = Field(default_factory=list)
     pages: list[dict[str, Any]] = Field(default_factory=list)   # {name, sections: [feature ids]}
     content_needs: list[str] = Field(default_factory=list)      # keys only; advisory, the plan's content_schema is final
-    style: dict[str, str] = Field(default_factory=dict)
+    theme: Optional[dict[str, Any]] = None     # chosen theme: parameters, fonts, radius, tokens (light/dark) (D-159)
     integrations: list[dict[str, str]] = Field(default_factory=list)   # SUPPORTED links and embeds only (map, video, WhatsApp)
     unsupported: list[UnsupportedItem] = Field(default_factory=list)
     assumptions: list[Assumption] = Field(default_factory=list)

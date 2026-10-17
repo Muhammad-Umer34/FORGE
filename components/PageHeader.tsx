@@ -105,7 +105,7 @@ export function PageHeader({
               variant="outline"
               className={cn(
                 "border-primary/30",
-                hasBgImage ? "text-primary-foreground border-white/20 bg-white/10" : "text-primary"
+                hasBgImage ? "text-white border-white/20 bg-white/10" : "text-primary"
               )}
             >
               {badgeText}

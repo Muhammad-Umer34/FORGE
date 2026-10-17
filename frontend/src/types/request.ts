@@ -40,14 +40,26 @@ export type FeatureSource =
   | "proposed_accepted"
   | "baseline_default";
 
+/** A generated theme preview: real computed colours (agents/theming.py), fonts and corner radius. */
+export interface ThemeCard {
+  id: string;
+  kind: "match" | "alternative" | "brand" | "contrast";
+  label: string;
+  reason: string;
+  fonts: { heading: string; body: string };
+  radius: string;
+  default_mode: "light" | "dark"; // the user asked for a dark site
+  swatch: Record<"light" | "dark", Record<"background" | "card" | "foreground" | "muted" | "primary" | "primary-foreground" | "accent", string>>;
+}
+
 export interface ConfirmationData {
   type: "confirmation";
   summary: string;
   pages: string[];
   features: { id: string; name: string; source: FeatureSource; can_untick: boolean }[];
   extras: { id: string; name: string; reason: string }[];
-  style_options: string[];
-  style_selected: string;
+  themes: ThemeCard[];
+  theme_selected: string;
   limits_notice: { asked: string; reason: string; alternative: string }[];
   assumptions: string[];
   please_check: string[];
@@ -80,7 +92,7 @@ export interface Requirement {
   goal: string;
   features: BriefFeature[];
   pages: { name: string; sections: string[] }[];
-  style: Record<string, string>;
+  theme: { theme_id: string; label: string; fonts: { heading: string; body: string }; radius: string } | null;
   unsupported: { asked: string; reason: string; alternative_text: string }[];
   assumptions: { text: string; reason: string }[];
   clarified_text: string;
@@ -129,6 +141,6 @@ export interface ConfirmationDecision {
   decision: "confirm" | "edit" | "cancel";
   ticked_extra_ids?: string[];
   unticked_default_ids?: string[];
-  style?: string;
+  theme_id?: string;
   edit_text?: string;
 }

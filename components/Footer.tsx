@@ -89,22 +89,22 @@ export function Footer({
   return (
     <footer
       className={cn(
-        "w-full bg-zinc-950 text-zinc-300 border-t border-zinc-800/80 pt-16 pb-12",
+        "w-full bg-muted text-muted-foreground border-t border-border pt-16 pb-12",
         className
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8 pb-12 border-b border-zinc-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8 pb-12 border-b border-border">
           {/* Brand Col (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
-            <div className="flex items-center gap-2 font-bold text-xl text-white">
+            <div className="flex items-center gap-2 font-bold text-xl text-foreground">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-black text-sm">
                 {brandName.charAt(0)}
               </div>
               <span>{brandName}</span>
             </div>
 
-            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-sm">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm">
               {description}
             </p>
 
@@ -114,7 +114,7 @@ export function Footer({
                 href="https://github.com"
                 target="_blank"
                 rel="noreferrer"
-                className="h-8 w-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                className="h-8 w-8 rounded-lg bg-background hover:bg-card border border-border text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
                 aria-label="GitHub"
               >
                 <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
@@ -125,7 +125,7 @@ export function Footer({
                 href="https://twitter.com"
                 target="_blank"
                 rel="noreferrer"
-                className="h-8 w-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                className="h-8 w-8 rounded-lg bg-background hover:bg-card border border-border text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
                 aria-label="X / Twitter"
               >
                 <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
@@ -136,7 +136,7 @@ export function Footer({
                 href="https://linkedin.com"
                 target="_blank"
                 rel="noreferrer"
-                className="h-8 w-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                className="h-8 w-8 rounded-lg bg-background hover:bg-card border border-border text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
                 aria-label="LinkedIn"
               >
                 <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
@@ -150,7 +150,7 @@ export function Footer({
           <div className="lg:col-span-5 grid grid-cols-2 sm:grid-cols-3 gap-8">
             {columns.map((col, idx) => (
               <div key={idx} className="space-y-3">
-                <h4 className="font-semibold text-xs text-white uppercase tracking-wider">
+                <h4 className="font-semibold text-xs text-foreground uppercase tracking-wider">
                   {col.title}
                 </h4>
                 <ul className="space-y-2 text-xs sm:text-sm">
@@ -158,7 +158,7 @@ export function Footer({
                     <li key={lIdx}>
                       <a
                         href={link.href}
-                        className="text-zinc-400 hover:text-white transition-colors"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {link.label}
                       </a>
@@ -171,15 +171,15 @@ export function Footer({
 
           {/* Newsletter Column (3 cols) */}
           <div className="lg:col-span-3 space-y-3">
-            <h4 className="font-semibold text-xs text-white uppercase tracking-wider">
+            <h4 className="font-semibold text-xs text-foreground uppercase tracking-wider">
               {newsletterTitle}
             </h4>
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               {newsletterSubtitle}
             </p>
 
             {isSubscribed ? (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/60 text-emerald-400 text-xs">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/30 text-success text-xs">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 <span>Thanks for subscribing!</span>
               </div>
@@ -192,7 +192,7 @@ export function Footer({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 text-xs h-9"
+                    className="bg-background border-input text-foreground placeholder:text-muted-foreground text-xs h-9"
                   />
                   <Button
                     type="submit"
@@ -209,16 +209,16 @@ export function Footer({
         </div>
 
         {/* Copyright Bottom Bar */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <p>{copyright}</p>
           <div className="flex items-center gap-6">
-            <a href="#" className="hover:text-zinc-300 transition-colors">
+            <a href="#" className="hover:text-foreground transition-colors">
               Privacy Policy
             </a>
-            <a href="#" className="hover:text-zinc-300 transition-colors">
+            <a href="#" className="hover:text-foreground transition-colors">
               Terms of Service
             </a>
-            <a href="#" className="hover:text-zinc-300 transition-colors">
+            <a href="#" className="hover:text-foreground transition-colors">
               Cookie Settings
             </a>
           </div>

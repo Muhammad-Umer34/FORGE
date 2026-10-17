@@ -196,7 +196,7 @@ By focusing on these core fundamentals, business owners can build a sustainable 
             >
               {copied ? (
                 <>
-                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  <Check className="h-3.5 w-3.5 text-success" />
                   Copied!
                 </>
               ) : (

@@ -11,7 +11,6 @@ from agents.clarification import grounding
 from agents.clarification.schemas import NO_VISITOR_ACTION, VISITOR_ACTION_FEATURES, UserAnswer
 from agents.state import Assumption, ClarificationState, Limits, OutOfScopeInfo, Question, QuestionOption, Slot
 
-STYLE_THEMES = ("warm", "clean", "bold")     # PLACEHOLDER: theme list is open question Q-04
 
 # "You decide" for visitor actions picks the baseline's usual way of being contacted.
 _DEFAULT_VISITOR_ACTION = {"booking": "booking", "catalog": "order-request"}

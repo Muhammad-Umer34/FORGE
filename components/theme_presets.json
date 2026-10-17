@@ -1,0 +1,609 @@
+{
+  "version": "1",
+  "note": "Theme parameters, not palettes (decisions D-155 - D-160). Code turns these into colour tokens with a WCAG 2.2 AA guarantee (agents/theming.py). Business-type defaults are industry CONVENTION (evidence grade C), not proven psychology; users can always pick another candidate.",
+  "personalities": {
+    "professional": {
+      "label": "Professional",
+      "variant": "tonal_spot",
+      "contrast_level": 0.0,
+      "radius": "0.375rem",
+      "font_tags": [
+        "professional"
+      ]
+    },
+    "calm": {
+      "label": "Calm",
+      "variant": "tonal_spot",
+      "contrast_level": 0.0,
+      "radius": "0.75rem",
+      "font_tags": [
+        "calm"
+      ]
+    },
+    "warm": {
+      "label": "Warm",
+      "variant": "tonal_spot",
+      "contrast_level": 0.0,
+      "radius": "0.75rem",
+      "font_tags": [
+        "warm"
+      ]
+    },
+    "bold": {
+      "label": "Bold",
+      "variant": "vibrant",
+      "contrast_level": 0.0,
+      "radius": "0.5rem",
+      "font_tags": [
+        "bold"
+      ]
+    },
+    "elegant": {
+      "label": "Elegant",
+      "variant": "tonal_spot",
+      "contrast_level": 0.0,
+      "radius": "0.25rem",
+      "font_tags": [
+        "elegant"
+      ]
+    },
+    "playful": {
+      "label": "Playful",
+      "variant": "expressive",
+      "contrast_level": 0.0,
+      "radius": "1rem",
+      "font_tags": [
+        "playful"
+      ]
+    },
+    "natural": {
+      "label": "Natural",
+      "variant": "content",
+      "contrast_level": 0.0,
+      "radius": "0.75rem",
+      "font_tags": [
+        "natural"
+      ]
+    },
+    "minimal": {
+      "label": "Minimal",
+      "variant": "neutral",
+      "contrast_level": 0.5,
+      "radius": "0.25rem",
+      "font_tags": [
+        "minimal"
+      ]
+    }
+  },
+  "hue_families": {
+    "red": {
+      "label": "Red",
+      "seed": "#c0392b"
+    },
+    "orange": {
+      "label": "Orange",
+      "seed": "#d35400"
+    },
+    "amber": {
+      "label": "Amber",
+      "seed": "#c88a12"
+    },
+    "brown": {
+      "label": "Brown",
+      "seed": "#8b5a3c"
+    },
+    "olive": {
+      "label": "Olive",
+      "seed": "#6b7a2a"
+    },
+    "green": {
+      "label": "Green",
+      "seed": "#2e7d4f"
+    },
+    "teal": {
+      "label": "Teal",
+      "seed": "#13807a"
+    },
+    "blue": {
+      "label": "Blue",
+      "seed": "#2563b8"
+    },
+    "navy": {
+      "label": "Navy",
+      "seed": "#1f3a68"
+    },
+    "purple": {
+      "label": "Purple",
+      "seed": "#6d3fb5"
+    },
+    "pink": {
+      "label": "Pink",
+      "seed": "#c2477a"
+    },
+    "charcoal": {
+      "label": "Charcoal",
+      "seed": "#3d4046"
+    }
+  },
+  "avoid_unless_asked": [
+    "purple"
+  ],
+  "font_pairs": [
+    {
+      "id": "inter",
+      "heading": "Inter",
+      "body": "Inter",
+      "tags": [
+        "professional",
+        "minimal"
+      ]
+    },
+    {
+      "id": "manrope-inter",
+      "heading": "Manrope",
+      "body": "Inter",
+      "tags": [
+        "professional",
+        "calm"
+      ]
+    },
+    {
+      "id": "jakarta-inter",
+      "heading": "Plus Jakarta Sans",
+      "body": "Inter",
+      "tags": [
+        "calm",
+        "professional"
+      ]
+    },
+    {
+      "id": "dmsans",
+      "heading": "DM Sans",
+      "body": "DM Sans",
+      "tags": [
+        "calm",
+        "minimal"
+      ]
+    },
+    {
+      "id": "worksans",
+      "heading": "Work Sans",
+      "body": "Work Sans",
+      "tags": [
+        "professional"
+      ]
+    },
+    {
+      "id": "sora-inter",
+      "heading": "Sora",
+      "body": "Inter",
+      "tags": [
+        "bold",
+        "professional"
+      ]
+    },
+    {
+      "id": "spacegrotesk-inter",
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "tags": [
+        "bold",
+        "minimal"
+      ]
+    },
+    {
+      "id": "archivo",
+      "heading": "Archivo Black",
+      "body": "Archivo",
+      "tags": [
+        "bold"
+      ]
+    },
+    {
+      "id": "bricolage-inter",
+      "heading": "Bricolage Grotesque",
+      "body": "Inter",
+      "tags": [
+        "bold",
+        "playful"
+      ]
+    },
+    {
+      "id": "outfit-inter",
+      "heading": "Outfit",
+      "body": "Inter",
+      "tags": [
+        "playful",
+        "bold"
+      ]
+    },
+    {
+      "id": "rubik",
+      "heading": "Rubik",
+      "body": "Rubik",
+      "tags": [
+        "playful"
+      ]
+    },
+    {
+      "id": "nunito",
+      "heading": "Nunito",
+      "body": "Nunito",
+      "tags": [
+        "playful",
+        "warm",
+        "calm"
+      ]
+    },
+    {
+      "id": "quicksand-nunito",
+      "heading": "Quicksand",
+      "body": "Nunito",
+      "tags": [
+        "playful"
+      ]
+    },
+    {
+      "id": "playfair-source",
+      "heading": "Playfair Display",
+      "body": "Source Sans 3",
+      "tags": [
+        "elegant"
+      ]
+    },
+    {
+      "id": "cormorant-montserrat",
+      "heading": "Cormorant Garamond",
+      "body": "Montserrat",
+      "tags": [
+        "elegant"
+      ]
+    },
+    {
+      "id": "dmserif-dmsans",
+      "heading": "DM Serif Display",
+      "body": "DM Sans",
+      "tags": [
+        "elegant",
+        "warm"
+      ]
+    },
+    {
+      "id": "instrument-inter",
+      "heading": "Instrument Serif",
+      "body": "Inter",
+      "tags": [
+        "minimal",
+        "elegant"
+      ]
+    },
+    {
+      "id": "josefin-lato",
+      "heading": "Josefin Sans",
+      "body": "Lato",
+      "tags": [
+        "elegant",
+        "minimal"
+      ]
+    },
+    {
+      "id": "raleway-lato",
+      "heading": "Raleway",
+      "body": "Lato",
+      "tags": [
+        "elegant",
+        "calm"
+      ]
+    },
+    {
+      "id": "fraunces-inter",
+      "heading": "Fraunces",
+      "body": "Inter",
+      "tags": [
+        "warm",
+        "natural"
+      ]
+    },
+    {
+      "id": "lora-source",
+      "heading": "Lora",
+      "body": "Source Sans 3",
+      "tags": [
+        "warm",
+        "natural"
+      ]
+    },
+    {
+      "id": "crimson-worksans",
+      "heading": "Crimson Pro",
+      "body": "Work Sans",
+      "tags": [
+        "natural",
+        "elegant"
+      ]
+    },
+    {
+      "id": "baskerville-source",
+      "heading": "Libre Baskerville",
+      "body": "Source Sans 3",
+      "tags": [
+        "professional",
+        "elegant"
+      ]
+    },
+    {
+      "id": "merriweather-open",
+      "heading": "Merriweather",
+      "body": "Open Sans",
+      "tags": [
+        "professional",
+        "calm"
+      ]
+    },
+    {
+      "id": "poppins-inter",
+      "heading": "Poppins",
+      "body": "Inter",
+      "tags": [
+        "playful",
+        "warm"
+      ]
+    }
+  ],
+  "business_conventions": [
+    {
+      "keywords": [
+        "bakery",
+        "cake",
+        "pastry",
+        "dessert",
+        "sweet"
+      ],
+      "personality": "warm",
+      "hues": [
+        "amber",
+        "pink",
+        "brown"
+      ]
+    },
+    {
+      "keywords": [
+        "cafe",
+        "coffee",
+        "tea"
+      ],
+      "personality": "warm",
+      "hues": [
+        "brown",
+        "olive",
+        "teal"
+      ]
+    },
+    {
+      "keywords": [
+        "restaurant",
+        "food",
+        "kitchen",
+        "grill",
+        "pizza",
+        "biryani",
+        "caterer",
+        "catering",
+        "takeaway"
+      ],
+      "personality": "warm",
+      "hues": [
+        "red",
+        "orange",
+        "olive"
+      ]
+    },
+    {
+      "keywords": [
+        "clinic",
+        "doctor",
+        "dental",
+        "dentist",
+        "hospital",
+        "pharmacy",
+        "health",
+        "therapy",
+        "physio"
+      ],
+      "personality": "calm",
+      "hues": [
+        "teal",
+        "blue",
+        "green"
+      ]
+    },
+    {
+      "keywords": [
+        "salon",
+        "spa",
+        "beauty",
+        "nail",
+        "makeup",
+        "boutique",
+        "bridal"
+      ],
+      "personality": "elegant",
+      "hues": [
+        "pink",
+        "charcoal",
+        "brown"
+      ]
+    },
+    {
+      "keywords": [
+        "gym",
+        "fitness",
+        "sport",
+        "yoga",
+        "martial",
+        "trainer"
+      ],
+      "personality": "bold",
+      "hues": [
+        "orange",
+        "red",
+        "charcoal"
+      ]
+    },
+    {
+      "keywords": [
+        "law",
+        "lawyer",
+        "legal",
+        "consult",
+        "account",
+        "finance",
+        "insurance",
+        "bank"
+      ],
+      "personality": "professional",
+      "hues": [
+        "navy",
+        "teal",
+        "charcoal"
+      ]
+    },
+    {
+      "keywords": [
+        "photograph",
+        "portfolio",
+        "designer",
+        "artist",
+        "architect",
+        "studio",
+        "interior"
+      ],
+      "personality": "minimal",
+      "hues": [
+        "charcoal",
+        "olive",
+        "navy"
+      ]
+    },
+    {
+      "keywords": [
+        "school",
+        "tutor",
+        "academy",
+        "course",
+        "teacher",
+        "education"
+      ],
+      "personality": "calm",
+      "hues": [
+        "blue",
+        "green",
+        "orange"
+      ]
+    },
+    {
+      "keywords": [
+        "florist",
+        "flower",
+        "garden",
+        "farm",
+        "organic",
+        "plant"
+      ],
+      "personality": "natural",
+      "hues": [
+        "green",
+        "olive",
+        "pink"
+      ]
+    },
+    {
+      "keywords": [
+        "real estate",
+        "property",
+        "construction",
+        "builder",
+        "contractor",
+        "plumber",
+        "electric"
+      ],
+      "personality": "professional",
+      "hues": [
+        "blue",
+        "amber",
+        "teal"
+      ]
+    },
+    {
+      "keywords": [
+        "agency",
+        "tech",
+        "software",
+        "developer",
+        "startup",
+        "app"
+      ],
+      "personality": "bold",
+      "hues": [
+        "blue",
+        "teal",
+        "orange"
+      ]
+    },
+    {
+      "keywords": [
+        "event",
+        "wedding",
+        "party",
+        "decor",
+        "planner"
+      ],
+      "personality": "elegant",
+      "hues": [
+        "pink",
+        "amber",
+        "teal"
+      ]
+    },
+    {
+      "keywords": [
+        "hotel",
+        "travel",
+        "tour",
+        "resort",
+        "guest house"
+      ],
+      "personality": "calm",
+      "hues": [
+        "teal",
+        "navy",
+        "amber"
+      ]
+    },
+    {
+      "keywords": [
+        "shop",
+        "store",
+        "retail",
+        "clothing",
+        "fashion",
+        "jewel",
+        "gift"
+      ],
+      "personality": "elegant",
+      "hues": [
+        "charcoal",
+        "red",
+        "teal"
+      ]
+    }
+  ],
+  "default_convention": {
+    "personality": "professional",
+    "hues": [
+      "blue",
+      "teal",
+      "green"
+    ]
+  }
+}

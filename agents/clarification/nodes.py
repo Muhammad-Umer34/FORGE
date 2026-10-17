@@ -19,6 +19,7 @@ from agents.clarification.schemas import (
     NO_VISITOR_ACTION, AnswerInterpretation, BriefReview, ConfirmationDecision, EditInterpretation,
     IntakeOutput, GeneratedTests, UserAnswer,
 )
+from agents import theming
 from agents.gateway import CallUsage, InvalidOutputError, ModelCallError, call_structured
 from agents.state import (
     BriefCheck, ClarificationState, ClarifiedBrief, FailureInfo, GraphState, Limits,
@@ -138,6 +139,11 @@ def intake(state: GraphState) -> dict:
 
     c.detected_language, c.romanized = out.detected_language, out.romanized
     c.is_business, c.business_type, c.goal, c.style_hint = out.is_business, out.business_type, out.goal, out.style_hint
+    c.personality = out.personality if out.personality in theming.PERSONALITIES else None
+    c.hue_family = out.hue_family if out.hue_family in theming.HUE_FAMILIES else None
+    # A hex code in the user's own words wins over the model's reading of it (D-158).
+    c.brand_colour = theming.find_hex(text) or theming.normalise_hex(out.brand_colour)
+    c.prefers_dark = out.prefers_dark
     if out.purpose_known and (out.business_type or out.goal):
         purpose = slots.get_slot(c, "purpose")
         purpose.status, purpose.values, purpose.source = "answered", [out.business_type or out.goal], "user_stated"
@@ -306,9 +312,9 @@ def await_confirmation(state: GraphState) -> dict:
         c.confirmation.ticked_feature_ids = [f for f in decision.ticked_extra_ids if f in pending]
         defaults = {f.id for f in state["brief"].features if f.source == "baseline_default"}
         c.removed_feature_ids += [f for f in decision.unticked_default_ids if f in defaults]
-        if decision.style in slots.STYLE_THEMES:
+        if decision.theme_id in {t["theme_id"] for t in briefs.theme_candidates(c)}:
             style = slots.get_slot(c, "style")
-            style.status, style.values, style.source = "answered", [decision.style], "user_confirmed"
+            style.status, style.values, style.source = "answered", [decision.theme_id], "user_confirmed"
     return {"clarification": c}
 
 

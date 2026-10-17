@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { ConfirmationData, ConfirmationDecision, FeatureSource } from "@/types/request";
+import { ThemePicker } from "./ThemePicker";
 
 const SOURCE_LABEL: Record<FeatureSource, string> = {
   user_stated: "You asked for this",
@@ -11,13 +12,6 @@ const SOURCE_LABEL: Record<FeatureSource, string> = {
   user_delegated: "Chosen for you",
   proposed_accepted: "Suggestion you added",
   baseline_default: "Included by default",
-};
-
-// Preview swatches for the style choices (open question Q-04: final theme list is the team's call).
-const STYLE_PREVIEW: Record<string, { label: string; note: string; swatch: string[] }> = {
-  warm: { label: "Warm", note: "Soft creams and earthy tones", swatch: ["#f3e7d8", "#c9875a", "#5b3a29"] },
-  clean: { label: "Clean", note: "White space and calm greys", swatch: ["#f7f7f5", "#9aa3a8", "#2c3135"] },
-  bold: { label: "Bold", note: "Strong contrast and colour", swatch: ["#111111", "#e4572e", "#f2c14e"] },
 };
 
 interface ConfirmationPanelProps {
@@ -52,7 +46,7 @@ function Tick({ on }: { on: boolean }) {
 export function ConfirmationPanel({ screen, busy, error, onDecide }: ConfirmationPanelProps) {
   const [removedDefaults, setRemovedDefaults] = useState<string[]>([]);
   const [extras, setExtras] = useState<string[]>([]);
-  const [style, setStyle] = useState(screen.style_selected);
+  const [themeId, setThemeId] = useState(screen.theme_selected);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState("");
   const [cancelArmed, setCancelArmed] = useState(false);
@@ -159,34 +153,10 @@ export function ConfirmationPanel({ screen, busy, error, onDecide }: Confirmatio
         )}
 
         <Section title="Look and feel">
-          <div role="radiogroup" aria-label="Look and feel" className="grid gap-2.5 sm:grid-cols-3">
-            {screen.style_options.map((id) => {
-              const preview = STYLE_PREVIEW[id] ?? { label: id, note: "", swatch: [] };
-              const on = style === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  role="radio"
-                  aria-checked={on}
-                  aria-label={`${preview.label}: ${preview.note}`}
-                  disabled={busy}
-                  onClick={() => setStyle(id)}
-                  className={`rounded-lg border p-3 text-left transition-all duration-200 active:scale-[0.99] ${
-                    on ? "border-ember bg-ember-soft" : "border-line bg-surface hover:border-ink-faint"
-                  }`}
-                >
-                  <span aria-hidden="true" className="flex h-10 overflow-hidden rounded-md">
-                    {preview.swatch.map((c) => (
-                      <span key={c} className="flex-1" style={{ backgroundColor: c }} />
-                    ))}
-                  </span>
-                  <span className="mt-2.5 block text-[15px] font-medium text-ink">{preview.label}</span>
-                  <span className="block text-[12px] text-ink-muted">{preview.note}</span>
-                </button>
-              );
-            })}
-          </div>
+          <ThemePicker themes={screen.themes} selected={themeId} onSelect={setThemeId} disabled={busy} />
+          <p className="mt-3 text-[12px] text-ink-faint">
+            Every theme is checked so text stays easy to read (WCAG 2.2 AA), in light and dark mode.
+          </p>
         </Section>
 
         {screen.limits_notice.length > 0 && (
@@ -272,7 +242,7 @@ export function ConfirmationPanel({ screen, busy, error, onDecide }: Confirmatio
               type="button"
               disabled={busy}
               onClick={() =>
-                onDecide({ decision: "confirm", ticked_extra_ids: extras, unticked_default_ids: removedDefaults, style })
+                onDecide({ decision: "confirm", ticked_extra_ids: extras, unticked_default_ids: removedDefaults, theme_id: themeId })
               }
               className="rounded-lg bg-ember px-5 py-2.5 text-[14px] font-medium text-paper transition-all duration-200 hover:bg-ember-strong active:translate-y-px disabled:opacity-50"
             >

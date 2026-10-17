@@ -120,12 +120,12 @@ export function BusinessHours({
           {/* Current Status Pill */}
           <div className="pt-2 flex justify-center">
             {status.isOpen ? (
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold bg-success/15 text-success border border-success/20">
+                <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
                 Open Now
               </div>
             ) : status.isLunch ? (
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border">
                 <Clock className="h-3.5 w-3.5" />
                 Closed for Lunch Break
               </div>

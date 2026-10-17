@@ -166,8 +166,8 @@ export function ContactForm({
 
               <CardContent>
                 {isSubmitted ? (
-                  <div className="p-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center space-y-3">
-                    <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
+                  <div className="p-6 rounded-lg bg-success/10 border border-success/20 text-center space-y-3">
+                    <CheckCircle2 className="h-10 w-10 text-success mx-auto" />
                     <h4 className="font-semibold text-foreground">Message Sent!</h4>
                     <p className="text-sm text-muted-foreground">{successMessage}</p>
                     <Button

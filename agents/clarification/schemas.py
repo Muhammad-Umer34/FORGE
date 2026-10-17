@@ -45,6 +45,14 @@ class IntakeOutput(BaseModel):
     no_visitor_actions: bool = Field(
         default=False, description="True only if the user says visitors should not contact, order or book through the site.")
     style_hint: Optional[str] = Field(default=None, description="Look-and-feel words the user used, or null.")
+    personality: Optional[Literal["professional", "calm", "warm", "bold", "elegant", "playful", "natural", "minimal"]] = Field(
+        default=None, description="Only if the user described the look or feel. Otherwise null.")
+    hue_family: Optional[Literal["red", "orange", "amber", "brown", "olive", "green", "teal", "blue", "navy",
+                                 "purple", "pink", "charcoal"]] = Field(
+        default=None, description="Only if the user named a colour for the site. Otherwise null.")
+    prefers_dark: bool = Field(default=False, description="True only if the user asked for a dark website or dark background.")
+    brand_colour: Optional[str] = Field(
+        default=None, description="Only a hex code the user wrote, such as #1a7f5a. Never invent one. Otherwise null.")
     items: list[IntakeItem] = Field(default_factory=list)
 
 
@@ -102,5 +110,5 @@ class ConfirmationDecision(BaseModel):
     decision: Literal["confirm", "edit", "cancel"]
     ticked_extra_ids: list[str] = Field(default_factory=list)
     unticked_default_ids: list[str] = Field(default_factory=list)
-    style: Optional[str] = None
+    theme_id: Optional[str] = None
     edit_text: Optional[str] = None

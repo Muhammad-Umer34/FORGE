@@ -86,11 +86,16 @@ def test_vague_request_asks_then_confirms_then_freezes(graph, monkeypatch):
     screen = pending(result)
     assert screen["type"] == "confirmation" and "send an order request" in screen["summary"]   # TC-03
 
-    result = graph.invoke(Command(resume={"decision": "confirm", "style": "warm"}), config)
+    themes = screen["themes"]
+    assert len(themes) == 3 and sum(1 for th in themes if th["id"] == screen["theme_selected"]) == 1
+    picked = next(th for th in themes if th["id"] != screen["theme_selected"])            # choose a non-default theme
+    result = graph.invoke(Command(resume={"decision": "confirm", "theme_id": picked["id"]}), config)
     assert pending(result) is None
     assert result["clarification"].status == "done"
     assert result["brief"].status == "ready" and result["brief"].test_cases                  # TC-11
-    assert result["brief"].style == {"theme": "warm"}
+    theme = result["brief"].theme
+    assert theme["theme_id"] == picked["id"] and theme["contrast"]["standard"] == "WCAG 2.2 AA"   # D-159
+    assert set(theme["tokens"]) == {"light", "dark"} and "primary-foreground" in theme["tokens"]["light"]
     assert result["control"].stage == Stage.RETRIEVING
     assert result["usage"].calls == 2                                          # intake + tests
 
@@ -189,6 +194,15 @@ def test_review_never_flags_what_the_user_delegated(graph, monkeypatch):     # D
     features = {f["id"]: f["source"] for f in screen["features"]}
     assert features["order-request"] == "user_delegated"
     assert features["product-grid"] == "baseline_default"
+
+
+def test_hex_in_the_request_preselects_the_brand_theme(graph, monkeypatch):     # D-157, D-158
+    monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: BAKERY_INTAKE.model_copy(
+        update={"no_visitor_actions": True})}))                     # the model misses the colour; code reads it
+    result, _ = start(graph, "a website for my bakery with our menu, brand colour #1A7F5A")
+    screen = pending(result)
+    selected = next(th for th in screen["themes"] if th["id"] == screen["theme_selected"])
+    assert selected["kind"] == "brand" and selected["label"] == "Your colour #1a7f5a"
 
 
 def test_cancel_at_confirmation(graph, monkeypatch):
