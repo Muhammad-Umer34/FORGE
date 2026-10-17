@@ -205,6 +205,50 @@ def test_hex_in_the_request_preselects_the_brand_theme(graph, monkeypatch):     
     assert selected["kind"] == "brand" and selected["label"] == "Your colour #1a7f5a"
 
 
+def _to_confirmation(graph, monkeypatch, prompt="a website for my bakery with our menu", reader=None):
+    monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: BAKERY_INTAKE.model_copy(
+        update={"no_visitor_actions": True})}))
+    if reader:
+        monkeypatch.setattr(nodes.reference_style, "read_reference", reader)
+    result, config = start(graph, prompt)
+    assert pending(result)["type"] == "confirmation"
+    return result, config
+
+
+def test_logo_colour_becomes_the_selected_theme(graph, monkeypatch):                # D-163
+    result, config = _to_confirmation(graph, monkeypatch)
+    assert "theme_source" in pending(result)["actions"]
+    result = graph.invoke(Command(resume={"decision": "theme_source",
+                                          "theme_source": {"kind": "logo", "colour": "#2156AA"}}), config)
+    screen = pending(result)
+    chosen = next(th for th in screen["themes"] if th["id"] == screen["theme_selected"])
+    assert chosen["kind"] == "logo" and chosen["label"] == "Your logo colour"
+    assert screen["theme_sources_left"]["logo"] == 2                                   # D-169: 3 tries per source
+
+
+def test_website_in_the_request_is_read_once_and_not_built(graph, monkeypatch):      # D-165
+    calls = []
+    def reader(url):
+        calls.append(url)
+        return {"url": "https://www.example.com", "host": "example.com", "primary": "#ff385c", "is_dark": True,
+                "radius": "1rem", "font_pair_id": "inter", "personality": "playful", "notes": []}
+    result, _ = _to_confirmation(graph, monkeypatch, "a website for my bakery with our menu, make it look like www.example.com", reader)
+    screen = pending(result)
+    chosen = next(th for th in screen["themes"] if th["id"] == screen["theme_selected"])
+    assert calls == ["www.example.com"] and chosen["label"] == "Inspired by example.com" and chosen["default_mode"] == "dark"
+    assert all("example" not in f["name"].lower() for f in screen["features"])          # the link is not a feature
+
+
+def test_unreadable_website_gives_a_notice_not_a_failure(graph, monkeypatch):
+    def reader(url):
+        raise nodes.reference_style.ReferenceSiteError("We couldn't open that website.")
+    result, config = _to_confirmation(graph, monkeypatch, reader=reader)
+    result = graph.invoke(Command(resume={"decision": "theme_source",
+                                          "theme_source": {"kind": "website", "url": "blocked-site.com"}}), config)
+    screen = pending(result)
+    assert screen["type"] == "confirmation" and "upload a screenshot" in screen["theme_notice"]
+
+
 def test_cancel_at_confirmation(graph, monkeypatch):
     monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: BAKERY_INTAKE.model_copy(
         update={"no_visitor_actions": True})}))

@@ -19,7 +19,7 @@ from agents.clarification.schemas import (
     NO_VISITOR_ACTION, AnswerInterpretation, BriefReview, ConfirmationDecision, EditInterpretation,
     IntakeOutput, GeneratedTests, UserAnswer,
 )
-from agents import theming
+from agents import reference_style, theming
 from agents.gateway import CallUsage, InvalidOutputError, ModelCallError, call_structured
 from agents.state import (
     BriefCheck, ClarificationState, ClarifiedBrief, FailureInfo, GraphState, Limits,
@@ -144,6 +144,7 @@ def intake(state: GraphState) -> dict:
     # A hex code in the user's own words wins over the model's reading of it (D-158).
     c.brand_colour = theming.find_hex(text) or theming.normalise_hex(out.brand_colour)
     c.prefers_dark = out.prefers_dark
+    c.reference_url = reference_style.find_url(text)     # 'make it look like www.example.com' (D-165)
     if out.purpose_known and (out.business_type or out.goal):
         purpose = slots.get_slot(c, "purpose")
         purpose.status, purpose.values, purpose.source = "answered", [out.business_type or out.goal], "user_stated"
@@ -155,6 +156,27 @@ def intake(state: GraphState) -> dict:
     if dropped:
         c.risk_flags.append("dropped_unverified_item")
     return {"clarification": c, "usage": usage}
+
+
+def _read_reference(c: ClarificationState, url: str) -> None:
+    """Read one page of the site (separate browser process). A failure is a notice, never a failed run."""
+    c.theme_source_tries["website"] = c.theme_source_tries.get("website", 0) + 1
+    try:
+        c.reference_style = reference_style.read_reference(url)
+        c.reference_url = c.reference_style["url"]
+        c.theme_notice = None
+    except reference_style.ReferenceSiteError as error:
+        c.theme_notice = f"{error} You can upload a screenshot of the site instead."
+
+
+def read_reference(state: GraphState) -> dict:
+    """N2b: when the request names a website to look like, read its style once (D-165)."""
+    c = state["clarification"]
+    if not c.reference_url or c.reference_style or c.theme_source_tries.get("website"):
+        return {}
+    c = c.model_copy(deep=True)
+    _read_reference(c, c.reference_url)
+    return {"clarification": c}
 
 
 # ---------------------------------------------------------------- N4 - N8
@@ -307,6 +329,8 @@ def await_confirmation(state: GraphState) -> dict:
     c.confirmation.decision = decision.decision
     if decision.decision == "edit":
         c.pending_edit_text = prompts.sanitise(decision.edit_text or "", prompts.MAX_ANSWER_CHARS)[0]
+    elif decision.decision == "theme_source" and decision.theme_source:
+        c.pending_theme_source = decision.theme_source.model_dump()
     elif decision.decision == "confirm":
         pending = {e.feature_id for e in c.proposed_extras if e.status == "pending"}
         c.confirmation.ticked_feature_ids = [f for f in decision.ticked_extra_ids if f in pending]
@@ -324,6 +348,26 @@ def apply_confirmation(state: GraphState) -> dict:
 
     if decision == "cancel":
         c.status = "cancelled"
+        return {"clarification": c}
+
+    if decision == "theme_source":
+        source, c.pending_theme_source = c.pending_theme_source or {}, None
+        kind = source.get("kind")
+        if kind and briefs.sources_left(c).get(kind):
+            if kind == "website":
+                _read_reference(c, source.get("url") or "")    # counts its own try
+            else:
+                c.theme_source_tries[kind] = c.theme_source_tries.get(kind, 0) + 1
+                colour = theming.normalise_hex(source.get("colour"))
+                if kind == "logo" and colour:
+                    c.logo_colour, c.theme_notice = colour, None
+                elif kind == "screenshot":
+                    c.screenshot_style = {"primary": colour, "background": theming.normalise_hex(source.get("background")),
+                                          "is_dark": bool(source.get("is_dark"))}
+                    c.theme_notice = None
+            style = slots.get_slot(c, "style")
+            style.status, style.values, style.source = "missing", [], None   # the new source theme becomes the selection
+        c.status = "drafting"                 # redraw the brief and the screen with the new theme
         return {"clarification": c}
 
     if decision == "edit":

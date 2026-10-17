@@ -3,8 +3,9 @@
 
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { ConfirmationData, ConfirmationDecision, FeatureSource } from "@/types/request";
+import { ConfirmationData, ConfirmationDecision, FeatureSource, ImageColours } from "@/types/request";
 import { ThemePicker } from "./ThemePicker";
+import { ThemeSources } from "./ThemeSources";
 
 const SOURCE_LABEL: Record<FeatureSource, string> = {
   user_stated: "You asked for this",
@@ -19,6 +20,7 @@ interface ConfirmationPanelProps {
   busy: boolean;
   error: string | null;
   onDecide: (decision: ConfirmationDecision) => void;
+  onReadImage: (kind: "logo" | "screenshot", file: File) => Promise<ImageColours>;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -43,10 +45,13 @@ function Tick({ on }: { on: boolean }) {
   );
 }
 
-export function ConfirmationPanel({ screen, busy, error, onDecide }: ConfirmationPanelProps) {
+export function ConfirmationPanel({ screen, busy, error, onDecide, onReadImage }: ConfirmationPanelProps) {
   const [removedDefaults, setRemovedDefaults] = useState<string[]>([]);
   const [extras, setExtras] = useState<string[]>([]);
-  const [themeId, setThemeId] = useState(screen.theme_selected);
+  const [themePick, setThemePick] = useState({ forScreen: screen.theme_selected, id: screen.theme_selected });
+  const themeId = themePick.forScreen === screen.theme_selected ? themePick.id : screen.theme_selected;
+  const setThemeId = (id: string) => setThemePick({ forScreen: screen.theme_selected, id });
+  const selectedTheme = screen.themes.find((t) => t.id === themeId);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState("");
   const [cancelArmed, setCancelArmed] = useState(false);
@@ -154,6 +159,22 @@ export function ConfirmationPanel({ screen, busy, error, onDecide }: Confirmatio
 
         <Section title="Look and feel">
           <ThemePicker themes={screen.themes} selected={themeId} onSelect={setThemeId} disabled={busy} />
+          {selectedTheme && selectedTheme.notes.length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-[12px] text-ink-muted">
+              {selectedTheme.notes.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          )}
+          {screen.actions.includes("theme_source") && (
+            <ThemeSources
+              left={screen.theme_sources_left}
+              notice={screen.theme_notice}
+              busy={busy}
+              onReadImage={onReadImage}
+              onUse={(source) => onDecide({ decision: "theme_source", theme_source: source })}
+            />
+          )}
           <p className="mt-3 text-[12px] text-ink-faint">
             Every theme is checked so text stays easy to read (WCAG 2.2 AA), in light and dark mode.
           </p>

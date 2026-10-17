@@ -74,4 +74,7 @@ def test_confirmation_screen():
     assert all(f["can_untick"] == (f["source"] == "baseline_default") for f in screen["features"])
     assert len(screen["extras"]) == len(c.proposed_extras)
     assert "edit" in screen["actions"]
-    assert briefs.confirmation_payload(b, c, LIMITS, edit_allowed=False)["actions"] == ["confirm", "cancel"]
+    assert briefs.confirmation_payload(b, c, LIMITS, edit_allowed=False)["actions"] == ["confirm", "cancel", "theme_source"]
+    c.theme_source_tries = {"logo": 3, "screenshot": 3, "website": 3}                 # every source used up (D-169)
+    after = briefs.confirmation_payload(b, c, LIMITS, edit_allowed=False)
+    assert after["actions"] == ["confirm", "cancel"] and not any(after["theme_sources_left"].values())

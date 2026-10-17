@@ -8,8 +8,11 @@ checkpointer opened in main.py.
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
 from langgraph.types import Command
+
+from agents import logo_colours
 
 from agents.catalogue import load_catalogue
 from agents.clarification import slots
@@ -121,4 +124,29 @@ async def confirm_brief(request_id: str, body: ConfirmationDecision, http: Reque
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"'{body.decision}' is not available now")
     if body.decision == "edit" and not (body.edit_text or "").strip():
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "edit_text is required for an edit")
+    if body.decision == "theme_source":
+        source = body.theme_source
+        if source is None or not payload["theme_sources_left"].get(source.kind):
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "This theme source can't be used again for this request")
+        if source.kind == "website" and not (source.url or "").strip():
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Please paste a website address")
+        if source.kind == "logo" and not source.colour:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Please choose one of the logo colours")
     return await _run(http, request_id, Command(resume=body.model_dump()))
+
+
+@router.post("/{request_id}/image")
+async def read_image_colours(request_id: str, http: Request, file: UploadFile = File(...),
+                             kind: str = Query("logo", pattern="^(logo|screenshot)$")):
+    """
+    Colours from an uploaded logo or website screenshot (theme Phase 2, D-163, D-164). Local code only
+    (Pillow + Material quantizer), no model call. The image is read in memory and never stored; the user
+    then picks a colour and sends it as a 'theme_source' confirmation decision.
+    """
+    await _pending(http, request_id, "confirmation")
+    data = await file.read(logo_colours.MAX_BYTES + 1)
+    try:
+        extract = logo_colours.logo_colours if kind == "logo" else logo_colours.screenshot_colours
+        return await run_in_threadpool(extract, data)
+    except logo_colours.ImageError as error:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(error))

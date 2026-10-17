@@ -43,12 +43,13 @@ export type FeatureSource =
 /** A generated theme preview: real computed colours (agents/theming.py), fonts and corner radius. */
 export interface ThemeCard {
   id: string;
-  kind: "match" | "alternative" | "brand" | "contrast";
+  kind: "match" | "alternative" | "brand" | "contrast" | "logo" | "screenshot" | "reference" | "combined";
   label: string;
   reason: string;
   fonts: { heading: string; body: string };
   radius: string;
   default_mode: "light" | "dark"; // the user asked for a dark site
+  notes: string[]; // e.g. a paid font replaced by the closest free one
   swatch: Record<"light" | "dark", Record<"background" | "card" | "foreground" | "muted" | "primary" | "primary-foreground" | "accent", string>>;
 }
 
@@ -65,7 +66,9 @@ export interface ConfirmationData {
   please_check: string[];
   business_details_note: string;
   edits_left: number;
-  actions: ("confirm" | "edit" | "cancel")[];
+  actions: ("confirm" | "edit" | "cancel" | "theme_source")[];
+  theme_notice: string | null; // a logo, screenshot or website that could not be used
+  theme_sources_left: Record<ThemeSourceKind, number>;
 }
 
 export interface BriefFeature {
@@ -137,8 +140,30 @@ export interface UserAnswer {
   text?: string;
 }
 
+export type ThemeSourceKind = "logo" | "screenshot" | "website";
+
+/** The user's own material for the theme (theme Phase 2). Images never go here, only the chosen colours. */
+export interface ThemeSource {
+  kind: ThemeSourceKind;
+  colour?: string | null;
+  background?: string | null;
+  is_dark?: boolean | null;
+  url?: string | null;
+}
+
+/** Colours read from an uploaded logo or screenshot by our backend (no model call). */
+export interface ImageColours {
+  kind: "logo" | "screenshot";
+  colours: string[];
+  monochrome?: boolean;
+  background?: string;
+  primary?: string | null;
+  is_dark?: boolean;
+}
+
 export interface ConfirmationDecision {
-  decision: "confirm" | "edit" | "cancel";
+  decision: "confirm" | "edit" | "cancel" | "theme_source";
+  theme_source?: ThemeSource;
   ticked_extra_ids?: string[];
   unticked_default_ids?: string[];
   theme_id?: string;

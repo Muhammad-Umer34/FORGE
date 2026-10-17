@@ -95,7 +95,8 @@ def draft_brief(c: ClarificationState, cat: Catalogue, version: int = 1) -> Clar
 
 def theme_candidates(c: ClarificationState) -> list[dict]:
     """Three generated themes for this request (D-157). Deterministic: same request, same themes."""
-    return theming.candidates(c.business_type, c.personality, c.hue_family, c.brand_colour, c.prefers_dark)
+    return theming.candidates(c.business_type, c.personality, c.hue_family, c.brand_colour, c.prefers_dark,
+                              logo_colour=c.logo_colour, screenshot=c.screenshot_style, reference=c.reference_style)
 
 
 def chosen_theme(c: ClarificationState) -> dict:
@@ -187,6 +188,13 @@ def repair(brief: ClarifiedBrief, c: ClarificationState) -> ClarifiedBrief:
     return brief
 
 
+MAX_THEME_SOURCE_TRIES = 3     # per kind (logo, screenshot, website) and request (D-169)
+
+
+def sources_left(c: ClarificationState) -> dict[str, int]:
+    return {k: max(0, MAX_THEME_SOURCE_TRIES - c.theme_source_tries.get(k, 0)) for k in ("logo", "screenshot", "website")}
+
+
 _SWATCH_TOKENS = ("background", "card", "foreground", "muted", "primary", "primary-foreground", "accent")
 
 
@@ -195,6 +203,7 @@ def _theme_card(theme: dict) -> dict:
     return {
         "id": theme["theme_id"], "kind": theme["kind"], "label": theme["label"], "reason": theme["reason"],
         "fonts": theme["fonts"], "radius": theme["radius"], "default_mode": theme["default_mode"],
+        "notes": theme.get("notes", []),
         "swatch": {mode: {k: theme["tokens"][mode][k] for k in _SWATCH_TOKENS} for mode in ("light", "dark")},
     }
 
@@ -230,6 +239,8 @@ def confirmation_payload(brief: ClarifiedBrief, c: ClarificationState, limits: L
         "please_check": c.check.issues if c.check and c.check.reviewed_by_model else [],
         "business_details_note": "Your business details (name, phone, photos) are collected in the next step.",
         "edits_left": max(0, limits.max_confirmation_edits - c.confirmation.edits_used) if edit_allowed else 0,
-        "actions": ["confirm", "edit", "cancel"] if edit_allowed and c.confirmation.edits_used < limits.max_confirmation_edits
-                   else ["confirm", "cancel"],
+        "actions": (["confirm", "edit", "cancel"] if edit_allowed and c.confirmation.edits_used < limits.max_confirmation_edits
+                    else ["confirm", "cancel"]) + (["theme_source"] if any(sources_left(c).values()) else []),
+        "theme_notice": c.theme_notice,
+        "theme_sources_left": sources_left(c),
     }

@@ -59,6 +59,13 @@ def _restates_purpose(item: RequestedItem, c: ClarificationState) -> bool:
     return bool(words) and words <= (_SITE_WORDS | business) and bool(words & {"website", "site", "web", "webpage"})
 
 
+def _mentions_reference(item: RequestedItem, url: str) -> bool:
+    """'make it look like www.example.com' is a style source, not a feature to build (D-165)."""
+    host = url.lower().split("://")[-1].removeprefix("www.").split("/")[0]
+    text = f"{item.text} {item.evidence}".lower()
+    return bool(host) and (host in text or host.split(".")[0] in text.split())
+
+
 def _phrase_capability(text: str, cat: Catalogue) -> str | None:
     """Safety net only, used when the model found no catalogue feature (D-113)."""
     lowered = text.lower()
@@ -114,6 +121,8 @@ def ground_items(c: ClarificationState, cat: Catalogue) -> None:
                 c.style_hint = item.text
         elif _restates_purpose(item, c):
             item.resolution, item.resolved_to = "noted", "purpose"
+        elif c.reference_url and _mentions_reference(item, c.reference_url):
+            item.resolution, item.resolved_to = "noted", "reference"
         elif (cap := _phrase_capability(item.text, cat)) is not None:
             item.resolution, item.resolved_to = "unsupported", cap
         elif item.kind == "integration":

@@ -130,3 +130,30 @@ def test_live_direct_llm_hex_vs_parameters_plus_code():
     print(f"\nDirect LLM hex: {direct_pass}/{len(EVAL_BUSINESSES)} pass WCAG AA, {direct_invalid} invalid, primary hues {hues}")
     print(f"Parameters + code: {ours_pass}/{2 * len(EVAL_BUSINESSES)} pass (light and dark)")
     assert ours_pass == 2 * len(EVAL_BUSINESSES)
+
+
+# ---------------------------------------------------------------- theme Phase 2 sources (D-168)
+REF = {"host": "airbnb.com", "primary": "#ff385c", "is_dark": False, "radius": "1rem", "font_pair_id": "inter",
+       "personality": "playful", "notes": ["Airbnb Cereal VF isn't a free font we can use; the closest free match is Inter."]}
+
+
+@pytest.mark.parametrize("sources, kind, seed, dark", [
+    ({"logo_colour": "#2156aa"}, "logo", "#2156aa", False),
+    ({"reference": REF}, "reference", "#ff385c", False),
+    ({"logo_colour": "#2156aa", "reference": REF}, "combined", "#2156aa", False),
+    ({"screenshot": {"primary": "#e8592e", "is_dark": True}}, "screenshot", "#e8592e", True),
+    ({"brand_colour": "#1a7f5a", "logo_colour": "#2156aa"}, "logo", "#2156aa", False),     # logo wins over typed hex
+])
+def test_user_material_becomes_the_selected_third_theme(sources, kind, seed, dark):
+    third = t.candidates("bakery", **sources)[2]
+    assert third["kind"] == kind and third["selected"] and third["params"]["seed_hex"] == seed
+    assert third["default_mode"] == ("dark" if dark else "light")
+    assert all(t.failing_pairs(third["tokens"][m]) == [] for m in ("light", "dark"))
+
+
+def test_website_fonts_corners_and_notes_are_kept():
+    third = t.candidates("bakery", reference=REF)[2]
+    assert third["radius"] == "1rem" and third["fonts"]["heading"] == "Inter" and third["notes"] == REF["notes"]
+    no_colour = dict(REF, host="linear.app", primary=None, is_dark=True)
+    linear = t.candidates("bakery", reference=no_colour)[2]
+    assert linear["label"] == "Inspired by linear.app" and linear["default_mode"] == "dark"

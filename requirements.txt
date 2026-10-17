@@ -21,3 +21,8 @@ pytest==8.4.2
 
 # Theme generation: Material HCT colour schemes (D-155); pulls in pillow
 materialyoucolor==3.0.4
+
+# Theme Phase 2: read a reference website's styles (D-165) and accept logo/screenshot uploads (D-163).
+# After installing, run once: python -m playwright install chromium
+playwright==1.64.0
+python-multipart==0.0.32

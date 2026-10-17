@@ -166,6 +166,80 @@ def enforce_contrast(tokens: dict[str, str]) -> int:
     return fixes
 
 
+def luminance(hex_colour: str) -> float:
+    """WCAG relative luminance (0 = black, 1 = white)."""
+    return _luminance(hex_colour)
+
+
+def chroma_of(hex_colour: str) -> float:
+    """How colourful a colour is (HCT chroma): about 0 for greys, 40+ for clear brand colours."""
+    return Hct.from_int(_argb(hex_colour)).chroma
+
+
+# ---------------------------------------------------------------- fonts from another website (Phase 2, D-167)
+_SERIF_FONTS = {
+    "georgia", "times", "times new roman", "garamond", "eb garamond", "playfair display", "merriweather", "lora",
+    "libre baskerville", "cormorant garamond", "cormorant", "crimson pro", "crimson text", "fraunces", "dm serif display",
+    "instrument serif", "pt serif", "source serif 4", "source serif pro", "noto serif", "roboto slab", "bitter",
+    "libre caslon text", "spectral", "baskerville", "cambria", "book antiqua", "palatino", "palatino linotype",
+}
+_GENERIC = {"serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui", "ui-sans-serif", "ui-serif",
+            "ui-monospace", "-apple-system", "blinkmacsystemfont", "emoji", "math"}
+
+
+def _families(stack: str) -> list[str]:
+    return [f.strip().strip("'\"").lower() for f in stack.split(",") if f.strip()]
+
+
+def first_font(stack: str) -> str:
+    """The first named font in a CSS font-family list, as written ('"Playfair Display", serif' -> 'Playfair Display')."""
+    for family in stack.split(","):
+        name = family.strip().strip("'\"")
+        if name and name.lower() not in _GENERIC:
+            return name
+    return ""
+
+
+def font_class(stack: str) -> str:
+    """'serif' or 'sans' for a CSS font-family list (monospace counts as sans for our pairs)."""
+    families = _families(stack)
+    named = [f for f in families if f not in _GENERIC]
+    if named and named[0] in _SERIF_FONTS:
+        return "serif"
+    if "serif" in families and not named:
+        return "serif"
+    if named and "serif" in families and "sans-serif" not in families:
+        return "serif"
+    return "sans"
+
+
+def closest_font_pair(heading_stack: str, body_stack: str) -> tuple[str, bool]:
+    """
+    Our font pair that best matches another site's fonts: the exact heading font if we have it,
+    else a pair with the same kind of heading and body font (serif / sans). Returns (pair_id, exact).
+    Paid or custom fonts can't be shipped, so a close free Google Font is used instead.
+    """
+    pairs = load_presets()["font_pairs"]
+    # 'Inter Variable', 'Inter VF', 'inter-var' are the same typeface as 'Inter'.
+    clean = lambda name: re.sub(r"[\s-]+(variable|vf|var)$", "", name.lower()).strip()
+    heading, body = clean(first_font(heading_stack)), clean(first_font(body_stack))
+    for p in pairs:
+        if heading and p["heading"].lower() == heading and p["body"].lower() == body:
+            return p["id"], True
+    for p in pairs:
+        if heading and p["heading"].lower() == heading:
+            return p["id"], True
+    h_class, b_class = font_class(heading_stack), font_class(body_stack or heading_stack)
+
+    def kind(name: str) -> str:
+        return "serif" if name.lower() in _SERIF_FONTS else "sans"
+
+    same_kind = [p for p in pairs if kind(p["heading"]) == h_class and kind(p["body"]) == b_class]
+    same_kind.sort(key=lambda p: p["body"].lower() != body)          # prefer our pair that shares their body font
+    choice = same_kind[0] if same_kind else next(p for p in pairs if kind(p["heading"]) == h_class)
+    return choice["id"], False
+
+
 def failing_pairs(tokens: dict[str, str]) -> list[str]:
     return [f"{fg} on {bg}: {contrast_ratio(tokens[fg], tokens[bg]):.2f} < {t}"
             for fg, bg, t in CONTRAST_PAIRS if contrast_ratio(tokens[fg], tokens[bg]) < t]
@@ -292,14 +366,52 @@ def _label(personality: str, hue: str | None) -> str:
     return f"{name} · {presets['hue_families'][hue]['label']}" if hue else name
 
 
+def _source_theme(feel: str, hue_order: list[str], brand: str | None, logo_colour: str | None,
+                  screenshot: dict | None, reference: dict | None, prefers_dark: bool):
+    """
+    The theme built from the user's own material (Phase 2, D-168), or None when there is none.
+    Colour priority: logo > typed hex > website > screenshot. Fonts and corners come from the website.
+    """
+    logo = normalise_hex(logo_colour)
+    shot = screenshot or {}
+    if not (logo or brand or shot or reference):
+        return None
+    ref = reference or {}
+    seed = logo or brand or normalise_hex(ref.get("primary")) or normalise_hex(shot.get("primary"))
+    personality = ref.get("personality") if ref.get("personality") in PERSONALITIES else feel
+    preset = load_presets()["personalities"][personality]
+    font = ref.get("font_pair_id") or _font_pairs(personality)[2 % len(_font_pairs(personality))]
+    radius = ref.get("radius") or preset["radius"]
+    if seed:
+        params = ThemeParams(personality, seed, "fidelity", preset["contrast_level"], font, radius)
+    else:     # a site with no clear brand colour: its fonts and corners with a colour that suits the business
+        base = _params(personality, hue_order[0], None, 0)
+        params = ThemeParams(personality, base.seed_hex, base.variant, base.contrast_level, font, radius, hue_order[0])
+    dark = bool(ref.get("is_dark") or shot.get("is_dark") or prefers_dark)
+    host = ref.get("host")
+    if logo and host:
+        meta = ("combined", f"Your logo colour, styled like {host}", "Colours from your logo, fonts and corners from the site")
+    elif host:
+        meta = ("reference", f"Inspired by {host}", "Colours, fonts and corners from the site")
+    elif logo:
+        meta = ("logo", "Your logo colour", f"Taken from your logo ({logo})")
+    elif shot:
+        meta = ("screenshot", "From your screenshot", "Colours taken from the screenshot")
+    else:
+        meta = ("brand", f"Your colour {brand}", "Built from the colour you gave")
+    return params, meta, dark
+
+
 def candidates(business_type: str | None, personality: str | None = None, hue_family: str | None = None,
-               brand_colour: str | None = None, prefers_dark: bool = False) -> list[dict]:
+               brand_colour: str | None = None, prefers_dark: bool = False, logo_colour: str | None = None,
+               screenshot: dict | None = None, reference: dict | None = None) -> list[dict]:
     """
     Three themes for the confirmation screen (D-157):
       1. 'match'      - what the user asked for, else the convention for their kind of business
       2. 'alternative'- the same feel in a different colour and font pair
-      3. 'brand'      - the user's own colour (Fidelity scheme), or else a contrasting feel
-    Exactly one is marked selected: the brand theme when a colour was given, otherwise 'match'.
+      3. the user's own material when there is any (typed hex, logo, screenshot or a website - D-168),
+         otherwise a contrasting feel
+    Exactly one is marked selected: the user's own material when given, otherwise 'match'.
     """
     presets = load_presets()
     conv = convention_for(business_type)
@@ -321,9 +433,9 @@ def candidates(business_type: str | None, personality: str | None = None, hue_fa
         second_hue = next(h for h in hue_order[1:] if _distinct(hue_order[0], h))
         second = _params(feel, second_hue, None, 1, variant="tonal_spot")
     brand = normalise_hex(brand_colour)
-    if brand:
-        third = _params(feel, None, brand, 2, variant="fidelity")
-        third_meta = ("brand", f"Your colour {brand}", "Built from the colour you gave")
+    source = _source_theme(feel, hue_order, brand, logo_colour, screenshot, reference, prefers_dark)
+    if source:
+        third, third_meta, source_dark = source
     else:
         other_feel = "calm" if feel == "bold" else "bold"
         # A grey first theme would stay grey in any feel, so the contrasting look takes the other colour.
@@ -345,9 +457,12 @@ def candidates(business_type: str | None, personality: str | None = None, hue_fa
         (third_meta[0], third, third_meta[1], third_meta[2]),
     ]
     result = []
-    for kind, params, label, reason in rows:
+    for index, (kind, params, label, reason) in enumerate(rows):
         theme = dict(build_theme(params))
-        theme.update(kind=kind, label=label, reason=reason, selected=(kind == "brand") if brand else (kind == "match"),
-                     default_mode="dark" if prefers_dark else "light")
+        dark = source_dark if (source and index == 2) else prefers_dark
+        theme.update(kind=kind, label=label, reason=reason, selected=(index == 2) if source else (kind == "match"),
+                     default_mode="dark" if dark else "light")
+        if source and index == 2 and reference:
+            theme["notes"] = list(reference.get("notes") or [])
         result.append(theme)
     return result

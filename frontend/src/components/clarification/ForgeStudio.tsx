@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ApiError, answerQuestion, confirmBrief, createRequest, getRequest } from "@/services/api";
+import { ApiError, answerQuestion, confirmBrief, createRequest, getRequest, readImageColours } from "@/services/api";
 import { ConfirmationDecision, ReplyData, RequestEnvelope, UserAnswer } from "@/types/request";
 import { ConfirmationPanel } from "./ConfirmationPanel";
 import { OutcomeView } from "./OutcomeView";
@@ -10,7 +10,7 @@ import { QuestionCard } from "./QuestionCard";
 import { ComposerReply, RequestComposer } from "./RequestComposer";
 import { Step, StudioHeader } from "./StudioHeader";
 
-type Busy = "start" | "answer" | "confirm" | "restore";
+type Busy = "start" | "answer" | "confirm" | "restore" | "theme";
 
 // Only the request id is kept in the browser; the run itself lives on the server (resumable).
 const STORAGE_KEY = "forge_request_id";
@@ -21,6 +21,7 @@ const PROGRESS: Record<Busy, string[]> = {
   answer: ["Saving your answer", "Checking what is still missing"],
   confirm: ["Locking in your choices", "Writing the checks for your finished site", "Almost done"],
   restore: ["Picking up where you left off"],
+  theme: ["Building your theme", "Reading the website's colours and fonts", "Checking every colour is easy to read"],
 };
 
 const storage = {
@@ -159,7 +160,13 @@ export default function ForgeStudio() {
   };
 
   const decide = (d: ConfirmationDecision) => {
-    if (envelope) run(d.decision === "confirm" ? "confirm" : "answer", () => confirmBrief(envelope.request_id, d));
+    const kind: Busy = d.decision === "confirm" ? "confirm" : d.decision === "theme_source" ? "theme" : "answer";
+    if (envelope) run(kind, () => confirmBrief(envelope.request_id, d));
+  };
+
+  const readImage = (kind: "logo" | "screenshot", file: File) => {
+    if (!envelope) return Promise.reject(new Error("No request is open."));
+    return readImageColours(envelope.request_id, kind, file);
   };
 
   return (
@@ -192,6 +199,7 @@ export default function ForgeStudio() {
               busy={busy !== null}
               error={error}
               onDecide={decide}
+              onReadImage={readImage}
             />
           )}
 

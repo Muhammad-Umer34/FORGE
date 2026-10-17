@@ -223,6 +223,13 @@ class ClarificationState(BaseModel):
     hue_family: Optional[str] = None           # colour family the user named (agents/theming.py HUE_FAMILIES)
     brand_colour: Optional[str] = None         # '#rrggbb' the user gave, checked by code
     prefers_dark: bool = False                 # the user asked for a dark site: the theme opens in dark mode
+    logo_colour: Optional[str] = None          # colour the user picked from their uploaded logo (D-163)
+    screenshot_style: Optional[dict[str, Any]] = None   # {primary, background, is_dark} from a screenshot (D-164)
+    reference_url: Optional[str] = None        # a website the user wants to look like (D-165)
+    reference_style: Optional[dict[str, Any]] = None    # small style summary read from that site (D-166)
+    theme_notice: Optional[str] = None         # plain message about a theme source that could not be used
+    theme_source_tries: dict[str, int] = Field(default_factory=dict)   # per source kind, max 3 (D-169)
+    pending_theme_source: Optional[dict[str, Any]] = None   # decision waiting for apply_confirmation
     baseline_hint: Optional[str] = None        # set when the user picked a baseline in question A
     requested_items: list[RequestedItem] = Field(default_factory=list)
     slots: list[Slot] = Field(default_factory=list)

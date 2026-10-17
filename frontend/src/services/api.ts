@@ -2,6 +2,7 @@
 import { ChatApiResponse, ResetApiResponse } from "@/types/chat";
 import {
   ConfirmationDecision,
+  ImageColours,
   RequestEnvelope,
   UserAnswer,
 } from "@/types/request";
@@ -53,6 +54,26 @@ export function answerQuestion(requestId: string, answer: UserAnswer): Promise<R
     method: "POST",
     body: JSON.stringify(answer),
   });
+}
+
+/** Upload a logo or website screenshot; our backend returns its main colours (no model call, not stored). */
+export async function readImageColours(requestId: string, kind: "logo" | "screenshot", file: File): Promise<ImageColours> {
+  const form = new FormData();
+  form.append("file", file);
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/requests/${encodeURIComponent(requestId)}/image?kind=${kind}`, {
+      method: "POST",
+      body: form,
+    });
+  } catch {
+    throw new ApiError(0, NETWORK_MESSAGE);
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new ApiError(response.status, typeof body.detail === "string" ? body.detail : "We couldn't read that image.");
+  }
+  return response.json();
 }
 
 export function confirmBrief(requestId: string, decision: ConfirmationDecision): Promise<RequestEnvelope> {

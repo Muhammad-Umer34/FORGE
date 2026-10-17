@@ -106,8 +106,18 @@ class UserAnswer(BaseModel):
     text: Optional[str] = None
 
 
+class ThemeSource(BaseModel):
+    """The user's own material for the theme (Phase 2). Image bytes never come here, only the result."""
+    kind: Literal["logo", "screenshot", "website"]
+    colour: Optional[str] = None        # logo: the colour the user tapped; screenshot: the main colour
+    background: Optional[str] = None    # screenshot only
+    is_dark: Optional[bool] = None      # screenshot only
+    url: Optional[str] = None           # website only
+
+
 class ConfirmationDecision(BaseModel):
-    decision: Literal["confirm", "edit", "cancel"]
+    decision: Literal["confirm", "edit", "cancel", "theme_source"]
+    theme_source: Optional[ThemeSource] = None
     ticked_extra_ids: list[str] = Field(default_factory=list)
     unticked_default_ids: list[str] = Field(default_factory=list)
     theme_id: Optional[str] = None

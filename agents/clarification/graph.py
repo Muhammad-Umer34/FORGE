@@ -47,13 +47,15 @@ def _after_confirmation(state: GraphState) -> str:
         return "generate_tests"
     if c.status == "analysing":           # an edit was applied
         return "ground_items"
+    if c.status == "drafting":            # a theme source was added: redraw the brief and the screen
+        return "draft_brief"
     return "build_confirmation"           # edit not possible: show the screen again
 
 
 def build_clarification_graph():
     g = StateGraph(GraphState)
     for name in (
-        "load_resources", "sanitise_input", "intake", "ground_items", "select_question", "ask_user",
+        "load_resources", "sanitise_input", "intake", "read_reference", "ground_items", "select_question", "ask_user",
         "interpret_answer", "draft_brief", "check_brief", "repair", "build_confirmation",
         "await_confirmation", "apply_confirmation", "generate_tests", "freeze",
     ):
@@ -62,7 +64,8 @@ def build_clarification_graph():
     g.add_edge(START, "load_resources")
     g.add_conditional_edges("load_resources", _next_or_end("sanitise_input"))
     g.add_edge("sanitise_input", "intake")
-    g.add_conditional_edges("intake", _next_or_end("ground_items"))
+    g.add_conditional_edges("intake", _next_or_end("read_reference"))
+    g.add_edge("read_reference", "ground_items")
     g.add_edge("ground_items", "select_question")
     g.add_conditional_edges("select_question", _after_select)
     g.add_edge("ask_user", "interpret_answer")
