@@ -80,16 +80,28 @@ def _decode(kind: str, token: str) -> dict:
     return claims
 
 
-def create_access_token(user_id: uuid.UUID, now: datetime | None = None) -> tuple[str, datetime]:
-    return _encode("access", {"sub": str(user_id)}, timedelta(minutes=settings.ACCESS_TOKEN_MINUTES), now)
+def create_access_token(user_id: uuid.UUID, now: datetime | None = None, email_verified: bool = False) -> tuple[str, datetime]:
+    """`ev` says whether the email was verified when the token was made; it changes at the next refresh."""
+    return _encode("access", {"sub": str(user_id), "ev": bool(email_verified)},
+                   timedelta(minutes=settings.ACCESS_TOKEN_MINUTES), now)
+
+
+@dataclass(frozen=True)
+class AccessClaims:
+    user_id: uuid.UUID
+    email_verified: bool
+
+
+def decode_access(token: str) -> AccessClaims:
+    claims = _decode("access", token)
+    try:
+        return AccessClaims(uuid.UUID(claims["sub"]), claims.get("ev") is True)
+    except ValueError as error:
+        raise InvalidToken("bad subject") from error
 
 
 def decode_access_token(token: str) -> uuid.UUID:
-    claims = _decode("access", token)
-    try:
-        return uuid.UUID(claims["sub"])
-    except ValueError as error:
-        raise InvalidToken("bad subject") from error
+    return decode_access(token).user_id
 
 
 @dataclass(frozen=True)

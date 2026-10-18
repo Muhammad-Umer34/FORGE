@@ -9,13 +9,16 @@ Next.js 16 (App Router, Cache Components) + React 19 + Tailwind v4. The browser 
 |---|---|
 | `/` | Sends signed-in users to `/projects`, others to `/login` |
 | `/login`, `/register` | Sign in / create an account (`?next=` returns to the page you came from) |
+| `/verify-email?token=` | Opened from the verification email; confirms the address |
+| `/forgot-password`, `/reset-password?token=` | Ask for a reset link; choose a new password |
 | `/projects` | Your projects (at most 3), create and delete (type the name to confirm) |
 | `/projects/[projectId]` | The studio for one project: Describe → Answer → Confirm → Brief, plus earlier requests |
 
 ## Structure
 
 - `src/app/`: one folder per page (the App Router needs it).
-- `src/components/auth/`: `AuthProvider` (who is signed in), `RequireAuth` (page guard), `AuthForm`.
+- `src/components/auth/`: `AuthProvider` (who is signed in), `RequireAuth` (page guard), `AuthForm`, `AuthShell`,
+  `EmailVerification` (link page and the "verify your email" banner), `PasswordReset`.
 - `src/components/projects/`: projects list, delete dialog, the project page wrapper.
 - `src/components/clarification/`: the studio screens and the shared header.
 - `src/services/`: `client.ts` (every backend call, token handling), `auth.ts`, `projects.ts`, `requests.ts`.

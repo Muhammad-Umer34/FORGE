@@ -42,6 +42,15 @@ class Settings:
     # The refresh cookie is sent over HTTPS only outside development
     COOKIE_SECURE: bool = os.getenv("ENVIRONMENT", "development").lower() != "development"
 
+    # Email for verification and password reset (D-187). Without SMTP_HOST, emails are only logged.
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "").strip()
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USERNAME: str = os.getenv("SMTP_USERNAME", "").strip()
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "").replace(" ", "")
+    MAIL_FROM: str = os.getenv("MAIL_FROM", "").strip()
+    # The site the links in emails open (the Next.js frontend)
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+
     # Server config
     PORT: int = int(os.getenv("BACKEND_PORT", "8000"))
     HOST: str = os.getenv("HOST", "0.0.0.0")

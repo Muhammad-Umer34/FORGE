@@ -17,7 +17,8 @@ from backend.routes.auth import REFRESH_COOKIE
 from backend.routes.auth import router as auth_router
 from backend.routes.projects import router as projects_router
 from backend.services import auth as service
-from pg_support import EmptyGraph, migrate_test_database, new_engine, requires_db, session_dependency, wait_for_lock_waiters
+from pg_support import (EmptyGraph, migrate_test_database, new_engine, outbox, requires_db, session_dependency,  # noqa: F401
+                        wait_for_lock_waiters)
 
 pytestmark = requires_db
 PASSWORD = "correct horse battery"
@@ -26,6 +27,12 @@ PASSWORD = "correct horse battery"
 @pytest.fixture(scope="module", autouse=True)
 def migrated_database():
     migrate_test_database()
+
+
+@pytest.fixture(autouse=True)
+def no_real_email(outbox):
+    """Registering sends a verification email; here it is only captured."""
+    return outbox
 
 
 class Harness:
@@ -216,9 +223,16 @@ def test_protected_routes_need_a_valid_access_token():
             assert (await h.get("/api/auth/me", bearer=refresh)).status_code == 401  # wrong token type
             assert (await h.get("/api/projects")).status_code == 401
 
-            created = await h.post("/api/projects", json={"name": "My shop"}, bearer=access)
+            # Unverified: may sign in and list, but not create projects (D-188)
+            refused = await h.post("/api/projects", json={"name": "My shop"}, bearer=access)
+            assert refused.status_code == 403 and refused.json()["detail"]["code"] == "email_not_verified"
+            assert (await h.get("/api/projects", bearer=access)).json() == []
+
+            await h.sql("UPDATE users SET email_verified_at = now() WHERE id = :id", id=registered.json()["user"]["id"])
+            verified_access = (await h.refresh(refresh)).json()["access_token"]
+            created = await h.post("/api/projects", json={"name": "My shop"}, bearer=verified_access)
             assert created.status_code == 201
-            listed = await h.get("/api/projects", bearer=access)
+            listed = await h.get("/api/projects", bearer=verified_access)
             assert [p["name"] for p in listed.json()] == ["My shop"]
     run(scenario())
 
@@ -307,7 +321,9 @@ def test_deleted_account_cannot_refresh_or_create_projects():
         async with harness() as h:
             email = h.new_email()
             registered = await h.register(email)
-            access, token = registered.json()["access_token"], refresh_cookie(registered)
+            await h.sql("UPDATE users SET email_verified_at = now() WHERE email = :e", e=email)
+            renewed = await h.refresh(refresh_cookie(registered))  # a verified token, so the guard lets it through
+            access, token = renewed.json()["access_token"], refresh_cookie(renewed)
             await h.sql("DELETE FROM users WHERE email = :e", e=email)
             assert (await h.refresh(token)).status_code == 401
             assert (await h.get("/api/auth/me", bearer=access)).status_code == 401

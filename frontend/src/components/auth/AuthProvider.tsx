@@ -18,6 +18,7 @@ interface AuthValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
+  reloadSession: () => Promise<void>; // after the email is verified: a new access token says so
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -37,6 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSignedOutByUser(false);
     setStatus("signed_in");
   };
+
+  const reloadSession = useCallback(async () => {
+    const session = await authApi.refreshSession();
+    if (session) setUser(session.user);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -75,8 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           signedOut();
         }
       },
+      reloadSession,
     }),
-    [status, user, signedOutByUser, signedOut],
+    [status, user, signedOutByUser, signedOut, reloadSession],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

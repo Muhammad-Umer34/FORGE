@@ -123,9 +123,16 @@ export function AuthForm({ mode }: AuthFormProps) {
           </label>
 
           <div>
-            <label className="block text-[14px] font-medium text-ink" htmlFor="password">
-              Password
-            </label>
+            <div className="flex items-baseline justify-between">
+              <label className="block text-[14px] font-medium text-ink" htmlFor="password">
+                Password
+              </label>
+              {mode === "login" && (
+                <Link href="/forgot-password" className="text-[13px] font-medium text-ember-strong underline-offset-4 hover:underline">
+                  Forgot password?
+                </Link>
+              )}
+            </div>
             <div className="relative">
               <input
                 id="password"

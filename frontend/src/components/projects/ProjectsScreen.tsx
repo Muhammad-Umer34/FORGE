@@ -7,6 +7,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { VerifyEmailBanner } from "@/components/auth/EmailVerification";
 import { PageLoading } from "@/components/auth/RequireAuth";
 import { StudioHeader } from "@/components/clarification/StudioHeader";
 import { ApiError } from "@/services/client";
@@ -103,6 +104,7 @@ export function ProjectsScreen() {
   }, [load]);
 
   const atLimit = (projects?.length ?? 0) >= MAX_PROJECTS;
+  const unverified = user ? !user.email_verified : false; // the backend refuses new projects until then (D-188)
 
   const create = async (name: string, description: string) => {
     const project = await createProject(name, description);
@@ -120,6 +122,7 @@ export function ProjectsScreen() {
     <>
       <StudioHeader />
       <main id="main" className="relative z-[1] mx-auto w-full max-w-3xl flex-1 px-5 pt-12 pb-16 sm:px-8 sm:pt-16">
+        <VerifyEmailBanner />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[14px] text-ink-muted">Hello{user ? `, ${user.display_name}` : ""}</p>
@@ -133,8 +136,8 @@ export function ProjectsScreen() {
               <button
                 type="button"
                 onClick={() => setCreating(true)}
-                disabled={atLimit || creating}
-                title={atLimit ? "Delete a project to create another" : undefined}
+                disabled={atLimit || creating || unverified}
+                title={unverified ? "Verify your email first" : atLimit ? "Delete a project to create another" : undefined}
                 className="rounded-lg bg-ink px-4 py-2.5 text-[14px] font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
               >
                 New project
@@ -167,7 +170,7 @@ export function ProjectsScreen() {
               <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-ink-muted">
                 A project holds one website idea, like your bakery or your salon. Create one, then describe the website you need.
               </p>
-              <button type="button" onClick={() => setCreating(true)} className="mt-5 rounded-lg bg-ink px-4 py-2.5 text-[14px] font-medium text-paper hover:opacity-90">
+              <button type="button" onClick={() => setCreating(true)} disabled={unverified} className="mt-5 rounded-lg bg-ink px-4 py-2.5 text-[14px] font-medium text-paper hover:opacity-90 disabled:opacity-40">
                 Create your first project
               </button>
             </div>

@@ -13,7 +13,7 @@ rotates and revokes refresh tokens. Routes map its exceptions to HTTP answers.
   is just refused, because two tabs refreshing at once is normal, not theft.
 """
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 
 from fastapi.concurrency import run_in_threadpool
@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core import security
 from backend.db.session import sqlstate
 from backend.db.tables import RefreshToken, User
+from backend.services import email_flows
 
 MAX_FAILED_LOGINS = 5
 LOCKOUT = timedelta(minutes=15)
@@ -65,6 +66,7 @@ class SignIn:
     access_expires_at: datetime
     refresh_token: str
     refresh_expires_at: datetime
+    verify_token: str | None = None  # set by register: the link to email (D-185)
 
 
 def _now() -> datetime:
@@ -82,7 +84,7 @@ async def _issue(session: AsyncSession, user: User, family_id: uuid.UUID, user_a
                        expires_at=refresh_expires, user_agent=(user_agent or "")[:255] or None)
     session.add(row)
     await session.flush()
-    access, access_expires = security.create_access_token(user.id, now)
+    access, access_expires = security.create_access_token(user.id, now, email_verified=user.email_verified)
     return SignIn(user, access, access_expires, refresh, refresh_expires), row
 
 
@@ -103,7 +105,8 @@ async def register(session: AsyncSession, email: str, password: str, display_nam
             await session.flush()
             await session.refresh(user)
             signed_in, _ = await _issue(session, user, uuid.uuid4(), user_agent, _now())
-        return signed_in
+            token = await email_flows.new_link_token(session, user.id, email_flows.VERIFY_EMAIL)
+        return replace(signed_in, verify_token=token)
     except DBAPIError as error:
         if sqlstate(error) == _UNIQUE_VIOLATION:
             raise EmailTaken(email) from error

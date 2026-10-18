@@ -77,3 +77,13 @@ class EmptyGraph:
 
     async def adelete_thread(self, thread_id: str) -> None:
         self.deleted.append(thread_id)
+
+
+@pytest.fixture
+def outbox(monkeypatch):
+    """Emails the app tries to send, captured instead of delivered (D-187)."""
+    from backend.services import mailer
+
+    sent: list = []
+    monkeypatch.setattr(mailer, "deliver", sent.append)
+    return sent

@@ -20,7 +20,7 @@ from fastapi import FastAPI, Header
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
-from backend.core.deps import get_current_user_id
+from backend.core.deps import get_current_user_id, get_verified_user_id
 from backend.db.session import get_session, sqlstate
 from backend.routes.projects import router as projects_router
 from backend.services import projects as service
@@ -96,6 +96,7 @@ async def harness():
     app.state.forge_graph = EmptyGraph()
     app.dependency_overrides[get_session] = session_dependency(engine)
     app.dependency_overrides[get_current_user_id] = test_user
+    app.dependency_overrides[get_verified_user_id] = test_user
     transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
     async with httpx.AsyncClient(transport=transport, base_url="http://test", timeout=60) as client:
         h = Harness(engine, client)

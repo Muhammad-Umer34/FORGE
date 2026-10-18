@@ -9,7 +9,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.core.deps import get_current_user_id
+from backend.core.deps import get_current_user_id, get_verified_user_id
 from backend.db.session import get_session
 from backend.models.projects import CreateProject, ProjectOut
 from backend.services import projects as service
@@ -29,7 +29,7 @@ async def list_projects(user_id: uuid.UUID = Depends(get_current_user_id),
 
 
 @router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
-async def create_project(body: CreateProject, user_id: uuid.UUID = Depends(get_current_user_id),
+async def create_project(body: CreateProject, user_id: uuid.UUID = Depends(get_verified_user_id),
                          session: AsyncSession = Depends(get_session)):
     try:
         return await service.create_project(session, user_id, body.name, body.description)

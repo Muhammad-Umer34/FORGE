@@ -16,10 +16,10 @@ Gemini 3 models are served from the `global` location only (`us-central1` answer
 
 - `core/`: settings and environment configuration (`config.py`); shared dependencies (`deps.py`, incl. the signed-in user); passwords and tokens (`security.py`).
 - `db/`: PostgreSQL (Supabase) connection (`session.py`) and table definitions (`tables.py`) (D-172).
-- `migrations/`: Alembic migrations; `versions/0001_users_and_projects.py` creates users, projects and the 3-project limit (D-173, D-175); `0002_refresh_tokens.py` adds sign-in sessions (D-178); `0003_requests.py` links website requests to projects (D-179).
+- `migrations/`: Alembic migrations; `versions/0001_users_and_projects.py` creates users, projects and the 3-project limit (D-173, D-175); `0002_refresh_tokens.py` adds sign-in sessions (D-178); `0003_requests.py` links website requests to projects (D-179); `0004_email_tokens.py` adds email verification and password reset (D-185, D-186).
 - `models/`: Pydantic request and response schemas (`requests.py` for the website-request API; `auth.py`; `projects.py`).
 - `routes/`: `requests.py` (website-request API), `auth.py` (sign-in), `projects.py`, `health.py`.
-- `services/`: `auth.py` (accounts and sign-in sessions, D-176 – D-178); `projects.py` (the only code that creates or deletes projects, D-174); `requests.py` (which requests belong to whom, D-179, D-180).
+- `services/`: `auth.py` (accounts and sign-in sessions, D-176 – D-178); `projects.py` (the only code that creates or deletes projects, D-174); `requests.py` (which requests belong to whom, D-179, D-180); `email_flows.py` (verification and reset links, D-185, D-186); `mailer.py` (sends email over SMTP, D-187).
 - `main.py`: application bootstrap, CORS, and the checkpointer that keeps paused runs.
 
 The old free chat (`/api/chat`) was removed once the sign-in, projects and studio screens replaced it (D-137, D-182).
@@ -50,6 +50,24 @@ Configuration is read from the single `.env` file at the FORGE-1 root. Agents ne
   Path=/api/auth, Secure outside development). Stored as a SHA-256 hash. Every refresh replaces it; an old one used
   again later revokes the whole sign-in (theft detection). Used again within 10 seconds (two tabs) it is just refused.
 - **Passwords:** Argon2id. `.env` needs `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` (different, at least 32 characters).
+
+### Email verification and password reset (D-185 – D-188)
+
+| Method and path | Body | Answer |
+|---|---|---|
+| `POST /api/auth/verify-email` | `{ "token" }` | the user, now verified; 400 `invalid_link` |
+| `POST /api/auth/resend-verification` | — (access token) | 202; 409 `already_verified`; 429 `too_many_emails` |
+| `POST /api/auth/forgot-password` | `{ "email" }` | always 202 with the same message |
+| `POST /api/auth/reset-password` | `{ "token", "password" }` | 200; 400 `invalid_link` |
+
+- Registering sends a verification link (24 h). A reset link lasts 30 min. Links work once, are stored only as SHA-256
+  hashes, and a new link cancels the older ones. At most 3 links of each kind per account per hour.
+- **Unverified users can sign in but cannot create projects or run requests** (403 `email_not_verified`). The access
+  token carries `ev` (email verified); after verifying, the frontend refreshes the session to get a new token.
+- A reset changes the password, clears any lockout, marks the email verified and signs the account out everywhere.
+- Mail is sent after the answer (FastAPI background task) over SMTP. `.env`: `SMTP_HOST`, `SMTP_PORT` (587 STARTTLS or
+  465 TLS), `SMTP_USERNAME`, `SMTP_PASSWORD`, `MAIL_FROM`, `FRONTEND_URL` (where the links point). Without `SMTP_HOST` the
+  email, with its link, is only written to the log. Tests capture emails and never send them.
 
 **Project limit (D-174, D-175):** at most 3 projects per user. `services/projects.create_project` locks the user's row
 (`SELECT ... FOR UPDATE`), counts, then inserts, all in one READ COMMITTED transaction; a trigger in the database does the

@@ -39,7 +39,31 @@ class UserOut(BaseModel):
     id: uuid.UUID
     email: str
     display_name: str
+    email_verified: bool
     created_at: datetime
+
+
+class EmailBody(BaseModel):
+    email: EmailStr
+
+
+class TokenBody(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+
+
+class ResetPasswordBody(TokenBody):
+    password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Password cannot be only spaces.")
+        return value
+
+
+class MessageOut(BaseModel):
+    message: str
 
 
 class TokenOut(BaseModel):

@@ -38,6 +38,9 @@ def test_access_token_round_trip():
     uid = uuid.uuid4()
     token, expires = security.create_access_token(uid)
     assert security.decode_access_token(token) == uid
+    assert security.decode_access(token).email_verified is False
+    verified, _ = security.create_access_token(uid, email_verified=True)
+    assert security.decode_access(verified) == security.AccessClaims(uid, True)
     assert timedelta(minutes=14) < expires - datetime.now(timezone.utc) <= timedelta(minutes=15)
 
 
@@ -95,3 +98,13 @@ def test_missing_or_short_secret_is_an_error(monkeypatch):
     monkeypatch.setattr(settings, "JWT_ACCESS_SECRET", "short")
     with pytest.raises(RuntimeError):
         security.create_access_token(uuid.uuid4())
+
+
+def test_emails_contain_the_link_and_escape_names():
+    from backend.services import mailer
+
+    mail = mailer.verification_email("a@example.com", "<Ayesha>", "http://localhost:3000/verify-email?token=abc")
+    assert "http://localhost:3000/verify-email?token=abc" in mail.text
+    assert "&lt;Ayesha&gt;" in mail.html and "<Ayesha>" not in mail.html
+    reset = mailer.reset_email("a@example.com", "Ayesha", "http://localhost:3000/reset-password?token=xyz")
+    assert reset.subject == "Reset your FORGE password" and "30 minutes" in reset.text

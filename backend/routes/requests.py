@@ -4,7 +4,7 @@ Website-request API (v6 Section 18, D-130). Starts a FORGE run, returns its pend
 confirmation screen, and resumes it with the user's answer. One run = one LangGraph thread
 (thread id = request id); paused runs live in the checkpointer opened in main.py.
 
-Every request belongs to a project of the signed-in user (D-179): the routes live under
+Every request belongs to a project of the signed-in, verified user (D-179, D-188): the routes live under
 /api/projects/{project_id}/requests, and each one first checks that the request is in that project
 and the project is the user's - otherwise 404, before the agent graph is touched. The API layer
 records each request and its latest status in the database; agents never do (D-133).
@@ -24,7 +24,7 @@ from agents.clarification import slots
 from agents.clarification.prompts import PROMPT_VERSIONS
 from agents.gateway import model_for, provider
 from agents.state import Question, RequestInfo, RunConfig, initial_state
-from backend.core.deps import get_current_user_id
+from backend.core.deps import get_verified_user_id
 from backend.db.session import get_session
 from backend.models.requests import ConfirmationDecision, CreateRequest, RequestEnvelope, RequestSummary, UserAnswer
 from backend.services import requests as service
@@ -86,7 +86,7 @@ async def _run(http: Request, request_id: str, graph_input) -> RequestEnvelope:
     return _envelope(request_id, snapshot.values, snapshot.interrupts)
 
 
-async def _owned_request(project_id: uuid.UUID, request_id: str, user_id: uuid.UUID = Depends(get_current_user_id),
+async def _owned_request(project_id: uuid.UUID, request_id: str, user_id: uuid.UUID = Depends(get_verified_user_id),
                          session: AsyncSession = Depends(get_session)) -> str:
     """The request id, once it is known to be in this project of the signed-in user."""
     try:
@@ -119,7 +119,7 @@ async def _pending(http: Request, request_id: str, expected: str) -> dict:
 
 
 @router.get("", response_model=list[RequestSummary])
-async def list_requests(project_id: uuid.UUID, user_id: uuid.UUID = Depends(get_current_user_id),
+async def list_requests(project_id: uuid.UUID, user_id: uuid.UUID = Depends(get_verified_user_id),
                         session: AsyncSession = Depends(get_session)):
     try:
         return await service.list_requests(session, user_id, project_id)
@@ -129,7 +129,7 @@ async def list_requests(project_id: uuid.UUID, user_id: uuid.UUID = Depends(get_
 
 @router.post("", response_model=RequestEnvelope)
 async def create_request(project_id: uuid.UUID, body: CreateRequest, http: Request,
-                         user_id: uuid.UUID = Depends(get_current_user_id), session: AsyncSession = Depends(get_session)):
+                         user_id: uuid.UUID = Depends(get_verified_user_id), session: AsyncSession = Depends(get_session)):
     request_id = f"req_{uuid.uuid4().hex[:12]}"
     try:
         await service.start_request(session, user_id, project_id, request_id, body.prompt)
