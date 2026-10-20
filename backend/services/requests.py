@@ -10,6 +10,7 @@ them when their project is deleted.
 """
 import logging
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from sqlalchemy import delete, select, update
@@ -91,3 +92,25 @@ async def delete_runs(checkpointer, request_ids: list[str]) -> None:
             await checkpointer.adelete_thread(request_id)
         except Exception:
             logger.exception("Could not delete the paused run %s", request_id)
+
+
+class RunInProgress(Exception):
+    """This request is already running an agent step (D-190)."""
+
+
+_running: set[str] = set()
+
+
+@asynccontextmanager
+async def one_step_at_a_time(request_id: str):
+    """Refuse a second answer or confirmation while the first is still running, so a double click or
+    a second tab cannot run the model twice and lose one of the answers. The server runs as one
+    process (the checkpointer is a SQLite file), so a set in memory is enough; checking and adding
+    happen with no await in between, so two calls cannot both get in."""
+    if request_id in _running:
+        raise RunInProgress(request_id)
+    _running.add(request_id)
+    try:
+        yield
+    finally:
+        _running.discard(request_id)

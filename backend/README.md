@@ -40,7 +40,7 @@ Configuration is read from the single `.env` file at the FORGE-1 root. Agents ne
 | Method and path | Body | Answer |
 |---|---|---|
 | `POST /api/auth/register` | `{ "email", "password" (8–128), "display_name" }` | 201 + access token; 409 `email_taken` |
-| `POST /api/auth/login` | `{ "email", "password" }` | 200 + access token; 401 `invalid_credentials`; 429 `account_locked` after 5 wrong passwords (15 min) |
+| `POST /api/auth/login` | `{ "email", "password" }` | 200 + access token; 401 `invalid_credentials`; 429 `account_locked` after 5 wrong passwords from one address (15 min, D-192) |
 | `POST /api/auth/refresh` | — (cookie) | 200 + new access token and new cookie; 401 `signed_out`; 409 `refresh_in_progress` (another tab renewed a moment ago: retry, cookie kept) |
 | `POST /api/auth/logout` | — (cookie) | 204, ends this sign-in on every device it reached |
 | `GET /api/auth/me` | — (`Authorization: Bearer <access token>`) | the signed-in user |
@@ -72,6 +72,26 @@ Configuration is read from the single `.env` file at the FORGE-1 root. Agents ne
 **Project limit (D-174, D-175):** at most 3 projects per user. `services/projects.create_project` locks the user's row
 (`SELECT ... FOR UPDATE`), counts, then inserts, all in one READ COMMITTED transaction; a trigger in the database does the
 same as a safety net. Any new code that creates projects must call `create_project`.
+
+## Cost and abuse limits (D-189 – D-194)
+
+Counted in the `rate_limits` table (migration 0005), so they hold across restarts. Every number is a setting in
+`backend/core/config.py` that `.env` can change. A limit reached answers 429 with a `Retry-After` header.
+
+| What | Limit | Setting |
+|---|---|---|
+| New website requests | 20 per user per day, 300 for the app per day | `LIMIT_REQUESTS_PER_USER_DAY`, `LIMIT_REQUESTS_PER_DAY` |
+| Steps of one request | one at a time; a second answer or confirmation meanwhile gets 409 | — |
+| Sign-ups | 5 per hour and 20 per day per address, 200 for the app per day | `LIMIT_SIGNUPS_PER_IP_*`, `LIMIT_SIGNUPS_PER_DAY` |
+| "Forgot password" | 10 per hour per address | `LIMIT_FORGOT_PER_IP_HOUR` |
+| Emails | 400 per day for the app (Gmail allows ~500); sign-up still works and says the link was not sent | `LIMIT_EMAILS_PER_DAY` |
+| Wrong passwords | 5 from one address lock that address for that account (15 min); 30 per account per hour from anywhere lock the account; 30 per address in 10 min block the address | `LIMIT_LOGIN_FAILS_*` |
+| Website reads / image reads | 10 per user per day / 30 per user per hour | `LIMIT_WEBSITE_READS_PER_USER_DAY`, `LIMIT_IMAGE_READS_PER_USER_HOUR` |
+| Reader browsers | 2 at once; a request waits up to 20 s, then hears FORGE is busy | env `READER_MAX_BROWSERS`, `READER_WAIT_S` |
+| Body size | 64 KB; image uploads 2.5 MB (413 before the body is read) | `MAX_JSON_BODY_BYTES`, `MAX_IMAGE_UPLOAD_BYTES` |
+
+The client address is the connection's, or the first `X-Forwarded-For` entry only when the connection comes from this
+machine (the Next.js proxy), so it cannot be faked from outside.
 
 ## Website-request API (Clarification Agent)
 
@@ -131,6 +151,7 @@ cd d:\FYP\FORGE-1
 ```
 
 Live tests call Gemini and use API credits; they run only with `FORGE_LIVE_TESTS=1`.
-PostgreSQL integration tests (`tests/test_project_limit.py`, `tests/test_auth.py`; helpers in `tests/pg_support.py`) run only
+PostgreSQL integration tests (`tests/test_project_limit.py`, `tests/test_auth.py`, `tests/test_limits.py` and others; helpers in `tests/pg_support.py`) run only
 when `TEST_DATABASE_URL` is set; they apply the migrations, create their own users and delete them afterwards (about 8
-minutes against the Supabase pooler).
+minutes against the Supabase pooler). `tests/conftest.py` raises every rate limit for each test; the limit tests
+lower the one they check and use made-up addresses so counters never collide.

@@ -16,11 +16,13 @@ Run directly for one site:  python -m agents.reference_style https://example.com
 """
 import ipaddress
 import json
+import os
 import re
 import socket
 import statistics
 import subprocess
 import sys
+import threading
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -283,19 +285,36 @@ def summarise(raw: dict, url: str) -> dict:
     }
 
 
+def _run_browser(url: str) -> subprocess.CompletedProcess:
+    """One page read in a separate browser process, killed after PROCESS_TIMEOUT_S."""
+    try:
+        return subprocess.run(
+            [sys.executable, "-m", "agents.reference_style", url],
+            cwd=ROOT, capture_output=True, text=True, timeout=PROCESS_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        raise ReferenceSiteError("The website took too long to open.")
+
+
+# At most this many reading browsers at once (each needs about 200-300 MB of memory); a request
+# waits up to READER_WAIT_S for a free one, then gets a "busy" notice (D-193).
+MAX_BROWSERS = int(os.getenv("READER_MAX_BROWSERS", "2"))
+READER_WAIT_S = float(os.getenv("READER_WAIT_S", "20"))
+_browsers = threading.BoundedSemaphore(MAX_BROWSERS)
+
+
 def read_reference(url: str) -> dict:
     """
     Check the address, read ONE page in a separate browser process, and return the style summary.
     Raises ReferenceSiteError with a plain message when the site can't be used.
     """
     url = check_url(normalise_url(url))
+    if not _browsers.acquire(timeout=READER_WAIT_S):
+        raise ReferenceSiteError("FORGE is busy reading other websites. Please try again in a minute.")
     try:
-        done = subprocess.run(
-            [sys.executable, "-m", "agents.reference_style", url],
-            cwd=ROOT, capture_output=True, text=True, timeout=PROCESS_TIMEOUT_S,
-        )
-    except subprocess.TimeoutExpired:
-        raise ReferenceSiteError("The website took too long to open.")
+        done = _run_browser(url)
+    finally:
+        _browsers.release()
     lines = [line for line in done.stdout.splitlines() if line.strip()]
     try:
         result = json.loads(lines[-1]) if lines else {}

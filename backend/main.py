@@ -10,6 +10,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from agents.orchestrator import build_forge_graph
 from agents.state import msgpack_allowlist
+from backend.core.body_limit import BodySizeLimit
 from backend.core.config import settings
 from backend.routes import auth_router, health_router, projects_router, requests_router
 
@@ -39,6 +40,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Refuse oversized bodies before they are read (D-193)
+app.add_middleware(BodySizeLimit)
 
 # Register API Routers
 app.include_router(health_router)

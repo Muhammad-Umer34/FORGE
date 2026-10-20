@@ -31,6 +31,8 @@ Next.js 16 (App Router, Cache Components) + React 19 + Tailwind v4. The browser 
 - On page load the app renews the session from that cookie. A call that answers 401 renews once and retries;
   tabs take turns renewing (Web Locks), and a 409 from the backend means "another tab just did it, retry".
 - The page guard only redirects; the backend checks the token on every projects and requests call.
+- If FORGE has reached its daily email limit, sign-up still works and the verify-email banner shows the backend's
+  `notice` instead of "We sent a link" (D-194). Limit answers (429, 413) show the backend's message.
 
 ## Run
 

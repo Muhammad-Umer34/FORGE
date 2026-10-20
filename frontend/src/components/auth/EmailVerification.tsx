@@ -69,7 +69,7 @@ export function VerifyEmailScreen() {
 
 /** Shown on signed-in pages until the email is verified. */
 export function VerifyEmailBanner() {
-  const { user } = useAuth();
+  const { user, signupNotice } = useAuth();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   if (!user || user.email_verified) return null;
@@ -91,7 +91,11 @@ export function VerifyEmailBanner() {
     <section aria-labelledby="verify-title" className="mb-8 rounded-2xl border border-ember/30 bg-ember-soft px-5 py-4">
       <h2 id="verify-title" className="text-[15px] font-semibold text-ember-strong">Verify your email to start building</h2>
       <p className="mt-1 text-[14px] text-ink">
-        We sent a link to <span className="font-medium">{user.email}</span>. Open it to create projects and describe your websites.
+        {signupNotice ?? (
+          <>
+            We sent a link to <span className="font-medium">{user.email}</span>. Open it to create projects and describe your websites.
+          </>
+        )}
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <button

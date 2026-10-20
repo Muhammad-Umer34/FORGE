@@ -73,3 +73,4 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     user: UserOut
+    notice: str | None = None  # e.g. the verification email could not be sent today (D-194)

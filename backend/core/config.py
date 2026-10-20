@@ -32,6 +32,22 @@ class Settings:
     # How long project creation waits for the per-user lock before answering 503 (D-174)
     DB_LOCK_TIMEOUT_MS: int = int(os.getenv("DB_LOCK_TIMEOUT_MS", "3000"))
 
+    # Limits against cost and abuse (D-189 - D-194). Every value can be changed in .env.
+    LIMIT_REQUESTS_PER_USER_DAY: int = int(os.getenv("LIMIT_REQUESTS_PER_USER_DAY", "20"))
+    LIMIT_REQUESTS_PER_DAY: int = int(os.getenv("LIMIT_REQUESTS_PER_DAY", "300"))
+    LIMIT_SIGNUPS_PER_IP_HOUR: int = int(os.getenv("LIMIT_SIGNUPS_PER_IP_HOUR", "5"))
+    LIMIT_SIGNUPS_PER_IP_DAY: int = int(os.getenv("LIMIT_SIGNUPS_PER_IP_DAY", "20"))
+    LIMIT_SIGNUPS_PER_DAY: int = int(os.getenv("LIMIT_SIGNUPS_PER_DAY", "200"))
+    LIMIT_FORGOT_PER_IP_HOUR: int = int(os.getenv("LIMIT_FORGOT_PER_IP_HOUR", "10"))
+    LIMIT_EMAILS_PER_DAY: int = int(os.getenv("LIMIT_EMAILS_PER_DAY", "400"))
+    LIMIT_LOGIN_FAILS_PER_IP_ACCOUNT: int = int(os.getenv("LIMIT_LOGIN_FAILS_PER_IP_ACCOUNT", "5"))      # per 15 min
+    LIMIT_LOGIN_FAILS_PER_ACCOUNT_HOUR: int = int(os.getenv("LIMIT_LOGIN_FAILS_PER_ACCOUNT_HOUR", "30"))
+    LIMIT_LOGIN_FAILS_PER_IP: int = int(os.getenv("LIMIT_LOGIN_FAILS_PER_IP", "30"))                      # per 10 min
+    LIMIT_WEBSITE_READS_PER_USER_DAY: int = int(os.getenv("LIMIT_WEBSITE_READS_PER_USER_DAY", "10"))
+    LIMIT_IMAGE_READS_PER_USER_HOUR: int = int(os.getenv("LIMIT_IMAGE_READS_PER_USER_HOUR", "30"))
+    MAX_IMAGE_UPLOAD_BYTES: int = int(os.getenv("MAX_IMAGE_UPLOAD_BYTES", str(2_621_440)))   # 2.5 MB incl. form overhead
+    MAX_JSON_BODY_BYTES: int = int(os.getenv("MAX_JSON_BODY_BYTES", "65536"))
+
     # Sign-in (D-176 - D-178). Secrets live only in .env; tokens are refused if a secret is missing or short.
     JWT_ACCESS_SECRET: str = os.getenv("JWT_ACCESS_SECRET", "")
     JWT_REFRESH_SECRET: str = os.getenv("JWT_REFRESH_SECRET", "")

@@ -1,8 +1,9 @@
 # D:\FYP\FORGE-1\backend\core\deps.py
 """Shared FastAPI dependencies."""
+import ipaddress
 import uuid
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from backend.core import security
@@ -35,3 +36,19 @@ async def get_verified_user_id(claims: security.AccessClaims = Depends(get_acces
             "message": "Please verify your email address first. Check your inbox for the link we sent.",
         })
     return claims.user_id
+
+
+def client_ip(request: Request) -> str:
+    """The visitor's address, for rate limits (D-189). The browser talks to Next.js, which forwards
+    to us and adds X-Forwarded-For. That header is trusted only when the request comes from this
+    machine (our own Next.js server); from anywhere else it could be faked, so the direct address is used."""
+    direct = request.client.host if request.client else "unknown"
+    forwarded = request.headers.get("x-forwarded-for", "")
+    try:
+        if forwarded and ipaddress.ip_address(direct).is_loopback:
+            first = forwarded.split(",")[0].strip()
+            ipaddress.ip_address(first)  # ignore anything that is not an address
+            return first
+    except ValueError:
+        pass
+    return direct

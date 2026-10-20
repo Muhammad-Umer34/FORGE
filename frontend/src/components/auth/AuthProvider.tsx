@@ -19,6 +19,7 @@ interface AuthValue {
   register: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
   reloadSession: () => Promise<void>; // after the email is verified: a new access token says so
+  signupNotice: string | null; // from sign-up, e.g. the email could not be sent (D-194)
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>("loading");
   const [user, setUser] = useState<User | null>(null);
   const [signedOutByUser, setSignedOutByUser] = useState(false);
+  const [signupNotice, setSignupNotice] = useState<string | null>(null);
 
   const signedOut = useCallback(() => {
     setUser(null);
@@ -71,8 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       signedOutByUser,
       login: async (email, password) => signedIn((await authApi.login(email, password)).user),
-      register: async (email, password, displayName) =>
-        signedIn((await authApi.register(email, password, displayName)).user),
+      register: async (email, password, displayName) => {
+        const session = await authApi.register(email, password, displayName);
+        setSignupNotice(session.notice ?? null);
+        signedIn(session.user);
+      },
       logout: async () => {
         try {
           await authApi.logout();
@@ -82,8 +87,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
       reloadSession,
+      signupNotice,
     }),
-    [status, user, signedOutByUser, signedOut, reloadSession],
+    [status, user, signedOutByUser, signedOut, reloadSession, signupNotice],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

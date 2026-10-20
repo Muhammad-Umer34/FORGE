@@ -183,7 +183,9 @@ def test_five_wrong_passwords_lock_the_account():
             assert locked.status_code == 429 and locked.json()["detail"]["code"] == "account_locked"
             assert 0 < int(locked.headers["retry-after"]) <= 15 * 60
 
-            await h.sql("UPDATE users SET locked_until = now() - interval '1 second' WHERE email = :e", e=email)
+            # the 15 minutes pass: this address's count for this account is forgotten (D-192)
+            await h.sql("DELETE FROM rate_limits WHERE key LIKE 'login-fail:pair:' || "
+                        "(SELECT id FROM users WHERE email = :e) || ':%'", e=email)
             assert (await h.login(email)).status_code == 200
             row = await h.sql("SELECT failed_logins, locked_until FROM users WHERE email = :e", e=email)
             assert row.failed_logins == 0 and row.locked_until is None
@@ -296,7 +298,7 @@ def test_expired_or_missing_refresh_token_is_refused():
             token = refresh_cookie(await h.register(email))
             assert (await h.refresh(None)).status_code == 401
             assert (await h.refresh("garbage")).status_code == 401
-            await h.sql("UPDATE refresh_tokens SET expires_at = now() - interval '1 second' "
+            await h.sql("UPDATE refresh_tokens SET expires_at = now() - interval '1 hour' "
                         "WHERE user_id = (SELECT id FROM users WHERE email = :e)", e=email)
             assert (await h.refresh(token)).status_code == 401
     run(scenario())

@@ -24,9 +24,11 @@ from agents.clarification import slots
 from agents.clarification.prompts import PROMPT_VERSIONS
 from agents.gateway import model_for, provider
 from agents.state import Question, RequestInfo, RunConfig, initial_state
+from backend.core.config import settings
 from backend.core.deps import get_verified_user_id
 from backend.db.session import get_session
 from backend.models.requests import ConfirmationDecision, CreateRequest, RequestEnvelope, RequestSummary, UserAnswer
+from backend.services import limits
 from backend.services import requests as service
 
 router = APIRouter(prefix="/api/projects/{project_id}/requests", tags=["Requests"])
@@ -108,6 +110,15 @@ async def _record(http: Request, session: AsyncSession, envelope: RequestEnvelop
     return envelope
 
 
+def _limited(error: limits.RateLimited, message: str) -> HTTPException:
+    minutes = max(1, round(error.retry_after_s / 60))
+    return HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, f"{message} Please try again in about {minutes} minute(s).",
+                         headers={"Retry-After": str(error.retry_after_s)})
+
+
+_STILL_WORKING = "FORGE is still working on your last step. Please wait for it to finish."
+
+
 async def _pending(http: Request, request_id: str, expected: str) -> dict:
     snapshot = await http.app.state.forge_graph.aget_state(_config(request_id))
     if not snapshot.values:
@@ -131,6 +142,12 @@ async def list_requests(project_id: uuid.UUID, user_id: uuid.UUID = Depends(get_
 async def create_request(project_id: uuid.UUID, body: CreateRequest, http: Request,
                          user_id: uuid.UUID = Depends(get_verified_user_id), session: AsyncSession = Depends(get_session)):
     request_id = f"req_{uuid.uuid4().hex[:12]}"
+    try:  # every request runs the model, so it is limited per user and for the whole app (D-191)
+        await limits.take(session,
+                          (f"requests:user:{user_id}", settings.LIMIT_REQUESTS_PER_USER_DAY, limits.DAY),
+                          ("requests:all", settings.LIMIT_REQUESTS_PER_DAY, limits.DAY))
+    except limits.RateLimited as error:
+        raise _limited(error, "You have reached today's limit of website requests.")
     try:
         await service.start_request(session, user_id, project_id, request_id, body.prompt)
     except service.ProjectNotFound:
@@ -154,17 +171,30 @@ async def get_request(http: Request, request_id: str = Depends(_owned_request)):
 @router.post("/{request_id}/answer", response_model=RequestEnvelope)
 async def answer_question(body: UserAnswer, http: Request, request_id: str = Depends(_owned_request),
                           session: AsyncSession = Depends(get_session)):
-    payload = await _pending(http, request_id, "question")
-    question = Question.model_validate({k: v for k, v in payload.items() if k != "type"})
-    error = slots.validate_answer(question, body)
-    if error:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, error)
-    return await _record(http, session, await _run(http, request_id, Command(resume=body.model_dump())))
+    try:
+        async with service.one_step_at_a_time(request_id):
+            payload = await _pending(http, request_id, "question")
+            question = Question.model_validate({k: v for k, v in payload.items() if k != "type"})
+            error = slots.validate_answer(question, body)
+            if error:
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, error)
+            return await _record(http, session, await _run(http, request_id, Command(resume=body.model_dump())))
+    except service.RunInProgress:
+        raise HTTPException(status.HTTP_409_CONFLICT, _STILL_WORKING)
 
 
 @router.post("/{request_id}/confirmation", response_model=RequestEnvelope)
 async def confirm_brief(body: ConfirmationDecision, http: Request, request_id: str = Depends(_owned_request),
-                        session: AsyncSession = Depends(get_session)):
+                        user_id: uuid.UUID = Depends(get_verified_user_id), session: AsyncSession = Depends(get_session)):
+    try:
+        async with service.one_step_at_a_time(request_id):
+            return await _confirm(body, http, request_id, user_id, session)
+    except service.RunInProgress:
+        raise HTTPException(status.HTTP_409_CONFLICT, _STILL_WORKING)
+
+
+async def _confirm(body: ConfirmationDecision, http: Request, request_id: str, user_id: uuid.UUID,
+                   session: AsyncSession) -> RequestEnvelope:
     payload = await _pending(http, request_id, "confirmation")
     if body.decision not in payload["actions"]:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"'{body.decision}' is not available now")
@@ -178,18 +208,28 @@ async def confirm_brief(body: ConfirmationDecision, http: Request, request_id: s
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Please paste a website address")
         if source.kind == "logo" and not source.colour:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Please choose one of the logo colours")
+        if source.kind == "website":  # each read starts a browser (D-193)
+            try:
+                await limits.take(session, (f"website-reads:user:{user_id}", settings.LIMIT_WEBSITE_READS_PER_USER_DAY, limits.DAY))
+            except limits.RateLimited as error:
+                raise _limited(error, "You have reached today's limit for reading websites.")
     return await _record(http, session, await _run(http, request_id, Command(resume=body.model_dump())))
 
 
 @router.post("/{request_id}/image")
 async def read_image_colours(http: Request, request_id: str = Depends(_owned_request), file: UploadFile = File(...),
-                             kind: str = Query("logo", pattern="^(logo|screenshot)$")):
+                             kind: str = Query("logo", pattern="^(logo|screenshot)$"),
+                             user_id: uuid.UUID = Depends(get_verified_user_id), session: AsyncSession = Depends(get_session)):
     """
     Colours from an uploaded logo or website screenshot (theme Phase 2, D-163, D-164). Local code only
     (Pillow + Material quantizer), no model call. The image is read in memory and never stored; the user
     then picks a colour and sends it as a 'theme_source' confirmation decision.
     """
     await _pending(http, request_id, "confirmation")
+    try:
+        await limits.take(session, (f"image-reads:user:{user_id}", settings.LIMIT_IMAGE_READS_PER_USER_HOUR, limits.HOUR))
+    except limits.RateLimited as error:
+        raise _limited(error, "You have uploaded many images in the last hour.")
     data = await file.read(logo_colours.MAX_BYTES + 1)
     try:
         extract = logo_colours.logo_colours if kind == "logo" else logo_colours.screenshot_colours

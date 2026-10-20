@@ -24,10 +24,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core import security
 from backend.db.session import sqlstate
 from backend.db.tables import RefreshToken, User
-from backend.services import email_flows
+from backend.core.config import settings
+from backend.services import email_flows, limits
 
-MAX_FAILED_LOGINS = 5
+MAX_FAILED_LOGINS = settings.LIMIT_LOGIN_FAILS_PER_IP_ACCOUNT  # from one address, per 15 minutes (D-192)
 LOCKOUT = timedelta(minutes=15)
+PAIR_WINDOW = timedelta(minutes=15)
+IP_WINDOW = timedelta(minutes=10)
 ROTATION_GRACE = timedelta(seconds=10)
 _UNIQUE_VIOLATION = "23505"
 
@@ -113,28 +116,49 @@ async def register(session: AsyncSession, email: str, password: str, display_nam
         raise
 
 
-async def login(session: AsyncSession, email: str, password: str, user_agent: str | None = None) -> SignIn:
+async def login(session: AsyncSession, email: str, password: str, user_agent: str | None = None,
+                ip: str = "unknown") -> SignIn:
+    """Wrong passwords are counted three ways (D-192):
+    - this account from this address: after MAX_FAILED_LOGINS, this address waits; the owner,
+      signing in from their own connection, is not affected;
+    - this account from all addresses: many failures in an hour (password guessing from many
+      machines) lock the account for everyone for LOCKOUT;
+    - this address, any account: stops one machine from trying many accounts."""
     outcome: AuthError | None = None
     signed_in: SignIn | None = None
+    ip_key = f"login-fail:ip:{ip}"
     async with session.begin():
         await _begin_read_committed(session)
         now = _now()
-        user = await session.scalar(select(User).where(func.lower(User.email) == email.strip().lower()).with_for_update())
-        if user is None:
+        if await limits.current(session, ip_key, IP_WINDOW) >= settings.LIMIT_LOGIN_FAILS_PER_IP:
+            outcome = AccountLocked(limits.retry_after(IP_WINDOW))
+            user = None
+        else:
+            user = await session.scalar(select(User).where(func.lower(User.email) == email.strip().lower()).with_for_update())
+        pair_key = f"login-fail:pair:{user.id}:{ip}" if user else None
+        if outcome is not None:
+            pass
+        elif user is None:
             await run_in_threadpool(security.verify_password, password, None)  # same time as a real check
+            await limits.count_hit(session, ip_key, IP_WINDOW)
             outcome = InvalidCredentials()
         elif user.locked_until is not None and user.locked_until > now:
             outcome = AccountLocked(max(1, int((user.locked_until - now).total_seconds())))
+        elif await limits.current(session, pair_key, PAIR_WINDOW) >= MAX_FAILED_LOGINS:
+            outcome = AccountLocked(limits.retry_after(PAIR_WINDOW))
         else:
             matches, new_hash = await run_in_threadpool(security.verify_password, password, user.password_hash)
             if not matches:
                 user.failed_logins += 1
-                if user.failed_logins >= MAX_FAILED_LOGINS:
-                    user.failed_logins, user.locked_until = 0, now + LOCKOUT
+                await limits.count_hit(session, pair_key, PAIR_WINDOW)
+                await limits.count_hit(session, ip_key, IP_WINDOW)
+                if await limits.count_hit(session, f"login-fail:acct:{user.id}", limits.HOUR) >= settings.LIMIT_LOGIN_FAILS_PER_ACCOUNT_HOUR:
+                    user.locked_until = now + LOCKOUT
                 outcome = InvalidCredentials()  # committed below, so the attempt is counted
             elif not user.is_active:
                 outcome = InvalidCredentials()
             else:
+                await limits.clear(session, pair_key)
                 user.failed_logins, user.locked_until, user.last_login_at = 0, None, now
                 if new_hash:
                     user.password_hash = new_hash

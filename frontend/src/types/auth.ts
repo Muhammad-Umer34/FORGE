@@ -16,6 +16,7 @@ export interface TokenResponse {
   token_type: "bearer";
   expires_in: number;
   user: User;
+  notice?: string | null; // e.g. the verification email could not be sent today
 }
 
 export interface Project {

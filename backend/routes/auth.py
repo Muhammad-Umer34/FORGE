@@ -12,12 +12,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.config import settings
-from backend.core.deps import get_current_user_id
+from backend.core.deps import client_ip, get_current_user_id
 from backend.db.session import get_session
 from backend.models.auth import (EmailBody, LoginBody, MessageOut, RegisterBody, ResetPasswordBody, TokenBody,
                                  TokenOut, UserOut)
 from backend.services import auth as service
-from backend.services import email_flows, mailer
+from backend.services import email_flows, limits, mailer
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
@@ -27,6 +27,20 @@ REFRESH_COOKIE_PATH = "/api/auth"  # the browser sends it only to these endpoint
 
 def _problem(code: int, kind: str, message: str, headers: dict | None = None) -> HTTPException:
     return HTTPException(code, detail={"code": kind, "message": message}, headers=headers)
+
+
+def _limited(error: limits.RateLimited, message: str) -> HTTPException:
+    minutes = max(1, round(error.retry_after_s / 60))
+    return _problem(status.HTTP_429_TOO_MANY_REQUESTS, "too_many_attempts",
+                    f"{message} Please try again in about {minutes} minute(s).", {"Retry-After": str(error.retry_after_s)})
+
+
+async def _email_allowed(session: AsyncSession) -> bool:
+    """Stay below the mail provider's daily limit (Gmail: about 500) for the whole app (D-194)."""
+    return await limits.try_take(session, "emails:all", settings.LIMIT_EMAILS_PER_DAY, limits.DAY)
+
+
+_EMAIL_PAUSED = "We could not send the verification email right now. Please use \"Send the link again\" later."
 
 
 def _signed_in(response: Response, result: service.SignIn) -> TokenOut:
@@ -49,20 +63,35 @@ def _signed_out(code: int, kind: str, message: str) -> JSONResponse:
 @router.post("/register", response_model=TokenOut, status_code=status.HTTP_201_CREATED)
 async def register(body: RegisterBody, request: Request, response: Response, background: BackgroundTasks,
                    session: AsyncSession = Depends(get_session)):
+    ip = client_ip(request)
+    try:
+        await limits.take(session,
+                          (f"signup:ip:{ip}:hour", settings.LIMIT_SIGNUPS_PER_IP_HOUR, limits.HOUR),
+                          (f"signup:ip:{ip}:day", settings.LIMIT_SIGNUPS_PER_IP_DAY, limits.DAY),
+                          ("signup:all", settings.LIMIT_SIGNUPS_PER_DAY, limits.DAY))
+    except limits.RateLimited as error:
+        raise _limited(error, "Too many accounts were created from this network.")
     try:
         result = await service.register(session, body.email, body.password, body.display_name,
                                         request.headers.get("user-agent"))
     except service.EmailTaken:
         raise _problem(status.HTTP_409_CONFLICT, "email_taken", "An account with this email already exists. Please sign in.")
-    background.add_task(mailer.send, mailer.verification_email(
-        result.user.email, result.user.display_name, email_flows.link("/verify-email", result.verify_token)))
-    return _signed_in(response, result)
+    notice = None
+    if await _email_allowed(session):
+        background.add_task(mailer.send, mailer.verification_email(
+            result.user.email, result.user.display_name, email_flows.link("/verify-email", result.verify_token)))
+    else:
+        notice = _EMAIL_PAUSED
+    out = _signed_in(response, result)
+    out.notice = notice
+    return out
 
 
 @router.post("/login", response_model=TokenOut)
 async def login(body: LoginBody, request: Request, response: Response, session: AsyncSession = Depends(get_session)):
     try:
-        result = await service.login(session, body.email, body.password, request.headers.get("user-agent"))
+        result = await service.login(session, body.email, body.password, request.headers.get("user-agent"),
+                                     client_ip(request))
     except service.InvalidCredentials:
         raise _problem(status.HTTP_401_UNAUTHORIZED, "invalid_credentials", "The email or password is not correct.")
     except service.AccountLocked as locked:
@@ -130,15 +159,23 @@ async def resend_verification(background: BackgroundTasks, user_id: uuid.UUID = 
                        "We have sent several emails already. Please check your inbox and spam folder, or try again in an hour.")
     except email_flows.InvalidLink:
         raise _problem(status.HTTP_401_UNAUTHORIZED, "signed_out", "Please sign in again.")
+    if not await _email_allowed(session):
+        raise _problem(status.HTTP_503_SERVICE_UNAVAILABLE, "email_paused",
+                       "FORGE has sent its email limit for today. Please try again tomorrow.")
     background.add_task(mailer.send, mailer.verification_email(user.email, user.display_name, email_flows.link("/verify-email", token)))
     return MessageOut(message=f"We sent a new link to {user.email}.")
 
 
 @router.post("/forgot-password", response_model=MessageOut, status_code=status.HTTP_202_ACCEPTED)
-async def forgot_password(body: EmailBody, background: BackgroundTasks, session: AsyncSession = Depends(get_session)):
+async def forgot_password(body: EmailBody, request: Request, background: BackgroundTasks,
+                          session: AsyncSession = Depends(get_session)):
     """The same answer whether or not the email has an account, so nobody can probe for accounts."""
+    try:
+        await limits.take(session, (f"forgot:ip:{client_ip(request)}", settings.LIMIT_FORGOT_PER_IP_HOUR, limits.HOUR))
+    except limits.RateLimited as error:
+        raise _limited(error, "Too many reset requests from this network.")
     started = await email_flows.start_password_reset(session, body.email)
-    if started:
+    if started and await _email_allowed(session):
         user, token = started
         background.add_task(mailer.send, mailer.reset_email(user.email, user.display_name, email_flows.link("/reset-password", token)))
     return MessageOut(message=_RESET_SENT)

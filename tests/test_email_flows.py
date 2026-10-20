@@ -120,7 +120,7 @@ def test_a_link_works_once_and_bad_links_are_refused(outbox):
             assert (await h.post("/api/auth/verify-email", {"token": "x" * 43})).status_code == 400
 
             email2, _ = await h.register()
-            await h.sql("UPDATE auth_tokens SET expires_at = now() - interval '1 second' "
+            await h.sql("UPDATE auth_tokens SET expires_at = now() - interval '1 hour' "
                         "WHERE user_id = (SELECT id FROM users WHERE email = :e)", e=email2)
             assert (await h.post("/api/auth/verify-email", {"token": link_token(outbox[1])})).status_code == 400
     run(scenario())
@@ -202,7 +202,7 @@ def test_reset_links_expire_and_are_limited(outbox):
             for _ in range(email_flows.MAX_EMAILS_PER_HOUR + 1):
                 assert (await h.post("/api/auth/forgot-password", {"email": email})).status_code == 202
             assert len(outbox) == email_flows.MAX_EMAILS_PER_HOUR  # the extra request sent nothing
-            await h.sql("UPDATE auth_tokens SET expires_at = now() - interval '1 second' "
+            await h.sql("UPDATE auth_tokens SET expires_at = now() - interval '1 hour' "
                         "WHERE user_id = (SELECT id FROM users WHERE email = :e)", e=email)
             expired = await h.post("/api/auth/reset-password", {"token": link_token(outbox[-1]), "password": NEW_PASSWORD})
             assert expired.status_code == 400
