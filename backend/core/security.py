@@ -100,10 +100,6 @@ def decode_access(token: str) -> AccessClaims:
         raise InvalidToken("bad subject") from error
 
 
-def decode_access_token(token: str) -> uuid.UUID:
-    return decode_access(token).user_id
-
-
 @dataclass(frozen=True)
 class RefreshClaims:
     user_id: uuid.UUID

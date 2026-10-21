@@ -19,6 +19,7 @@ PROMPT_VERSIONS = {
 MAX_PROMPT_CHARS = 2000      # PLACEHOLDER
 MAX_ANSWER_CHARS = 500       # PLACEHOLDER
 
+_DATA_TAG = re.compile(r"<\s*/?\s*user_text\s*>", re.IGNORECASE)
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _INSTRUCTION_LIKE = re.compile(
     r"ignore (all |your |the |any )?(previous |prior |above )?(instructions|rules|prompt)"
@@ -31,6 +32,7 @@ def sanitise(text: str, max_chars: int) -> tuple[str, list[str]]:
     """Trim, remove control characters, cap the length, flag instruction-like text (flagged, never obeyed)."""
     flags: list[str] = []
     clean = _CONTROL_CHARS.sub(" ", text or "")
+    clean = _DATA_TAG.sub(" ", clean)  # the text must stay inside its <user_text> block
     clean = re.sub(r"[ \t]+", " ", clean).strip()
     if len(clean) > max_chars:
         clean = clean[:max_chars]

@@ -8,6 +8,8 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from agents.clarification.prompts import MAX_ANSWER_CHARS
+
 # Features that answer "how do visitors contact you or order" (slot visitor_actions).
 VISITOR_ACTION_FEATURES = ("contact-form", "order-request", "booking", "whatsapp-chat")
 NO_VISITOR_ACTION = "none"
@@ -103,7 +105,7 @@ class UserAnswer(BaseModel):
     question_id: str
     kind: Literal["option", "you_decide", "other"]
     option_ids: list[str] = Field(default_factory=list)
-    text: Optional[str] = None
+    text: Optional[str] = Field(None, max_length=MAX_ANSWER_CHARS)
 
 
 class ThemeSource(BaseModel):
@@ -121,4 +123,4 @@ class ConfirmationDecision(BaseModel):
     ticked_extra_ids: list[str] = Field(default_factory=list)
     unticked_default_ids: list[str] = Field(default_factory=list)
     theme_id: Optional[str] = None
-    edit_text: Optional[str] = None
+    edit_text: Optional[str] = Field(None, max_length=MAX_ANSWER_CHARS)

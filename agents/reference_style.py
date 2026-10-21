@@ -23,7 +23,6 @@ import statistics
 import subprocess
 import sys
 import threading
-from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -62,14 +61,33 @@ def _is_public(ip: str) -> bool:
     return address.is_global and not address.is_multicast
 
 
-@lru_cache(maxsize=256)
-def _host_is_public(host: str) -> bool:
+def _addresses(host: str) -> set[str]:
     try:
-        infos = socket.getaddrinfo(host, None)
+        return {info[4][0].split("%")[0] for info in socket.getaddrinfo(host, None)}
     except socket.gaierror:
-        return False
-    addresses = {info[4][0].split("%")[0] for info in infos}
+        return set()
+
+
+def _host_is_public(host: str) -> bool:
+    addresses = _addresses(host)
     return bool(addresses) and all(_is_public(a) for a in addresses)
+
+
+def _pin_rule(url: str) -> str | None:
+    """A Chromium rule that sends the site's own host to one address we just checked, so a DNS answer
+    that changes between our check and the browser's own look-up ("DNS rebinding") cannot reach a
+    private address. None when the address is already a literal IP."""
+    host = (urlsplit(url).hostname or "").lower().rstrip(".")
+    try:
+        ipaddress.ip_address(host)
+        return None
+    except ValueError:
+        pass
+    addresses = _addresses(host)
+    if not addresses or not all(_is_public(a) for a in addresses):
+        raise ReferenceSiteError("We couldn't find that website, or it is not a public site.")
+    ip = sorted(addresses)[0]
+    return f"MAP {host} {'[' + ip + ']' if ':' in ip else ip}"
 
 
 def check_url(url: str) -> str:
@@ -153,7 +171,7 @@ _EXTRACT_JS = """() => {
 }"""
 
 
-def read_in_process(url: str, html: str | None = None) -> dict:
+def read_in_process(url: str, html: str | None = None, pin: str | None = None) -> dict:
     """
     Open the page and return the raw computed styles. `html` loads given HTML instead of a URL
     (used by the offline tests: nothing is fetched from the network).
@@ -163,7 +181,7 @@ def read_in_process(url: str, html: str | None = None) -> dict:
     from playwright.sync_api import sync_playwright
 
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = p.chromium.launch(args=[f"--host-resolver-rules={pin}"] if pin else [])
         try:
             context = browser.new_context(viewport=VIEWPORT, accept_downloads=False, service_workers="block")
             page = context.new_page()
@@ -330,7 +348,7 @@ def read_reference(url: str) -> dict:
 if __name__ == "__main__":   # child process: print one JSON line, never a traceback
     try:
         target = check_url(normalise_url(sys.argv[1]))
-        print(json.dumps({"raw": read_in_process(target)}))
+        print(json.dumps({"raw": read_in_process(target, pin=_pin_rule(target))}))
     except ReferenceSiteError as error:
         print(json.dumps({"error": str(error)}))
     except Exception:  # browser crash, missing browser, anything else

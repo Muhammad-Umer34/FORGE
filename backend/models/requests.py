@@ -5,6 +5,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from agents.clarification.prompts import MAX_PROMPT_CHARS
+
 # The answer bodies are the same models the graph validates on resume.
 from agents.clarification.schemas import ConfirmationDecision, UserAnswer
 
@@ -16,7 +18,7 @@ RequestStatus = Literal[
 
 class CreateRequest(BaseModel):
     """The project comes from the URL (/api/projects/{project_id}/requests), D-179."""
-    prompt: str = Field(..., min_length=1, max_length=4000, description="The user's website request, in plain words")
+    prompt: str = Field(..., min_length=1, max_length=MAX_PROMPT_CHARS, description="The user's website request, in plain words")
 
 
 class RequestEnvelope(BaseModel):

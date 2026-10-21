@@ -46,9 +46,8 @@ def client_ip(request: Request) -> str:
     forwarded = request.headers.get("x-forwarded-for", "")
     try:
         if forwarded and ipaddress.ip_address(direct).is_loopback:
-            first = forwarded.split(",")[0].strip()
-            ipaddress.ip_address(first)  # ignore anything that is not an address
-            return first
+            first = ipaddress.ip_address(forwarded.split(",")[0].strip())  # ignore anything that is not an address
+            return str(getattr(first, "ipv4_mapped", None) or first)    # Node reports IPv4 as ::ffff:1.2.3.4
     except ValueError:
         pass
     return direct

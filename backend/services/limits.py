@@ -83,6 +83,14 @@ async def take(session: AsyncSession, *rules: tuple[str, int, timedelta]) -> Non
                 raise RateLimited(_retry_after(window_for(length)))  # leaving the block rolls back every count
 
 
+async def give_back(session: AsyncSession, *rules: tuple[str, int, timedelta]) -> None:
+    """Undo `take` for these rules, when the work failed through no fault of the user."""
+    async with session.bind.connect() as conn, conn.begin():
+        for key, _, length in rules:
+            await conn.execute(text("UPDATE rate_limits SET count = count - 1 WHERE key = :key AND window_start = :start AND count > 0"),
+                               {"key": key, "start": window_for(length).start})
+
+
 async def try_take(session: AsyncSession, key: str, limit: int, length: timedelta) -> bool:
     """Like `take` for one rule, but answers True/False instead of raising."""
     try:

@@ -9,9 +9,9 @@ langchain-core==1.6.9
 langchain-google-genai==4.3.7
 langgraph==1.2.14
 
-# Component retrieval (embeddings)
+# Component retrieval (embeddings). Rebuilding the embeddings also needs sentence-transformers==6.0.1
+# (pulls in PyTorch, ~2 GB), installed only when running components/recalculate_embeddings.py
 numpy==2.5.3
-sentence-transformers==6.0.1
 
 # Checkpointer for paused runs (decision D-123)
 langgraph-checkpoint-sqlite==3.1.2

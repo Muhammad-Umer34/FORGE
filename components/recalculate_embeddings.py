@@ -1,4 +1,5 @@
 # D:\FYP\FORGE-1\components\recalculate_embeddings.py
+# Needs: pip install sentence-transformers==6.0.1 (not in requirements.txt: the server never uses it)
 import os
 import json
 import time

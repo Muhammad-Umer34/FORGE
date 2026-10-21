@@ -23,6 +23,7 @@ Next.js 16 (App Router, Cache Components) + React 19 + Tailwind v4. The browser 
 - `src/components/clarification/`: the studio screens and the shared header.
 - `src/services/`: `client.ts` (every backend call, token handling), `auth.ts`, `projects.ts`, `requests.ts`.
 - `src/types/`: API types mirroring the backend models.
+- `src/proxy.ts`: does nothing itself, but makes Next.js pass the visitor's real address to the backend's rate limits (D-195).
 
 ## Sign-in in the browser (D-181)
 

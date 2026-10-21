@@ -142,10 +142,10 @@ async def list_requests(project_id: uuid.UUID, user_id: uuid.UUID = Depends(get_
 async def create_request(project_id: uuid.UUID, body: CreateRequest, http: Request,
                          user_id: uuid.UUID = Depends(get_verified_user_id), session: AsyncSession = Depends(get_session)):
     request_id = f"req_{uuid.uuid4().hex[:12]}"
+    rules = ((f"requests:user:{user_id}", settings.LIMIT_REQUESTS_PER_USER_DAY, limits.DAY),
+             ("requests:all", settings.LIMIT_REQUESTS_PER_DAY, limits.DAY))
     try:  # every request runs the model, so it is limited per user and for the whole app (D-191)
-        await limits.take(session,
-                          (f"requests:user:{user_id}", settings.LIMIT_REQUESTS_PER_USER_DAY, limits.DAY),
-                          ("requests:all", settings.LIMIT_REQUESTS_PER_DAY, limits.DAY))
+        await limits.take(session, *rules)
     except limits.RateLimited as error:
         raise _limited(error, "You have reached today's limit of website requests.")
     try:
@@ -157,7 +157,13 @@ async def create_request(project_id: uuid.UUID, body: CreateRequest, http: Reque
                     prompt=body.prompt, created_at=datetime.now(timezone.utc)),
         config=_run_config(),
     )
-    return await _record(http, session, await _run(http, request_id, state))
+    try:
+        envelope = await _run(http, request_id, state)
+    except HTTPException:  # our failure (e.g. the model is down): not left at "processing", not counted
+        await service.record_status(session, request_id, "failed")
+        await limits.give_back(session, *rules)
+        raise
+    return await _record(http, session, envelope)
 
 
 @router.get("/{request_id}", response_model=RequestEnvelope)

@@ -12,13 +12,11 @@ load_dotenv(ROOT_DIR / ".env")
 class Settings:
     PROJECT_NAME: str = "FORGE-1 AI Website Builder Backend"
     VERSION: str = "1.0.0"
-    API_V1_STR: str = "/api"
 
     # Model provider (D-184): Vertex AI (Google Cloud credits) when VERTEX_API_KEY is set, else AI Studio.
     # The choice itself lives in agents/gateway.py; these are read here only to check the setup at start.
     STUDIO_API_KEY: str = os.getenv("STUDIO_API_KEY", "")   # not GEMINI_API_KEY: see agents/gateway.py
     VERTEX_API_KEY: str = os.getenv("VERTEX_API_KEY", "")
-    VERTEX_PROJECT: str = os.getenv("VERTEX_PROJECT", "")   # informational: the key already names it
     CLARIFICATION_MODEL: str = os.getenv("CLARIFICATION_MODEL", "gemini-3.8-flash")
     FALLBACK_MODEL: str = os.getenv("FALLBACK_MODEL", "gemini-3.1-flash-lite")
 
@@ -69,7 +67,7 @@ class Settings:
 
     # Server config
     PORT: int = int(os.getenv("BACKEND_PORT", "8000"))
-    HOST: str = os.getenv("HOST", "0.0.0.0")
+    HOST: str = os.getenv("HOST", "127.0.0.1")   # this machine only; Next.js forwards /api to it
 
     # CORS settings: comma-separated list in CORS_ORIGIN
     ALLOWED_ORIGINS: List[str] = [

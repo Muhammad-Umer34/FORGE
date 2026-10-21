@@ -31,9 +31,7 @@ def fake_dns(monkeypatch):
             raise socket.gaierror("not found")
         return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (FAKE_DNS[host], 0))]
     monkeypatch.setattr(rs.socket, "getaddrinfo", getaddrinfo)
-    rs._host_is_public.cache_clear()
     yield
-    rs._host_is_public.cache_clear()
 
 
 @pytest.mark.parametrize("url", ["https://public-shop.com", "http://public-shop.com/menu?x=1", "https://public-shop.com:443/"])
@@ -131,7 +129,6 @@ LIVE_SITES = [
 @live
 def test_live_reference_sites(monkeypatch):
     monkeypatch.undo()                     # real DNS for live sites
-    rs._host_is_public.cache_clear()
     ok, times = 0, []
     for url in LIVE_SITES:
         started = time.time()
@@ -145,3 +142,10 @@ def test_live_reference_sites(monkeypatch):
         times.append(time.time() - started)
     print(f"\nRead {ok}/{len(LIVE_SITES)} sites; median time {sorted(times)[len(times) // 2]:.1f}s, max {max(times):.1f}s")
     assert ok >= len(LIVE_SITES) * 0.6
+
+
+def test_browser_is_pinned_to_the_checked_address(fake_dns):
+    assert rs._pin_rule("https://public-shop.com/menu") == f"MAP public-shop.com {FAKE_DNS['public-shop.com']}"
+    assert rs._pin_rule("https://93.184.215.14/") is None          # a literal address needs no look-up
+    with pytest.raises(rs.ReferenceSiteError):
+        rs._pin_rule("https://evil-rebind.com/")

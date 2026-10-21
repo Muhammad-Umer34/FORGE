@@ -101,7 +101,8 @@ Every section entry follows this schema:
 To synchronize semantic vector retrieval when catalog entries or descriptions are updated:
 
 ```bash
-python scripts/generate_component_embeddings.py
+pip install sentence-transformers==6.0.1
+python components/recalculate_embeddings.py
 ```
 
 This reads [`components/components_catalog.json`](./components_catalog.json) and outputs 384-dimensional normalized vectors to [`components/component_embeddings.json`](./component_embeddings.json) using `sentence-transformers` (`all-MiniLM-L6-v2`).

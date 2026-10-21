@@ -237,13 +237,13 @@ def interpret_answer(state: GraphState) -> dict:
     else:
         if not slots.free_text_allowed(c, limits):
             return update
-        flags = prompts.sanitise(answer.text or "", prompts.MAX_ANSWER_CHARS)[1]
+        clean, flags = prompts.sanitise(answer.text or "", prompts.MAX_ANSWER_CHARS)
         c.input_flags += [f for f in flags if f not in c.input_flags]
         c.risk_flags.append("free_text_answer")
         options = [o.model_dump(include={"option_id", "label"}) for o in q.options]
         try:
             out, usage = _call(c, AnswerInterpretation, prompts.ANSWER_SYSTEM,
-                               prompts.answer_user(q.text, options, answer.text or "", cat.feature_summary()))
+                               prompts.answer_user(q.text, options, clean, cat.feature_summary()))
         except ModelCallError as error:     # includes InvalidOutputError
             return {"clarification": _fail(c, "interpret_answer", "system", str(error))}
         update["usage"] = usage

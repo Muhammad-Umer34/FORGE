@@ -88,6 +88,7 @@ def test_forwarded_address_is_trusted_only_from_this_machine():
     assert client_ip(_fake_request("192.168.1.20", "203.0.113.7")) == "192.168.1.20"  # could be faked
     assert client_ip(_fake_request("127.0.0.1", "not-an-address")) == "127.0.0.1"
     assert client_ip(_fake_request("127.0.0.1")) == "127.0.0.1"
+    assert client_ip(_fake_request("127.0.0.1", "::ffff:203.0.113.8")) == "203.0.113.8"  # how Node reports IPv4
 
 
 def test_website_reader_runs_at_most_the_allowed_browsers(monkeypatch):
@@ -233,6 +234,28 @@ def test_requests_per_user_per_day(migrated, monkeypatch):
             third = await h.client.post(f"/api/projects/{pid}/requests", json={"prompt": "A bakery website"})
             assert third.status_code == 429 and int(third.headers["retry-after"]) > 0
             assert h.app.state.forge_graph.runs == 2  # the third never reached the model
+    run(scenario())
+
+
+class BrokenGraph(EmptyGraph):
+    async def ainvoke(self, graph_input, config):
+        raise RuntimeError("model is down")
+
+
+@pg
+def test_a_failed_run_is_marked_failed_and_not_counted(migrated, monkeypatch):
+    monkeypatch.setattr(settings, "LIMIT_REQUESTS_PER_USER_DAY", 1)
+
+    async def scenario():
+        async with app_harness(BrokenGraph()) as h:
+            pid, _ = await verified_user_with_project(h)
+            for _ in range(2):  # the second would be 429 if the first had been counted
+                r = await h.client.post(f"/api/projects/{pid}/requests", json={"prompt": "A bakery website"})
+                assert r.status_code == 500
+            async with h.engine.connect() as conn:
+                statuses = (await conn.execute(text("SELECT status FROM requests WHERE prompt = 'A bakery website' "
+                                                    "AND project_id = :p"), {"p": pid})).scalars().all()
+            assert statuses == ["failed", "failed"]
     run(scenario())
 
 

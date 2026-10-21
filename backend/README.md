@@ -91,7 +91,12 @@ Counted in the `rate_limits` table (migration 0005), so they hold across restart
 | Body size | 64 KB; image uploads 2.5 MB (413 before the body is read) | `MAX_JSON_BODY_BYTES`, `MAX_IMAGE_UPLOAD_BYTES` |
 
 The client address is the connection's, or the first `X-Forwarded-For` entry only when the connection comes from this
-machine (the Next.js proxy), so it cannot be faked from outside.
+machine (the Next.js proxy). `frontend/src/proxy.ts` makes Next.js fill that header with the visitor's real address
+(without it every visitor arrived as 127.0.0.1). Next.js keeps a header the visitor sent themselves, so in production
+put Caddy or nginx in front and have it replace `X-Forwarded-For` with the real address (D-195).
+
+A new request whose agent run fails (e.g. the model is down) is saved as `failed` and is not counted against the
+daily limits (D-196).
 
 ## Website-request API (Clarification Agent)
 
@@ -139,7 +144,7 @@ cd d:\FYP\FORGE-1
 .venv\Scripts\python.exe -m backend.main
 ```
 
-- Server URL: `http://localhost:8000`
+- Server URL: `http://localhost:8000` (listens on this machine only; set `HOST=0.0.0.0` in `.env` to open it to the network)
 - API Documentation (Swagger UI): `http://localhost:8000/docs`
 - Health check: `http://localhost:8000/health`
 

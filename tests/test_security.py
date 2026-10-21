@@ -37,7 +37,7 @@ def test_unknown_user_and_malformed_hash_never_verify():
 def test_access_token_round_trip():
     uid = uuid.uuid4()
     token, expires = security.create_access_token(uid)
-    assert security.decode_access_token(token) == uid
+    assert security.decode_access(token).user_id == uid
     assert security.decode_access(token).email_verified is False
     verified, _ = security.create_access_token(uid, email_verified=True)
     assert security.decode_access(verified) == security.AccessClaims(uid, True)
@@ -47,7 +47,7 @@ def test_access_token_round_trip():
 def test_expired_access_token_is_refused():
     token, _ = security.create_access_token(uuid.uuid4(), now=datetime.now(timezone.utc) - timedelta(hours=1))
     with pytest.raises(security.InvalidToken):
-        security.decode_access_token(token)
+        security.decode_access(token)
 
 
 def test_tampered_or_foreign_tokens_are_refused():
@@ -61,7 +61,7 @@ def test_tampered_or_foreign_tokens_are_refused():
     unsigned = jwt.encode({"sub": str(uid), "type": "access"}, None, algorithm="none")
     for bad in (f"{header}.{payload}.{flipped}", forged, unsigned, "not.a.token", ""):
         with pytest.raises(security.InvalidToken):
-            security.decode_access_token(bad)
+            security.decode_access(bad)
 
 
 def test_wrong_issuer_or_audience_is_refused():
@@ -71,7 +71,7 @@ def test_wrong_issuer_or_audience_is_refused():
                    {**base, "iss": settings.JWT_ISSUER, "aud": "another-app"}):
         token = jwt.encode(claims, ACCESS_SECRET, algorithm="HS256")
         with pytest.raises(security.InvalidToken):
-            security.decode_access_token(token)
+            security.decode_access(token)
 
 
 def test_refresh_and_access_tokens_cannot_be_swapped():
@@ -79,7 +79,7 @@ def test_refresh_and_access_tokens_cannot_be_swapped():
     refresh, _, _ = security.create_refresh_token(uid, uuid.uuid4())
     access, _ = security.create_access_token(uid)
     with pytest.raises(security.InvalidToken):
-        security.decode_access_token(refresh)
+        security.decode_access(refresh)
     with pytest.raises(security.InvalidToken):
         security.decode_refresh_token(access)
 
