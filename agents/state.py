@@ -436,6 +436,10 @@ class ErrorRecord(BaseModel):
     at: datetime
 
 
+# Raise when a change to the state or the graph means runs saved by older code can no longer be continued.
+STATE_VERSION = 1
+
+
 class RunConfig(BaseModel):
     """
     Snapshot of configuration taken when the run starts, written once by the
@@ -443,6 +447,7 @@ class RunConfig(BaseModel):
     which limits, which catalogue) and stops any agent from editing its own limits.
     """
     limits: Limits = Field(default_factory=Limits)
+    state_version: int = STATE_VERSION          # code version that started the run; checked before a resume
     model_per_task: dict[str, str] = Field(default_factory=dict)   # task -> "provider/model"
     catalogue_version: Optional[str] = None     # which feature catalogue and component catalogue were used
     catalogue_hash: Optional[str] = None

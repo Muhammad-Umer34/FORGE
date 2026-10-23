@@ -116,9 +116,29 @@ Every response has the same envelope: `{ "request_id", "status", "data" }`.
 | `POST /{id}/confirmation` | `{ "decision": "confirm \| edit \| cancel \| theme_source", ... }` | 422 if the action is not available |
 | `POST /{id}/image?kind=logo\|screenshot` | multipart file | Colours from a logo or screenshot |
 
-The `requests` table keeps each request's project, prompt and latest status. Paused runs are stored in
-`forge_checkpoints.db` at the FORGE-1 root (gitignored), so they survive a restart. Deleting a project deletes its
-requests and their paused runs (D-180).
+| `POST /{id}/resume` | — | Continues a **paused** request from its last saved step; 409 if it is not paused or already running, 429 after 5 resumes in an hour |
+| `POST /{id}/cancel` | — | Ends the current request (paused, waiting for an answer, or with a finished brief) and deletes its saved run; used by *Start over* |
+
+The `requests` table keeps each request's project, prompt and latest status. Deleting a project deletes its
+requests and their saved runs (D-180).
+
+**One project = one website (D-200).** `POST` (new request) answers 409 `website_in_progress` while the
+project's latest request is processing, waiting for an answer, paused, or has a finished brief. *Start over*
+cancels it first; a different website belongs in a new project.
+
+### Persistence and resume (D-197 – D-199)
+
+- **Every step is saved** in PostgreSQL (LangGraph `AsyncPostgresSaver`, tables `checkpoint*` created at start-up)
+  before the next one starts, including the steps inside each agent's subgraph.
+- **Run states**, read from the saved run: *waiting for user* (question or confirmation), *working*, *paused*
+  (stopped mid-way by a crash or a model outage), *finished*, or *missing* (nothing saved). `GET /{id}` returns
+  `paused` or `processing` when that applies and corrects the stored status.
+- **Continue:** `POST /{id}/resume` runs again only the step that was cut off; finished steps are never repeated.
+- **Start-up:** requests left on `processing` by a crash are set to their real state (usually `paused`).
+- **Windows:** psycopg needs a SelectorEventLoop; `python -m backend.main` starts uvicorn with one. Running
+  `uvicorn` by hand on Windows needs `--loop asyncio:SelectorEventLoop`.
+- **Rules for agents:** one model call per step, waiting steps contain only `interrupt()`, and raise
+  `STATE_VERSION` in `agents/state.py` when old runs can no longer be continued.
 
 ## Projects API (D-174)
 

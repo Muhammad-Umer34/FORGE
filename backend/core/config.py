@@ -20,8 +20,6 @@ class Settings:
     CLARIFICATION_MODEL: str = os.getenv("CLARIFICATION_MODEL", "gemini-3.8-flash")
     FALLBACK_MODEL: str = os.getenv("FALLBACK_MODEL", "gemini-3.1-flash-lite")
 
-    # Paused runs (LangGraph checkpoints, D-123). SQLite file at the FORGE-1 root, gitignored by *.db
-    CHECKPOINT_DB: str = os.getenv("CHECKPOINT_DB", str(ROOT_DIR / "forge_checkpoints.db"))
 
     # PostgreSQL (Supabase). App database and a separate one for the integration tests (D-172).
     # Both may be pooler URLs; the engine disables prepared-statement caching for that (backend/db/session.py).
@@ -42,6 +40,7 @@ class Settings:
     LIMIT_LOGIN_FAILS_PER_ACCOUNT_HOUR: int = int(os.getenv("LIMIT_LOGIN_FAILS_PER_ACCOUNT_HOUR", "30"))
     LIMIT_LOGIN_FAILS_PER_IP: int = int(os.getenv("LIMIT_LOGIN_FAILS_PER_IP", "30"))                      # per 10 min
     LIMIT_WEBSITE_READS_PER_USER_DAY: int = int(os.getenv("LIMIT_WEBSITE_READS_PER_USER_DAY", "10"))
+    LIMIT_RESUMES_PER_REQUEST_HOUR: int = int(os.getenv("LIMIT_RESUMES_PER_REQUEST_HOUR", "5"))
     LIMIT_IMAGE_READS_PER_USER_HOUR: int = int(os.getenv("LIMIT_IMAGE_READS_PER_USER_HOUR", "30"))
     MAX_IMAGE_UPLOAD_BYTES: int = int(os.getenv("MAX_IMAGE_UPLOAD_BYTES", str(2_621_440)))   # 2.5 MB incl. form overhead
     MAX_JSON_BODY_BYTES: int = int(os.getenv("MAX_JSON_BODY_BYTES", "65536"))

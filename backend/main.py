@@ -1,27 +1,28 @@
 # D:\FYP\FORGE-1\backend\main.py
 from contextlib import asynccontextmanager
 
-import aiosqlite
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from agents.orchestrator import build_forge_graph
-from agents.state import msgpack_allowlist
 from backend.core.body_limit import BodySizeLimit
 from backend.core.config import settings
+from backend.db.checkpoints import open_checkpointer
+from backend.db.session import app_sessionmaker
 from backend.routes import auth_router, health_router, projects_router, requests_router
+from backend.routes.requests import repair_statuses
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Open the checkpointer once, so paused runs survive a server restart (D-123)."""
-    async with aiosqlite.connect(settings.CHECKPOINT_DB) as conn:
-        saver = AsyncSqliteSaver(conn, serde=JsonPlusSerializer(allowed_msgpack_modules=msgpack_allowlist()))
-        await saver.setup()
+    """Open the checkpointer once, so runs survive restarts and redeploys (D-123, persistence plan)."""
+    if not settings.SUPABASE_DB_URL:
+        raise RuntimeError("SUPABASE_DB_URL is not set in FORGE-1/.env; runs are saved in the database.")
+    async with open_checkpointer(settings.SUPABASE_DB_URL) as saver:
         app.state.forge_graph = build_forge_graph().compile(checkpointer=saver)
+        async with app_sessionmaker()() as session:   # requests left on "processing" by a crash
+            await repair_statuses(app.state.forge_graph, session)
         yield
 
 
@@ -51,4 +52,5 @@ app.include_router(projects_router)
 app.include_router(requests_router)
 
 if __name__ == "__main__":
-    uvicorn.run("backend.main:app", host=settings.HOST, port=settings.PORT, reload=True)
+    # psycopg (the checkpointer) cannot run on Windows' default ProactorEventLoop
+    uvicorn.run("backend.main:app", host=settings.HOST, port=settings.PORT, reload=True, loop="asyncio:SelectorEventLoop")

@@ -40,7 +40,7 @@ class FakeGraph:
         self.during_run = None             # optional coroutine factory run inside ainvoke
         self.checkpointer = self
 
-    async def ainvoke(self, graph_input, config):
+    async def ainvoke(self, graph_input, config, **kwargs):   # like the real graph (durability=...)
         thread = config["configurable"]["thread_id"]
         self.calls.append(f"invoke:{thread}")
         self.inputs[thread] = graph_input
@@ -53,11 +53,11 @@ class FakeGraph:
         self.calls.append(f"state:{thread}")
         outcome = self.threads.get(thread)
         if outcome is None:
-            return SimpleNamespace(values={}, interrupts=())
+            return SimpleNamespace(values={}, interrupts=(), next=())
         if outcome == "question":
-            return SimpleNamespace(values={"run": True}, interrupts=(SimpleNamespace(value=QUESTION),))
+            return SimpleNamespace(values={"run": True}, interrupts=(SimpleNamespace(value=QUESTION),), next=("agent",))
         reply = SimpleNamespace(model_dump=lambda: {"kind": "greeting", "message": "Hello!"})
-        return SimpleNamespace(values={"clarification": SimpleNamespace(status="replied", reply=reply)}, interrupts=())
+        return SimpleNamespace(values={"clarification": SimpleNamespace(status="replied", reply=reply)}, interrupts=(), next=())
 
     async def adelete_thread(self, thread_id):
         self.deleted.append(thread_id)
@@ -204,6 +204,8 @@ def test_deleting_a_project_deletes_its_requests_and_paused_runs():
         async with harness() as h:
             uid, (pid, keep_pid) = await h.user_with_projects(2)
             first = (await h.start(uid, pid)).json()["request_id"]
+            async with h.engine.begin() as conn:   # "Start over": one website per project at a time
+                await conn.execute(text("UPDATE requests SET status = 'cancelled' WHERE id = :r"), {"r": first})
             second = (await h.start(uid, pid)).json()["request_id"]
             kept = (await h.start(uid, keep_pid)).json()["request_id"]
 

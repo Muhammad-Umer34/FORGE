@@ -32,14 +32,29 @@ class RequestNotFound(Exception):
     pass
 
 
+class WebsiteInProgress(Exception):
+    """The project already has a website being described, paused, or with a finished brief."""
+
+
+# One project = one website: a new request may start only when the latest one ended without a website
+# (failed, out of scope or cancelled). "Start over" cancels the current one first.
+ACTIVE_STATUSES = ("processing", "needs_clarification", "awaiting_confirmation", "complete", "paused")
+
+
 async def start_request(session: AsyncSession, owner_id: uuid.UUID, project_id: uuid.UUID,
                         request_id: str, prompt: str) -> None:
-    """Record a new request in the owner's project, before the agent runs."""
+    """Record a new request in the owner's project, before the agent runs. The project row is locked, so two
+    requests sent at once cannot both start a website."""
     try:
         async with session.begin():
-            owned = await session.scalar(select(Project.id).where(Project.id == project_id, Project.owner_id == owner_id))
+            owned = await session.scalar(select(Project.id).where(Project.id == project_id, Project.owner_id == owner_id)
+                                         .with_for_update())
             if owned is None:
                 raise ProjectNotFound(project_id)
+            latest = await session.scalar(select(WebsiteRequest.status).where(WebsiteRequest.project_id == project_id)
+                                          .order_by(WebsiteRequest.created_at.desc()).limit(1))
+            if latest in ACTIVE_STATUSES:
+                raise WebsiteInProgress(project_id)
             session.add(WebsiteRequest(id=request_id, project_id=project_id, prompt=prompt))
     except DBAPIError as error:
         if sqlstate(error) == _FOREIGN_KEY_VIOLATION:  # the project was deleted a moment ago
@@ -78,6 +93,25 @@ async def record_status(session: AsyncSession, request_id: str, status: str) -> 
     return updated is not None
 
 
+async def sync_status(session: AsyncSession, request_id: str, status: str) -> None:
+    """Correct a stored status that no longer matches the run (only writes when it differs)."""
+    async with session.begin():
+        await session.execute(update(WebsiteRequest)
+                              .where(WebsiteRequest.id == request_id, WebsiteRequest.status != status)
+                              .values(status=status, updated_at=datetime.now(timezone.utc)))
+
+
+async def stored_status(session: AsyncSession, request_id: str) -> str | None:
+    async with session.begin():
+        return await session.scalar(select(WebsiteRequest.status).where(WebsiteRequest.id == request_id))
+
+
+async def processing_request_ids(session: AsyncSession) -> list[str]:
+    """Requests still marked as running: after a crash nobody could update them."""
+    async with session.begin():
+        return list(await session.scalars(select(WebsiteRequest.id).where(WebsiteRequest.status == "processing")))
+
+
 async def forget_request(session: AsyncSession, request_id: str) -> None:
     """Remove a request that turned out not to be a website request (a greeting or a question, D-150)."""
     async with session.begin():
@@ -114,3 +148,24 @@ async def one_step_at_a_time(request_id: str):
         yield
     finally:
         _running.discard(request_id)
+
+
+# Where a run stands, read from its saved checkpoint (persistence plan):
+#   missing           nothing saved (never started, or the checkpoint was lost)
+#   waiting_for_user  paused at a question or the confirmation screen
+#   finished          reached its end (complete, out of scope, cancelled, or failed for a user reason)
+#   working           steps left and a step is running right now in this server
+#   paused            steps left, nothing running: it stopped (crash, model outage) and can be continued
+async def run_state(graph, request_id: str, count_running: bool = True):
+    """(state, snapshot). Pass count_running=False when the caller already holds `one_step_at_a_time`.
+    shortcut: "running right now" is this process's memory; with several server processes it must move to the database."""
+    snapshot = await graph.aget_state({"configurable": {"thread_id": request_id}})
+    if not snapshot.values:
+        return "missing", snapshot
+    if snapshot.interrupts:
+        return "waiting_for_user", snapshot
+    if not snapshot.next:
+        return "finished", snapshot
+    if count_running and request_id in _running:
+        return "working", snapshot
+    return "paused", snapshot

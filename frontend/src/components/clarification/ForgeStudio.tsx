@@ -1,17 +1,19 @@
 // D:\FYP\FORGE-1\frontend\src\components\clarification\ForgeStudio.tsx
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { ApiError } from "@/services/client";
 import { listRequests } from "@/services/projects";
-import { answerQuestion, confirmBrief, createRequest, getRequest, readImageColours } from "@/services/requests";
+import { answerQuestion, cancelRequest, confirmBrief, createRequest, getRequest, readImageColours, resumeRequest } from "@/services/requests";
 import { RequestSummary } from "@/types/auth";
 import { ConfirmationDecision, ReplyData, RequestEnvelope, UserAnswer } from "@/types/request";
 import { ConfirmationPanel } from "./ConfirmationPanel";
-import { OutcomeView } from "./OutcomeView";
+import { OutcomeView, StoppedView } from "./OutcomeView";
 import { QuestionCard } from "./QuestionCard";
 import { ComposerReply, RequestComposer } from "./RequestComposer";
 import { RequestHistory } from "./RequestHistory";
+import { StartOverDialog } from "./StartOverDialog";
 import { Step, StudioHeader } from "./StudioHeader";
 
 type Busy = "start" | "answer" | "confirm" | "restore" | "theme";
@@ -25,34 +27,9 @@ const PROGRESS: Record<Busy, string[]> = {
   theme: ["Building your theme", "Reading the website's colours and fonts", "Checking every colour is easy to read"],
 };
 
-// Only the open request's id is kept in the browser, per project; the run itself lives on the
-// server (resumable), and the server checks it belongs to this user's project (D-179).
-function requestStorage(projectId: string) {
-  const key = `forge_request_id:${projectId}`;
-  return {
-    get: () => {
-      try {
-        return window.localStorage.getItem(key);
-      } catch {
-        return null;
-      }
-    },
-    set: (id: string) => {
-      try {
-        window.localStorage.setItem(key, id);
-      } catch {
-        /* private mode: the request simply won't survive a reload */
-      }
-    },
-    clear: () => {
-      try {
-        window.localStorage.removeItem(key);
-      } catch {
-        /* nothing to clear */
-      }
-    },
-  };
-}
+// One project = one website (D-200): its current request is the latest one, unless that one ended
+// without a website. The server's list decides, so any browser or device opens the same screen.
+const ACTIVE: ReadonlyArray<RequestSummary["status"]> = ["processing", "needs_clarification", "awaiting_confirmation", "complete", "paused"];
 
 function ProgressNote({ busy }: { busy: Busy }) {
   const [index, setIndex] = useState(0);
@@ -92,7 +69,6 @@ interface ForgeStudioProps {
 }
 
 export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps) {
-  const [storage] = useState(() => requestStorage(projectId));
   const [history, setHistory] = useState<RequestSummary[]>([]);
   const [envelope, setEnvelope] = useState<RequestEnvelope | null>(null);
   const [busy, setBusy] = useState<Busy | null>(null);
@@ -100,6 +76,8 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
   const [lastPrompt, setLastPrompt] = useState("");
   const [reply, setReply] = useState<ComposerReply | null>(null);
   const [composerKey, setComposerKey] = useState(0);
+  const [confirmingStartOver, setConfirmingStartOver] = useState(false);
+  const openedCurrent = useRef(false);
 
   const run = async (kind: Busy, call: () => Promise<RequestEnvelope>, said?: string) => {
     setBusy(kind);
@@ -112,12 +90,10 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
         setEnvelope(null);
         setLastPrompt("");
         setComposerKey((k) => k + 1);
-        storage.clear();
         return;
       }
       setReply(null);
       setEnvelope(next);
-      storage.set(next.request_id);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -125,38 +101,33 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
     }
   };
 
-  const refreshHistory = useCallback(() => {
-    listRequests(projectId)
-      .then(setHistory)
-      .catch(() => setHistory([])); // the list is a convenience; the studio works without it
-  }, [projectId]);
-
-  // Resume a request that was in progress before the page was reloaded.
+  // The project's requests, shown under the composer; refreshed whenever it shows again. The first time,
+  // the project's current request (newest first) is opened instead of an empty composer.
   useEffect(() => {
-    const saved = storage.get();
-    if (!saved) return;
+    if (envelope) return;
     let active = true;
-    const restore = async () => {
+    // the list is a convenience: if it fails, the composer simply shows without it
+    listRequests(projectId).catch((): RequestSummary[] => []).then(async (list) => {
+      if (!active) return;
+      setHistory(list);
+      if (openedCurrent.current) return;
+      openedCurrent.current = true;
+      const current = list[0];
+      if (!current || !ACTIVE.includes(current.status)) return;
       setBusy("restore");
       try {
-        const env = await getRequest(projectId, saved);
+        const env = await getRequest(projectId, current.id);
         if (active) setEnvelope(env);
       } catch {
-        storage.clear(); // unknown, deleted or someone else's request: start fresh
+        /* deleted meanwhile, or not ours: the composer stays */
       } finally {
         if (active) setBusy(null);
       }
-    };
-    restore();
+    });
     return () => {
       active = false;
     };
-  }, [projectId, storage]);
-
-  // The project's earlier requests, shown under the composer; refreshed whenever it shows again.
-  useEffect(() => {
-    if (!envelope) refreshHistory();
-  }, [envelope, refreshHistory]);
+  }, [envelope, projectId]);
 
   const openRequest = (requestId: string) =>
     run("restore", () => getRequest(projectId, requestId));
@@ -169,12 +140,23 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [screenKey]);
 
+  // Back to the composer. Only for a request that ended without a website; otherwise ask first.
   const startOver = () => {
-    storage.clear();
     setEnvelope(null);
     setError(null);
     setLastPrompt(""); // a fresh start gets an empty box; the prompt is kept only for "Try again"
     setReply(null);
+  };
+
+  const requestStartOver = () => {
+    if (envelope && ACTIVE.includes(envelope.status as RequestSummary["status"])) setConfirmingStartOver(true);
+    else startOver();
+  };
+
+  const confirmStartOver = async () => {
+    if (envelope) await cancelRequest(projectId, envelope.request_id); // errors are shown in the dialog
+    setConfirmingStartOver(false);
+    startOver();
   };
 
   const start = (prompt: string) => {
@@ -191,6 +173,14 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
     if (envelope) run(kind, () => confirmBrief(projectId, envelope.request_id, d));
   };
 
+  const resume = () => {
+    if (envelope) run("restore", () => resumeRequest(projectId, envelope.request_id));
+  };
+
+  const cancel = () => {
+    if (envelope) run("answer", () => cancelRequest(projectId, envelope.request_id));
+  };
+
   const readImage = (kind: "logo" | "screenshot", file: File) => {
     if (!envelope) return Promise.reject(new Error("No request is open."));
     return readImageColours(projectId, envelope.request_id, kind, file);
@@ -201,7 +191,7 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
       <StudioHeader
         step={stepFor(envelope)}
         projectName={projectName}
-        onStartOver={envelope ? startOver : undefined}
+        onStartOver={envelope && envelope.status !== "processing" ? requestStartOver : undefined}
         busy={busy !== null}
       />
 
@@ -219,6 +209,15 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
                 initialText={lastPrompt}
                 reply={reply}
               />
+              {history.length > 0 && (
+                <p className="mt-4 text-[14px] text-ink-muted">
+                  Building a different website?{" "}
+                  <Link href="/projects" className="font-medium text-ember-strong underline-offset-2 hover:underline">
+                    Create a new project
+                  </Link>
+                  .
+                </p>
+              )}
               <RequestHistory requests={history} onOpen={openRequest} busy={busy !== null} />
             </>
           )}
@@ -238,6 +237,15 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
             />
           )}
 
+          {(envelope?.status === "paused" || envelope?.status === "processing") && (
+            <StoppedView
+              run={envelope}
+              onContinue={resume}
+              onCancel={cancel}
+              onCheckAgain={() => openRequest(envelope.request_id)}
+            />
+          )}
+
           {envelope &&
             (envelope.status === "complete" ||
               envelope.status === "out_of_scope" ||
@@ -245,12 +253,16 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
               envelope.status === "cancelled") && (
               <OutcomeView
                 outcome={envelope}
-                onStartOver={startOver}
+                onStartOver={requestStartOver}
                 onRetry={lastPrompt ? () => start(lastPrompt) : undefined}
               />
             )}
         </div>
       </main>
+
+      {confirmingStartOver && (
+        <StartOverDialog onKeep={() => setConfirmingStartOver(false)} onStartOver={confirmStartOver} />
+      )}
 
       <footer className="relative z-[1] border-t border-line/70">
         <div className="mx-auto max-w-5xl px-5 py-5 text-[12px] text-ink-faint sm:px-8">

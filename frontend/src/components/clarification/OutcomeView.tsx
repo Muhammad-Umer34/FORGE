@@ -5,6 +5,36 @@ import { RequestEnvelope } from "@/types/request";
 
 type Outcome = Extract<RequestEnvelope, { status: "complete" | "out_of_scope" | "failed" | "cancelled" }>;
 
+type Stopped = Extract<RequestEnvelope, { status: "paused" | "processing" }>;
+
+/** A run that stopped mid-way (paused) or is still running in another tab or request (processing). */
+export function StoppedView({ run, onContinue, onCancel, onCheckAgain }: {
+  run: Stopped;
+  onContinue: () => void;
+  onCancel: () => void;
+  onCheckAgain: () => void;
+}) {
+  const paused = run.status === "paused";
+  return (
+    <section aria-labelledby="outcome-title" className="animate-rise">
+      <Heading eyebrow={paused ? "Paused" : "Still working"} title={paused ? "Pick up where you left off." : "FORGE is still on it."} />
+      <p className="mt-5 max-w-[60ch] text-[16px] leading-relaxed text-ink">{run.data.message}</p>
+      <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <PrimaryButton onClick={paused ? onContinue : onCheckAgain}>{paused ? "Continue" : "Check again"}</PrimaryButton>
+        {paused && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-[14px] font-medium text-ink-muted transition-colors duration-200 hover:text-ink"
+          >
+            Cancel this request
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
 interface OutcomeViewProps {
   outcome: Outcome;
   onStartOver: () => void;
@@ -106,7 +136,7 @@ export function OutcomeView({ outcome, onStartOver, onRetry }: OutcomeViewProps)
         </div>
 
         <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line pt-6">
-          <PrimaryButton onClick={onStartOver}>Describe another website</PrimaryButton>
+          <PrimaryButton onClick={onStartOver}>Start over</PrimaryButton>
           <p className="text-[13px] text-ink-muted">The build stage will work from this brief.</p>
         </div>
       </section>

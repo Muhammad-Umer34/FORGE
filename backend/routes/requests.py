@@ -8,7 +8,11 @@ Every request belongs to a project of the signed-in, verified user (D-179, D-188
 /api/projects/{project_id}/requests, and each one first checks that the request is in that project
 and the project is the user's - otherwise 404, before the agent graph is touched. The API layer
 records each request and its latest status in the database; agents never do (D-133).
+
+Persistence: every step is saved before the next starts. A run that stops mid-way (crash, model outage) is
+"paused" and continues from its last saved step through /resume; only the step that was cut off runs again.
 """
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -23,7 +27,7 @@ from agents.catalogue import load_catalogue
 from agents.clarification import slots
 from agents.clarification.prompts import PROMPT_VERSIONS
 from agents.gateway import model_for, provider
-from agents.state import Question, RequestInfo, RunConfig, initial_state
+from agents.state import STATE_VERSION, Question, RequestInfo, RunConfig, initial_state
 from backend.core.config import settings
 from backend.core.deps import get_verified_user_id
 from backend.db.session import get_session
@@ -32,6 +36,12 @@ from backend.services import limits
 from backend.services import requests as service
 
 router = APIRouter(prefix="/api/projects/{project_id}/requests", tags=["Requests"])
+logger = logging.getLogger(__name__)
+
+_PAUSED = "FORGE stopped before finishing. Your progress is saved, so you can continue where you left off."
+_GONE = "This request can no longer be continued. Please start a new one."
+_UPDATED = "FORGE was updated since this request stopped. Please start it again."
+_WORKING = "FORGE is still working on this request."
 
 
 def _config(request_id: str) -> dict:
@@ -77,15 +87,49 @@ def _envelope(request_id: str, values: dict, interrupts) -> RequestEnvelope:
     })
 
 
+def _message(request_id: str, status_: str, message: str) -> RequestEnvelope:
+    data = {"message": message}
+    if status_ == "failed":
+        data |= {"category": "system", "missing": []}
+    return RequestEnvelope(request_id=request_id, status=status_, data=data)
+
+
 async def _run(http: Request, request_id: str, graph_input) -> RequestEnvelope:
+    """Run the graph until it waits for the user or ends. Callers hold `one_step_at_a_time`."""
     graph = http.app.state.forge_graph
-    try:
-        await graph.ainvoke(graph_input, _config(request_id))
-    except Exception as error:   # a bug, not a user problem: never shown as "please rephrase"
+    try:   # "sync": each step is saved before the next one starts, so a crash loses at most the current step
+        await graph.ainvoke(graph_input, _config(request_id), durability="sync")
+    except Exception as error:   # a bug or an outage, never the user's fault
+        logger.exception("Run %s stopped", request_id)
+        state, _ = await service.run_state(graph, request_id, count_running=False)
+        if state == "paused":
+            return _message(request_id, "paused", _PAUSED)
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR,
                             "FORGE had a technical problem. Your request was fine. Please try again.") from error
     snapshot = await graph.aget_state(_config(request_id))
     return _envelope(request_id, snapshot.values, snapshot.interrupts)
+
+
+async def _current(graph, session: AsyncSession, request_id: str, count_running: bool = True) -> RequestEnvelope:
+    """What the user should see now, read from the saved run."""
+    state, snapshot = await service.run_state(graph, request_id, count_running)
+    if state == "missing":
+        if await service.stored_status(session, request_id) == "cancelled":
+            return RequestEnvelope(request_id=request_id, status="cancelled")
+        return _message(request_id, "failed", _GONE)
+    if state == "paused":
+        return _message(request_id, "paused", _PAUSED)
+    if state == "working":
+        return _message(request_id, "processing", _WORKING)
+    return _envelope(request_id, snapshot.values, snapshot.interrupts)
+
+
+async def repair_statuses(graph, session: AsyncSession) -> None:
+    """At start-up: requests left on "processing" by a crash get their real state (usually paused)."""
+    for request_id in await service.processing_request_ids(session):
+        envelope = await _current(graph, session, request_id, count_running=False)
+        await service.sync_status(session, request_id, envelope.status)
+        logger.info("Request %s was left processing; now %s", request_id, envelope.status)
 
 
 async def _owned_request(project_id: uuid.UUID, request_id: str, user_id: uuid.UUID = Depends(get_verified_user_id),
@@ -151,15 +195,24 @@ async def create_request(project_id: uuid.UUID, body: CreateRequest, http: Reque
     try:
         await service.start_request(session, user_id, project_id, request_id, body.prompt)
     except service.ProjectNotFound:
+        await limits.give_back(session, *rules)
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+    except service.WebsiteInProgress:
+        await limits.give_back(session, *rules)
+        raise HTTPException(status.HTTP_409_CONFLICT, detail={
+            "code": "website_in_progress",
+            "message": "This project already has a website in progress. Continue it, or use Start over first. "
+                       "Building a different website? Create a new project.",
+        })
     state = initial_state(
         RequestInfo(request_id=request_id, user_id=str(user_id), project_id=str(project_id),
                     prompt=body.prompt, created_at=datetime.now(timezone.utc)),
         config=_run_config(),
     )
     try:
-        envelope = await _run(http, request_id, state)
-    except HTTPException:  # our failure (e.g. the model is down): not left at "processing", not counted
+        async with service.one_step_at_a_time(request_id):   # so a GET meanwhile says "working"
+            envelope = await _run(http, request_id, state)
+    except HTTPException:  # nothing could be saved: not left at "processing", not counted
         await service.record_status(session, request_id, "failed")
         await limits.give_back(session, *rules)
         raise
@@ -167,11 +220,53 @@ async def create_request(project_id: uuid.UUID, body: CreateRequest, http: Reque
 
 
 @router.get("/{request_id}", response_model=RequestEnvelope)
-async def get_request(http: Request, request_id: str = Depends(_owned_request)):
-    snapshot = await http.app.state.forge_graph.aget_state(_config(request_id))
-    if not snapshot.values:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown request id")
-    return _envelope(request_id, snapshot.values, snapshot.interrupts)
+async def get_request(http: Request, request_id: str = Depends(_owned_request),
+                      session: AsyncSession = Depends(get_session)):
+    envelope = await _current(http.app.state.forge_graph, session, request_id)
+    if envelope.status != "processing":
+        await service.sync_status(session, request_id, envelope.status)   # keep the list's badge truthful
+    return envelope
+
+
+@router.post("/{request_id}/resume", response_model=RequestEnvelope)
+async def resume_request(http: Request, request_id: str = Depends(_owned_request),
+                         session: AsyncSession = Depends(get_session)):
+    """Continue a paused run from its last saved step. Only the step that was cut off runs again."""
+    graph = http.app.state.forge_graph
+    try:
+        async with service.one_step_at_a_time(request_id):
+            state, snapshot = await service.run_state(graph, request_id, count_running=False)
+            if state != "paused":
+                raise HTTPException(status.HTTP_409_CONFLICT,
+                                    f"This request cannot be continued: it is {state.replace('_', ' ')}.")
+            if getattr(snapshot.values.get("run_config"), "state_version", STATE_VERSION) != STATE_VERSION:
+                return await _record(http, session, _message(request_id, "failed", _UPDATED))
+            try:   # free (same request), but limited so a request that keeps failing is not retried forever
+                await limits.take(session, (f"resume:{request_id}", settings.LIMIT_RESUMES_PER_REQUEST_HOUR, limits.HOUR))
+            except limits.RateLimited as error:
+                raise _limited(error, "This request was continued many times in the last hour.")
+            return await _record(http, session, await _run(http, request_id, None))
+    except service.RunInProgress:
+        raise HTTPException(status.HTTP_409_CONFLICT, _STILL_WORKING)
+
+
+@router.post("/{request_id}/cancel", response_model=RequestEnvelope)
+async def cancel_request(http: Request, request_id: str = Depends(_owned_request),
+                         session: AsyncSession = Depends(get_session)):
+    """End the project's current website request for good ("Start over", or Cancel on a paused run) and delete
+    what was saved for it. The request stays in the history as cancelled."""
+    graph = http.app.state.forge_graph
+    try:
+        async with service.one_step_at_a_time(request_id):
+            state, _ = await service.run_state(graph, request_id, count_running=False)
+            finished_brief = state == "finished" and await service.stored_status(session, request_id) == "complete"
+            if state not in ("paused", "waiting_for_user") and not finished_brief:
+                raise HTTPException(status.HTTP_409_CONFLICT,
+                                    f"There is nothing to cancel: this request is {state.replace('_', ' ')}.")
+            await service.delete_runs(graph.checkpointer, [request_id])
+            return await _record(http, session, RequestEnvelope(request_id=request_id, status="cancelled"))
+    except service.RunInProgress:
+        raise HTTPException(status.HTTP_409_CONFLICT, _STILL_WORKING)
 
 
 @router.post("/{request_id}/answer", response_model=RequestEnvelope)

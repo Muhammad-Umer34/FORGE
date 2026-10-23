@@ -135,12 +135,20 @@ def test_greeting_with_a_request_starts_the_workflow(graph, monkeypatch):       
     assert result.get("clarification") is None or result["clarification"].status != "replied"
 
 
-def test_provider_failure_says_the_request_was_fine(graph, monkeypatch):
+def test_provider_failure_pauses_the_run_and_it_continues_later(graph, monkeypatch):     # TC-08, persistence
     monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: ModelCallError("503 UNAVAILABLE")}))
-    result, _ = start(graph, "a bakery website")
-    failure = result["clarification"].failure
-    assert failure.category == "system" and "Your request was fine" in failure.message          # TC-08
-    assert result["control"].failed and result["control"].failure_reason == failure.message
+    rid = f"req_{uuid.uuid4().hex[:8]}"
+    config = {"configurable": {"thread_id": rid}}
+    state = initial_state(RequestInfo(request_id=rid, user_id="test", project_id="test", prompt="a bakery website",
+                                      created_at=datetime.now(timezone.utc)))
+    with pytest.raises(ModelCallError):
+        graph.invoke(state, config)
+    paused = graph.get_state(config)
+    assert paused.values and paused.next and not paused.interrupts       # stopped mid-way, progress kept
+    assert paused.values["clarification"].failure is None                 # not ended as "failed"
+
+    monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: BAKERY_INTAKE, BriefReview: BriefReview()}))
+    assert pending(graph.invoke(None, config))["type"] == "question"      # the same run continues
 
 
 def test_declining_the_alternative_ends_out_of_scope(graph, monkeypatch):

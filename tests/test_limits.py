@@ -174,13 +174,13 @@ class SlowGraph(EmptyGraph):
         super().__init__()
         self.payload, self.runs = payload, 0
 
-    async def ainvoke(self, graph_input, config):
+    async def ainvoke(self, graph_input, config, **kwargs):   # like the real graph (durability=...)
         self.runs += 1
         await asyncio.sleep(0.5)
 
     async def aget_state(self, config):
         await asyncio.sleep(0.3)
-        return SimpleNamespace(values={"run": True}, interrupts=(SimpleNamespace(value=self.payload),))
+        return SimpleNamespace(values={"run": True}, interrupts=(SimpleNamespace(value=self.payload),), next=("agent",))
 
 
 @asynccontextmanager
@@ -222,6 +222,12 @@ async def verified_user_with_project(h) -> tuple[uuid.UUID, uuid.UUID]:
     return pid, rid
 
 
+async def start_over(h, project_id):
+    """What "Start over" leaves behind: the project's requests are cancelled (D-200)."""
+    async with h.engine.begin() as conn:
+        await conn.execute(text("UPDATE requests SET status = 'cancelled' WHERE project_id = :p"), {"p": project_id})
+
+
 @pg
 def test_requests_per_user_per_day(migrated, monkeypatch):
     monkeypatch.setattr(settings, "LIMIT_REQUESTS_PER_USER_DAY", 2)
@@ -230,7 +236,9 @@ def test_requests_per_user_per_day(migrated, monkeypatch):
         async with app_harness(SlowGraph({"type": "question"})) as h:
             pid, _ = await verified_user_with_project(h)
             for _ in range(2):
+                await start_over(h, pid)   # one website per project: end the current one first
                 await h.client.post(f"/api/projects/{pid}/requests", json={"prompt": "A bakery website"})
+            await start_over(h, pid)
             third = await h.client.post(f"/api/projects/{pid}/requests", json={"prompt": "A bakery website"})
             assert third.status_code == 429 and int(third.headers["retry-after"]) > 0
             assert h.app.state.forge_graph.runs == 2  # the third never reached the model
@@ -238,8 +246,11 @@ def test_requests_per_user_per_day(migrated, monkeypatch):
 
 
 class BrokenGraph(EmptyGraph):
-    async def ainvoke(self, graph_input, config):
+    async def ainvoke(self, graph_input, config, **kwargs):   # like the real graph (durability=...)
         raise RuntimeError("model is down")
+
+    async def aget_state(self, config):   # it failed before anything was saved
+        return SimpleNamespace(values={}, interrupts=(), next=())
 
 
 @pg
@@ -249,6 +260,7 @@ def test_a_failed_run_is_marked_failed_and_not_counted(migrated, monkeypatch):
     async def scenario():
         async with app_harness(BrokenGraph()) as h:
             pid, _ = await verified_user_with_project(h)
+            await start_over(h, pid)   # the helper's request is still waiting; one website per project
             for _ in range(2):  # the second would be 429 if the first had been counted
                 r = await h.client.post(f"/api/projects/{pid}/requests", json={"prompt": "A bakery website"})
                 assert r.status_code == 500

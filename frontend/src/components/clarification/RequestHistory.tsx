@@ -8,6 +8,7 @@ import { RequestSummary } from "@/types/auth";
 
 const STATUS_LABEL: Record<RequestSummary["status"], { text: string; tone: string }> = {
   processing: { text: "Working on it", tone: "bg-surface-sunk text-ink-muted" },
+  paused: { text: "Paused – continue", tone: "bg-ember-soft text-ember-strong" },
   needs_clarification: { text: "Waiting for your answer", tone: "bg-ember-soft text-ember-strong" },
   awaiting_confirmation: { text: "Ready to confirm", tone: "bg-ember-soft text-ember-strong" },
   complete: { text: "Brief ready", tone: "bg-positive-soft text-positive" },

@@ -23,6 +23,8 @@ Next.js 16 (App Router, Cache Components) + React 19 + Tailwind v4. The browser 
 - `src/components/clarification/`: the studio screens and the shared header.
 - `src/services/`: `client.ts` (every backend call, token handling), `auth.ts`, `projects.ts`, `requests.ts`.
 - `src/types/`: API types mirroring the backend models.
+- Paused requests (D-198): the studio shows *Continue* / *Cancel this request*; the list shows a *Paused* badge.
+- One project = one website (D-200): opening a project opens its current request from the server's list; *Start over* asks first (`StartOverDialog`) and cancels it; a different website goes in a new project.
 - `src/proxy.ts`: does nothing itself, but makes Next.js pass the visitor's real address to the backend's rate limits (D-195).
 
 ## Sign-in in the browser (D-181)

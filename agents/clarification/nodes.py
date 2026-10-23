@@ -52,7 +52,10 @@ def _fail(c: ClarificationState, node: str, category: str, detail: str | None = 
 
 
 def _call(c: ClarificationState, schema, system: str, user: str) -> tuple[Any, UsageSummary]:
-    """One gateway call; counts it against the budget even when it fails."""
+    """One gateway call; counts it against the budget even when it fails. If the model cannot be reached at all,
+    the ModelCallError is not caught by the steps: the run stops before the step, its checkpoint stays, and the
+    user can continue it later (persistence plan). Output the model got wrong twice (InvalidOutputError) is
+    handled by each step."""
     usage = CallUsage()
     try:
         result, usage = call_structured(TASK, schema, system, user)
@@ -130,8 +133,6 @@ def intake(state: GraphState) -> dict:
                            prompts.intake_user(text, cat.feature_summary(), cat.unsupported_summary()))
     except InvalidOutputError as error:
         return {"clarification": _fail(c, "intake", "understanding", str(error))}
-    except ModelCallError as error:
-        return {"clarification": _fail(c, "intake", "system", str(error))}
 
     if out.message_kind != "website_request":    # N3: greeting, question about FORGE, off-topic, unclear
         return {"clarification": _reply(c, out.message_kind, text), "usage": usage}
@@ -244,7 +245,7 @@ def interpret_answer(state: GraphState) -> dict:
         try:
             out, usage = _call(c, AnswerInterpretation, prompts.ANSWER_SYSTEM,
                                prompts.answer_user(q.text, options, clean, cat.feature_summary()))
-        except ModelCallError as error:     # includes InvalidOutputError
+        except InvalidOutputError as error:   # other ModelCallErrors pause the run (persistence plan)
             return {"clarification": _fail(c, "interpret_answer", "system", str(error))}
         update["usage"] = usage
         if out.understood:
@@ -384,7 +385,7 @@ def apply_confirmation(state: GraphState) -> dict:
         try:
             out, usage = _call(c, EditInterpretation, prompts.EDIT_SYSTEM,
                                prompts.edit_user(current, text, cat.feature_summary()))
-        except ModelCallError as error:
+        except InvalidOutputError as error:
             return {"clarification": _fail(c, "apply_confirmation", "system", str(error))}
         update["usage"] = usage
         if out.understood:
@@ -429,7 +430,7 @@ def generate_tests(state: GraphState) -> dict:
         try:
             out, usage = _call(c, GeneratedTests, prompts.TESTS_SYSTEM,
                                prompts.tests_user(view, limits.max_test_cases, issues))
-        except ModelCallError as error:
+        except InvalidOutputError as error:
             return {"clarification": _fail(c, "generate_tests", "system", str(error)), "usage": total}
         total = sum_usage(total, usage)
         tests, issues = acceptance.validate_tests(out.tests, brief, limits)

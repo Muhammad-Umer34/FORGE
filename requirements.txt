@@ -13,8 +13,9 @@ langgraph==1.2.14
 # (pulls in PyTorch, ~2 GB), installed only when running components/recalculate_embeddings.py
 numpy==2.5.3
 
-# Checkpointer for paused runs (decision D-123)
-langgraph-checkpoint-sqlite==3.1.2
+# Checkpointer for paused runs (D-123): saved in PostgreSQL so runs survive restarts and redeploys
+langgraph-checkpoint-postgres==3.2.0
+psycopg[binary]==3.3.6
 
 # Testing
 pytest==8.4.2

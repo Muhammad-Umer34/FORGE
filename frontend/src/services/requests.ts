@@ -23,6 +23,16 @@ export function confirmBrief(projectId: string, requestId: string, decision: Con
   return apiFetch(`${one(projectId, requestId)}/confirmation`, { method: "POST", body: JSON.stringify(decision) });
 }
 
+/** Continue a paused request from its last saved step. */
+export function resumeRequest(projectId: string, requestId: string): Promise<RequestEnvelope> {
+  return apiFetch(`${one(projectId, requestId)}/resume`, { method: "POST" });
+}
+
+/** End a paused request for good. */
+export function cancelRequest(projectId: string, requestId: string): Promise<RequestEnvelope> {
+  return apiFetch(`${one(projectId, requestId)}/cancel`, { method: "POST" });
+}
+
 /** Upload a logo or website screenshot; our backend returns its main colours (no model call, not stored). */
 export function readImageColours(projectId: string, requestId: string, kind: "logo" | "screenshot", file: File): Promise<ImageColours> {
   const form = new FormData();

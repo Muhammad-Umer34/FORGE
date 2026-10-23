@@ -48,7 +48,7 @@ def make_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
 
 
 @lru_cache(maxsize=1)
-def _app_sessionmaker() -> async_sessionmaker[AsyncSession]:
+def app_sessionmaker() -> async_sessionmaker[AsyncSession]:
     return make_sessionmaker(make_engine(settings.SUPABASE_DB_URL))
 
 
@@ -56,5 +56,5 @@ async def get_session() -> AsyncIterator[AsyncSession]:
     """FastAPI dependency: one session per HTTP request, always closed afterwards."""
     if not settings.SUPABASE_DB_URL:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "The database is not configured.")
-    async with _app_sessionmaker()() as session:
+    async with app_sessionmaker()() as session:
         yield session

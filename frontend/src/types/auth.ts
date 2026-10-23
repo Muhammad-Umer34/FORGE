@@ -31,7 +31,7 @@ export interface Project {
 export interface RequestSummary {
   id: string;
   prompt: string;
-  status: "processing" | Exclude<RequestStatus, "reply">;
+  status: Exclude<RequestStatus, "reply">;
   created_at: string;
   updated_at: string;
 }

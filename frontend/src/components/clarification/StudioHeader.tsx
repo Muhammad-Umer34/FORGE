@@ -126,7 +126,7 @@ export function StudioHeader({ step, projectName, onStartOver, busy }: StudioHea
               disabled={busy}
               className="rounded-md px-3 py-2 text-[13px] font-medium text-ink-muted transition-colors duration-200 hover:bg-surface-sunk hover:text-ink disabled:opacity-40"
             >
-              New website
+              Start over
             </button>
           )}
           <AccountMenu />

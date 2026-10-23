@@ -9,7 +9,9 @@ export type RequestStatus =
   | "out_of_scope"
   | "failed"
   | "cancelled"
-  | "reply";
+  | "reply"
+  | "processing" // a step is running right now
+  | "paused"; // stopped mid-way (crash or model outage); can be continued
 
 export interface QuestionOption {
   option_id: string;
@@ -131,7 +133,8 @@ export type RequestEnvelope =
   | { request_id: string; status: "out_of_scope"; data: OutOfScopeData }
   | { request_id: string; status: "failed"; data: FailedData }
   | { request_id: string; status: "cancelled"; data: Record<string, never> }
-  | { request_id: string; status: "reply"; data: ReplyData };
+  | { request_id: string; status: "reply"; data: ReplyData }
+  | { request_id: string; status: "paused" | "processing"; data: { message: string } };
 
 export interface UserAnswer {
   question_id: string;

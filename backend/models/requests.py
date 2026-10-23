@@ -13,6 +13,8 @@ from agents.clarification.schemas import ConfirmationDecision, UserAnswer
 RequestStatus = Literal[
     "needs_clarification", "awaiting_confirmation", "complete", "out_of_scope", "failed", "cancelled",
     "reply",   # not a website request: data = {kind, message}; no run to resume (D-150)
+    "processing",   # a step is running right now: data = {message}
+    "paused",       # stopped mid-way (crash, model outage); POST .../resume continues it: data = {message}
 ]
 
 
@@ -33,7 +35,7 @@ class RequestSummary(BaseModel):
 
     id: str
     prompt: str
-    status: Literal["processing"] | RequestStatus
+    status: RequestStatus
     created_at: datetime
     updated_at: datetime
 

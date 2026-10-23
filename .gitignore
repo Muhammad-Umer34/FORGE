@@ -33,3 +33,6 @@ logs/
 *.db-wal
 .chroma/
 .pytest_cache/
+
+# Local runs of scripts/run_forge_once.py (full LangGraph state)
+scripts/runs/
