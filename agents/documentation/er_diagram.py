@@ -1,9 +1,10 @@
-# D:\FYP\FORGE-1\agents\documentation\er_diagram.py
-from typing import Dict, Any
+from typing import List
+
+from agents.state import DataEntity
 
 
-def generate_mermaid_er_diagram(db_schema_ref: str) -> str:
+def generate_mermaid_er_diagram(data_entities: List[DataEntity]) -> str:
     """
-    Generates Mermaid ER diagram from database schema.
+    Generates a Mermaid ER diagram from the build plan's data model.
     """
     return ""

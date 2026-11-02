@@ -324,29 +324,192 @@ class RetrievalResult(BaseModel):
     scaffold_info: dict[str, Any] = Field(default_factory=dict)
 
 
+# ---------------------------------------------------------------- the build plan (Planning Agent, plan v2)
+# The Planning Agent's output. The model designs pages, sections, custom parts, data, API and text; code
+# fills the fixed parts, derives everything that follows from them and checks the whole plan (D-202).
+NeedKind = Literal["copy", "fact", "list", "image", "setting", "live", "code"]   # as in component_needs.json
+FieldType = Literal["text", "long_text", "number", "money", "date", "time", "datetime", "email", "phone", "url",
+                    "boolean", "choice", "image"]
+
+
+class PlannedPage(BaseModel):
+    page_id: str                               # "home", "booking"
+    route: str                                 # "/", "/booking"; unique
+    title: str
+    purpose: str = ""                          # one line, for the generators and the SRS
+    in_menu: bool = True
+    menu_order: int = 0
+    section_ids: list[str] = Field(default_factory=list)   # top to bottom
+
+
 class PlannedComponent(BaseModel):
-    component_id: Optional[str] = None         # None when custom
+    """One section of a page, or a site-wide part (page "all"): header, footer, WhatsApp button."""
+    section_id: str                            # "home.hero", "all.footer"; unique
+    page: str                                  # a PlannedPage.page_id, or "all"
+    order: int = 0                             # position on its page, 0 = top
+    role: Literal["layout", "feature", "custom"] = "feature"
+    feature_id: Optional[str] = None           # the BriefFeature it serves; None for layout parts
+    component_id: Optional[str] = None         # catalogue component; None when custom
     custom: bool = False
-    page: str
-    props_ref: Optional[str] = None            # reference to stored props, not the props
+    custom_spec_id: Optional[str] = None       # -> CustomComponentSpec when custom
+    settings: dict[str, Any] = Field(default_factory=dict)   # layout choices the component allows
+    satisfies: list[str] = Field(default_factory=list)       # AcceptanceTest.test_id
+    rationale: str = ""                        # why this component, one line
+
+
+class Need(BaseModel):
+    """One thing a part needs to render fully. Catalogue components get theirs from component_needs.json;
+    the Planning Agent writes them for each custom part, with the same kinds (D-201)."""
+    name: str                                  # "stamps_for_reward"
+    kind: NeedKind
+    label: str = ""                            # what the owner sees in the form ("Stamps needed for a free visit")
+    type: FieldType = "text"
+    required: bool = True
+    max_length: Optional[int] = None           # for copy and text facts
+    content_key: Optional[str] = None          # catalogue content key when one fits (phone, photos...)
+    item_fields: list["Need"] = Field(default_factory=list)  # for kind "list"
+
+
+class CustomComponentSpec(BaseModel):
+    """A part the catalogue cannot build; the frontend generator writes its code from this."""
+    spec_id: str                               # "custom-loyalty-card"
+    feature_id: str                            # the custom BriefFeature.id
+    name: str
+    page: str                                  # where it goes (custom features have no page in the brief)
+    purpose: str                               # what it is for, one or two sentences
+    behaviour: list[str] = Field(default_factory=list)       # what it must do, plain sentences
+    needs: list[Need] = Field(default_factory=list)          # owner facts, lists, images, text it needs
+    ui_notes: str = ""                         # layout hints; theme tokens only, never colours
+    limitation: Optional[str] = None           # copied from BriefFeature.limitation
+    satisfies: list[str] = Field(default_factory=list)
 
 
 class ContentField(BaseModel):
-    key: str                                   # e.g. "phone", "address", "hours"
+    """One thing the owner gives in the business details form. Derived by code from the needs of the chosen
+    components and custom parts; values never enter the state or a model (ContentRef)."""
+    key: str                                   # e.g. "phone", "address", "services", "stamps_for_reward"
     label: str
+    kind: Literal["fact", "list", "image"] = "fact"
+    type: FieldType = "text"
     required: bool = True
-    needed_by: list[str] = Field(default_factory=list)   # component ids
+    item_fields: list[Need] = Field(default_factory=list)    # for lists: what each item has
+    needed_by: list[str] = Field(default_factory=list)       # section ids
+    help: str = ""                             # one plain line shown under the field
+
+
+class TextSlot(BaseModel):
+    """A piece of website text written by the model with the pitch rules: never a fact, facts only as
+    placeholders such as {business_name}."""
+    slot_id: str                               # "home.hero.headline"; unique
+    section_id: str
+    prop: str                                  # the component input it fills ("headline")
+    text: str = ""
+    max_length: int
+    placeholders: list[str] = Field(default_factory=list)    # content keys used in the text
+    alternatives: list[str] = Field(default_factory=list)    # other candidates (hero headline)
+
+
+class DataField(BaseModel):
+    name: str
+    type: FieldType
+    required: bool = True
+    personal: bool = False                     # personal data: consent and careful handling
+
+
+class DataEntity(BaseModel):
+    """Something the generated site stores, e.g. booking requests."""
+    name: str                                  # "booking_requests"
+    purpose: str = ""
+    fields: list[DataField] = Field(default_factory=list)
+    feature_ids: list[str] = Field(default_factory=list)
+    links: list[str] = Field(default_factory=list)           # names of entities it refers to
+
+
+class ApiRoute(BaseModel):
+    """The contract between the generated frontend and backend, fixed before any code is written."""
+    route_id: str                              # "POST /api/bookings"
+    method: Literal["GET", "POST", "PATCH", "DELETE"]
+    path: str
+    purpose: str = ""
+    entity: Optional[str] = None               # DataEntity.name
+    request_fields: list[str] = Field(default_factory=list)
+    response_fields: list[str] = Field(default_factory=list)
+    validation: list[str] = Field(default_factory=list)      # plain rules, e.g. "phone is required"
+    used_by: list[str] = Field(default_factory=list)         # section ids
+    satisfies: list[str] = Field(default_factory=list)
+
+
+class FormRule(BaseModel):
+    section_id: str                            # the form section
+    route_id: str                              # where it posts
+    required_fields: list[str] = Field(default_factory=list)
+    rules: list[str] = Field(default_factory=list)           # e.g. "no two bookings for the same slot"
+    success_slot: Optional[str] = None         # TextSlot with the success message
+    consent_required: bool = False             # set when it collects personal data
+    spam_protection: bool = True
+
+
+class DashboardView(BaseModel):
+    """How the owner sees submissions in their FORGE project dashboard."""
+    entity: str
+    title: str
+    columns: list[str] = Field(default_factory=list)
+    statuses: list[str] = Field(default_factory=list)        # e.g. New -> Confirmed -> Done
+    default_status: Optional[str] = None
+
+
+class WorkTask(BaseModel):
+    task_id: Literal["frontend", "backend", "database", "integration", "content_form"]
+    depends_on: list[str] = Field(default_factory=list)
+    skip: bool = False
+    skip_reason: str = ""
+    owns: list[str] = Field(default_factory=list)            # file paths or folders this task alone writes
+
+
+class PlanTestLink(BaseModel):
+    test_id: str                               # AcceptanceTest.test_id; tests are never changed (D-120)
+    targets: list[str] = Field(default_factory=list)         # section ids and route ids that must satisfy it
+    sample_input: dict[str, str] = Field(default_factory=dict)   # for form tests
+
+
+class NotBuilt(BaseModel):
+    asked: str
+    reason: str = ""
+    alternative: str = ""
 
 
 class BuildPlan(BaseModel):
     version: int = 1
-    pages: list[dict[str, Any]] = Field(default_factory=list)
+    status: Literal["draft", "approved"] = "draft"
+    brief_version: int = 1
+    built_by: Literal["model", "code"] = "model"             # "code": no model call was needed, or the fallback
+    pages: list[PlannedPage] = Field(default_factory=list)
+    footer_links: list[str] = Field(default_factory=list)   # page ids
     components: list[PlannedComponent] = Field(default_factory=list)
-    api_routes: list[dict[str, Any]] = Field(default_factory=list)
-    db_schema_ref: Optional[str] = None
+    custom_specs: list[CustomComponentSpec] = Field(default_factory=list)
+    theme: dict[str, Any] = Field(default_factory=dict)      # exact copy of brief.theme; never written by a model
+    content_schema: list[ContentField] = Field(default_factory=list)  # drives the business details form
+    texts: list[TextSlot] = Field(default_factory=list)
+    data_entities: list[DataEntity] = Field(default_factory=list)
+    api_routes: list[ApiRoute] = Field(default_factory=list)
+    form_rules: list[FormRule] = Field(default_factory=list)
+    dashboard_views: list[DashboardView] = Field(default_factory=list)
     dependencies: list[str] = Field(default_factory=list)
-    execution_order: list[str] = Field(default_factory=list)
-    content_schema: list[ContentField] = Field(default_factory=list)  # drives the form; derived by code from the chosen components
+    execution_order: list[WorkTask] = Field(default_factory=list)
+    test_map: list[PlanTestLink] = Field(default_factory=list)
+    not_built: list[NotBuilt] = Field(default_factory=list)
+    assumptions: list[Assumption] = Field(default_factory=list)
+    approved_at: Optional[datetime] = None
+
+
+class PlanningState(BaseModel):
+    """Working data of the Planning Agent. No other agent reads this."""
+    status: Literal["idle", "drafting", "checking", "writing_text", "awaiting_approval", "done", "failed"] = "idle"
+    calls_used: int = 0                        # model calls, checked against the planning limits
+    fix_rounds_used: int = 0
+    edits_used: int = 0
+    issues: list[str] = Field(default_factory=list)          # from the last check
+    failure: Optional[FailureInfo] = None
 
 
 # ---------------------------------------------------------------- content (business details)
@@ -426,6 +589,11 @@ class Limits(BaseModel):
     max_test_cases: int = 15                   # PLACEHOLDER (D-119)
     max_agent_retries: int = 2                 # PLACEHOLDER, set from config
     max_correction_attempts: int = 3           # PLACEHOLDER, set from config
+    max_plan_fix_rounds: int = 2               # plan v2: model fix rounds after the code checks
+    max_plan_edits: int = 1                    # changes the user may make on the plan summary
+    max_text_rewrites: int = 1                 # rewrite round for website text that fails the pitch rules
+    max_data_entities: int = 6                 # size caps on the generated backend (plan v2 §4)
+    max_api_routes: int = 10
 
 
 class ErrorRecord(BaseModel):
@@ -437,7 +605,8 @@ class ErrorRecord(BaseModel):
 
 
 # Raise when a change to the state or the graph means runs saved by older code can no longer be continued.
-STATE_VERSION = 1
+# 2: typed BuildPlan and the planning slice (D-202).
+STATE_VERSION = 2
 
 
 class RunConfig(BaseModel):
@@ -511,6 +680,7 @@ class GraphState(TypedDict, total=False):
     brief: Optional[ClarifiedBrief]                                # current version
     retrieval: Optional[RetrievalResult]
     plan: Optional[BuildPlan]
+    planning: PlanningState                                        # the Planning Agent's working data
     content: ContentRef                                            # status only, values in the database
     artifacts: Annotated[dict[str, AgentArtifacts], merge_dict]    # keyed by agent
     verification: VerificationState
@@ -529,6 +699,7 @@ SLICE_OWNER = {
     "brief": "clarification",
     "retrieval": "context_retrieval",
     "plan": "planning",
+    "planning": "planning",
     "content": "content_form node (status only)",
     "artifacts": "frontend | backend | database | integration (one key each)",
     "verification": "review_test_debug",
@@ -543,7 +714,7 @@ SLICE_OWNER = {
 AGENT_READS = {
     "clarification": ["request", "clarification", "run_config"],
     "context_retrieval": ["brief"],
-    "planning": ["brief", "retrieval"],
+    "planning": ["brief", "retrieval", "planning", "run_config"],
     "frontend": ["plan"],
     "backend": ["plan"],
     "database": ["plan"],
@@ -556,9 +727,11 @@ AGENT_READS = {
 }
 
 _PLAN_PARTS = {
-    "frontend": ["pages", "components", "content_schema"],
-    "backend": ["api_routes", "dependencies"],
-    "database": ["db_schema_ref"],
+    "frontend": ["pages", "footer_links", "components", "custom_specs", "theme", "content_schema", "texts",
+                 "api_routes", "form_rules"],
+    "backend": ["data_entities", "api_routes", "form_rules", "dependencies"],
+    "database": ["data_entities"],
+    "content_form": ["content_schema"],
 }
 
 
@@ -632,6 +805,7 @@ def initial_state(
         brief=seed_brief,
         retrieval=None,
         plan=seed_plan,
+        planning=PlanningState(),
         content=ContentRef(),
         artifacts={},
         verification=VerificationState(),
@@ -705,3 +879,16 @@ def msgpack_allowlist() -> list[tuple[str, str]]:
 # 8. Limits: max_questions, max_reasks_per_slot, call_hard_cap, max_pages, max_extras_shown,
 #    max_test_cases replace the round and budget fields (D-104, D-135).
 # 9. can_freeze(): also requires acceptance tests and answered blocking slots.
+
+
+# ---------------------------------------------------------------- changes for the Planning Agent (2026-11, D-202)
+# 1. BuildPlan is typed: PlannedPage, PlannedComponent (section id, order, role, feature and tests it serves),
+#    CustomComponentSpec with its own Needs, ContentField (kind, type, item fields), TextSlot (website text),
+#    DataEntity, ApiRoute, FormRule, DashboardView, WorkTask (dependency graph), PlanTestLink, NotBuilt.
+#    db_schema_ref was replaced by data_entities; pages and api_routes are no longer plain dicts.
+# 2. Need has the same kinds as components/component_needs.json, so custom parts ask the owner for what they
+#    need exactly like catalogue components (D-201).
+# 3. Added the planning working slice (PlanningState) and its read rights; plan views now give each generator
+#    and the business details form only its part of the plan.
+# 4. Limits: max_plan_fix_rounds, max_plan_edits, max_text_rewrites, max_data_entities, max_api_routes.
+# 5. STATE_VERSION 2: runs saved with the old plan format are not resumed.
