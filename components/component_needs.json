@@ -1,0 +1,4005 @@
+{
+  "booking-form": {
+    "file": "BookingForm.tsx",
+    "props": "BookingFormProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "services",
+        "type": "BookingServiceOption[]",
+        "kind": "list",
+        "item_type": "BookingServiceOption",
+        "required": true,
+        "item_fields": [
+          {
+            "name": "id",
+            "kind": "code",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "duration",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "price",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "timeSlots",
+        "type": "string[]",
+        "kind": "live",
+        "item_type": "string",
+        "required": true
+      },
+      {
+        "name": "submitButtonText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 28,
+        "required": false
+      },
+      {
+        "name": "onSubmit",
+        "type": "(data: BookingData) => Promise<void> | void",
+        "kind": "code",
+        "submits": "BookingData",
+        "required": false,
+        "submit_fields": [
+          {
+            "name": "serviceId",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "serviceName",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "date",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "time",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "fullName",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "email",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "phone",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "notes",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "successMessage",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 160,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ],
+    "content_used_elsewhere": {
+      "email": "where booking requests are sent; shown in the success message",
+      "phone": "shown in the success message so customers can call"
+    }
+  },
+  "portfolio-grid": {
+    "file": "PortfolioGrid.tsx",
+    "props": "PortfolioGridProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "categories",
+        "type": "string[]",
+        "kind": "list",
+        "item_type": "string",
+        "required": false
+      },
+      {
+        "name": "projects",
+        "type": "PortfolioProject[]",
+        "kind": "list",
+        "item_type": "PortfolioProject",
+        "required": true,
+        "content_keys": [
+          "photos"
+        ],
+        "item_fields": [
+          {
+            "name": "title",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "client",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "imageUrl",
+            "kind": "image",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "category",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "tags",
+            "kind": "list",
+            "type": "string[]",
+            "required": true
+          },
+          {
+            "name": "projectUrl",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "menu-catalog-grid": {
+    "file": "MenuCatalogGrid.tsx",
+    "props": "MenuCatalogGridProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "categories",
+        "type": "string[]",
+        "kind": "list",
+        "item_type": "string",
+        "required": false
+      },
+      {
+        "name": "items",
+        "type": "CatalogItem[]",
+        "kind": "list",
+        "item_type": "CatalogItem",
+        "required": true,
+        "content_keys": [
+          "items",
+          "photos",
+          "prices"
+        ],
+        "item_fields": [
+          {
+            "name": "id",
+            "kind": "code",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "price",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "category",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "imageUrl",
+            "kind": "image",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "tags",
+            "kind": "list",
+            "type": "string[]",
+            "required": false
+          },
+          {
+            "name": "isPopular",
+            "kind": "setting",
+            "type": "boolean",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "onItemOrder",
+        "type": "(item: CatalogItem) => void",
+        "kind": "code",
+        "submits": "CatalogItem",
+        "required": false,
+        "submit_fields": [
+          {
+            "name": "id",
+            "kind": "code",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "price",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "category",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "imageUrl",
+            "kind": "image",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "tags",
+            "kind": "list",
+            "type": "string[]",
+            "required": false
+          },
+          {
+            "name": "isPopular",
+            "kind": "setting",
+            "type": "boolean",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "hero-banner": {
+    "file": "Hero.tsx",
+    "props": "HeroProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "headline",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subheadline",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "primaryCtaText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 28,
+        "required": false
+      },
+      {
+        "name": "primaryCtaHref",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false
+      },
+      {
+        "name": "onPrimaryCtaClick",
+        "type": "() => void",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "secondaryCtaText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 28,
+        "required": false
+      },
+      {
+        "name": "secondaryCtaHref",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false
+      },
+      {
+        "name": "onSecondaryCtaClick",
+        "type": "() => void",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "imageUrl",
+        "type": "string",
+        "kind": "image",
+        "content_key": "photos",
+        "required": false
+      },
+      {
+        "name": "imageAlt",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "align",
+        "type": "\"center\" | \"left\"",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ],
+    "content_used_elsewhere": {
+      "business_name": "inside the written headline, as {business_name}"
+    }
+  },
+  "about-us": {
+    "file": "About.tsx",
+    "props": "AboutProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "story",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 400,
+        "required": true,
+        "content_key": "about_text"
+      },
+      {
+        "name": "stats",
+        "type": "AboutStat[]",
+        "kind": "list",
+        "item_type": "AboutStat",
+        "required": false,
+        "item_fields": [
+          {
+            "name": "label",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "value",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "features",
+        "type": "AboutFeature[]",
+        "kind": "list",
+        "item_type": "AboutFeature",
+        "required": false,
+        "item_fields": [
+          {
+            "name": "title",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "imageUrl",
+        "type": "string",
+        "kind": "image",
+        "content_key": "photos",
+        "required": false
+      },
+      {
+        "name": "imageAlt",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "contact-form": {
+    "file": "ContactForm.tsx",
+    "props": "ContactFormProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "email",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "email",
+        "required": true
+      },
+      {
+        "name": "phone",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "phone",
+        "required": false
+      },
+      {
+        "name": "address",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "address",
+        "required": false
+      },
+      {
+        "name": "submitButtonText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 28,
+        "required": false
+      },
+      {
+        "name": "onSubmit",
+        "type": "(data: ContactFormData) => Promise<void> | void",
+        "kind": "code",
+        "submits": "ContactFormData",
+        "required": false,
+        "submit_fields": [
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "email",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "subject",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "message",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "successMessage",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 160,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "image-gallery": {
+    "file": "ImageGallery.tsx",
+    "props": "ImageGalleryProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "categories",
+        "type": "string[]",
+        "kind": "list",
+        "item_type": "string",
+        "required": false
+      },
+      {
+        "name": "items",
+        "type": "GalleryItem[]",
+        "kind": "list",
+        "item_type": "GalleryItem",
+        "required": true,
+        "content_keys": [
+          "photos"
+        ],
+        "item_fields": [
+          {
+            "name": "url",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "alt",
+            "kind": "copy",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "title",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "category",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "caption",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "pricing-table": {
+    "file": "PricingTable.tsx",
+    "props": "PricingTableProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "enableAnnualToggle",
+        "type": "boolean",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "annualDiscountBadge",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "plans",
+        "type": "PricingPlan[]",
+        "kind": "list",
+        "item_type": "PricingPlan",
+        "required": true,
+        "content_keys": [
+          "prices"
+        ],
+        "item_fields": [
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "price",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "yearlyPrice",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "isPopular",
+            "kind": "setting",
+            "type": "boolean",
+            "required": false
+          },
+          {
+            "name": "features",
+            "kind": "list",
+            "type": "string[]",
+            "required": true
+          },
+          {
+            "name": "ctaText",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "ctaHref",
+            "kind": "setting",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "onCtaClick",
+            "kind": "code",
+            "type": "() => void",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "testimonials": {
+    "file": "Testimonials.tsx",
+    "props": "TestimonialsProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "items",
+        "type": "TestimonialItem[]",
+        "kind": "list",
+        "item_type": "TestimonialItem",
+        "required": true,
+        "content_keys": [
+          "photos"
+        ],
+        "item_fields": [
+          {
+            "name": "quote",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "author",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "role",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "company",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "avatarUrl",
+            "kind": "image",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "rating",
+            "kind": "setting",
+            "type": "number",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "faq-accordion": {
+    "file": "FaqAccordion.tsx",
+    "props": "FaqAccordionProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "items",
+        "type": "FaqItem[]",
+        "kind": "list",
+        "item_type": "FaqItem",
+        "required": true,
+        "item_fields": [
+          {
+            "name": "question",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "answer",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "contactText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 400,
+        "required": false
+      },
+      {
+        "name": "contactHref",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "navbar": {
+    "file": "Navbar.tsx",
+    "props": "NavbarProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "brandName",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "business_name",
+        "required": true
+      },
+      {
+        "name": "logoUrl",
+        "type": "string",
+        "kind": "image",
+        "content_key": "logo",
+        "required": false
+      },
+      {
+        "name": "links",
+        "type": "NavLink[]",
+        "kind": "setting",
+        "item_type": "NavLink",
+        "required": true,
+        "source": "plan"
+      },
+      {
+        "name": "ctaText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 400,
+        "required": false
+      },
+      {
+        "name": "ctaHref",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false
+      },
+      {
+        "name": "onCtaClick",
+        "type": "() => void",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "isSticky",
+        "type": "boolean",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "footer": {
+    "file": "Footer.tsx",
+    "props": "FooterProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "brandName",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "business_name",
+        "required": true
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 400,
+        "required": false
+      },
+      {
+        "name": "columns",
+        "type": "FooterColumn[]",
+        "kind": "setting",
+        "item_type": "FooterColumn",
+        "required": true,
+        "source": "plan"
+      },
+      {
+        "name": "newsletterTitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": false
+      },
+      {
+        "name": "newsletterSubtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "onNewsletterSubmit",
+        "type": "(email: string) => Promise<void> | void",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "copyright",
+        "type": "string",
+        "kind": "code",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ],
+    "content_used_elsewhere": {
+      "email": "a link in the footer columns",
+      "social_handles": "links in the footer columns"
+    }
+  },
+  "features-grid": {
+    "file": "FeaturesGrid.tsx",
+    "props": "FeaturesGridProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "features",
+        "type": "FeatureItem[]",
+        "kind": "list",
+        "item_type": "FeatureItem",
+        "required": true,
+        "item_fields": [
+          {
+            "name": "id",
+            "kind": "code",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "title",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "badge",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "iconName",
+            "kind": "setting",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "columns",
+        "type": "2 | 3 | 4",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "cta-banner": {
+    "file": "CtaBanner.tsx",
+    "props": "CtaBannerProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "headline",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subheadline",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "primaryCtaText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 28,
+        "required": false
+      },
+      {
+        "name": "secondaryCtaText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 28,
+        "required": false
+      },
+      {
+        "name": "primaryCtaLink",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false
+      },
+      {
+        "name": "secondaryCtaLink",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false
+      },
+      {
+        "name": "highlights",
+        "type": "string[]",
+        "kind": "list",
+        "item_type": "string",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "team-grid": {
+    "file": "TeamGrid.tsx",
+    "props": "TeamGridProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "members",
+        "type": "TeamMember[]",
+        "kind": "list",
+        "item_type": "TeamMember",
+        "required": true,
+        "content_keys": [
+          "photos"
+        ],
+        "item_fields": [
+          {
+            "name": "id",
+            "kind": "code",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "role",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "credentials",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "bio",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "avatarUrl",
+            "kind": "image",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "specialties",
+            "kind": "list",
+            "type": "string[]",
+            "required": false
+          },
+          {
+            "name": "email",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "stats-counter": {
+    "file": "StatsCounter.tsx",
+    "props": "StatsCounterProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "stats",
+        "type": "StatItem[]",
+        "kind": "list",
+        "item_type": "StatItem",
+        "required": true,
+        "item_fields": [
+          {
+            "name": "value",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "label",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "trend",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "process-steps": {
+    "file": "ProcessSteps.tsx",
+    "props": "ProcessStepsProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "steps",
+        "type": "ProcessStep[]",
+        "kind": "list",
+        "item_type": "ProcessStep",
+        "required": true,
+        "item_fields": [
+          {
+            "name": "stepNumber",
+            "kind": "code",
+            "type": "number | string",
+            "required": true
+          },
+          {
+            "name": "title",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "detail",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "logo-cloud": {
+    "file": "LogoCloud.tsx",
+    "props": "LogoCloudProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "logos",
+        "type": "LogoItem[]",
+        "kind": "list",
+        "item_type": "LogoItem",
+        "required": true,
+        "content_keys": [
+          "logo"
+        ],
+        "item_fields": [
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "label",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "order-request-form": {
+    "file": "OrderRequestForm.tsx",
+    "props": "OrderRequestFormProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "items",
+        "type": "OrderItem[]",
+        "kind": "list",
+        "item_type": "OrderItem",
+        "required": true,
+        "content_keys": [
+          "items"
+        ],
+        "item_fields": [
+          {
+            "name": "id",
+            "kind": "code",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "price",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "imageUrl",
+            "kind": "image",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "dateLabel",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "submitLabel",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "onSubmit",
+        "type": "(data: OrderRequestData) => Promise<void> | void",
+        "kind": "code",
+        "submits": "OrderRequestData",
+        "required": false,
+        "submit_fields": [
+          {
+            "name": "items",
+            "kind": "setting",
+            "type": "{ itemId: string; name: string; quantity: number; price?: string }[]",
+            "required": true
+          },
+          {
+            "name": "requiredDate",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "notes",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "customerName",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "phone",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "email",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "successTitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": false
+      },
+      {
+        "name": "successMessage",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 160,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ],
+    "content_used_elsewhere": {
+      "phone": "shown in the success message so customers can call"
+    }
+  },
+  "location-map": {
+    "file": "LocationMap.tsx",
+    "props": "LocationMapProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "businessName",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "business_name",
+        "required": true
+      },
+      {
+        "name": "address",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "address",
+        "required": true
+      },
+      {
+        "name": "cityStateZip",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": false,
+        "content_key": "address"
+      },
+      {
+        "name": "additionalInfo",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "mapEmbedUrl",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "map_embed_url",
+        "required": true
+      },
+      {
+        "name": "directionsUrl",
+        "type": "string",
+        "kind": "code",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "directionsButtonText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 28,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "business-hours": {
+    "file": "BusinessHours.tsx",
+    "props": "BusinessHoursProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "schedule",
+        "type": "DaySchedule[]",
+        "kind": "fact",
+        "content_key": "hours",
+        "required": true
+      },
+      {
+        "name": "timezoneNote",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "emergencyNote",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "contact-info-block": {
+    "file": "ContactInfoBlock.tsx",
+    "props": "ContactInfoBlockProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "phone",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "phone",
+        "required": true
+      },
+      {
+        "name": "email",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "email",
+        "required": true
+      },
+      {
+        "name": "address",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "address",
+        "required": true
+      },
+      {
+        "name": "socialHandles",
+        "type": "SocialLinks",
+        "kind": "fact",
+        "content_key": "social_handles",
+        "required": true
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "whatsapp-button": {
+    "file": "WhatsAppButton.tsx",
+    "props": "WhatsAppButtonProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "phoneNumber",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "whatsapp",
+        "required": true
+      },
+      {
+        "name": "prefilledMessage",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 160,
+        "required": false
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "position",
+        "type": "\"bottom-right\" | \"bottom-left\"",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "showLabelOnMobile",
+        "type": "boolean",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "product-card-grid": {
+    "file": "ProductCardGrid.tsx",
+    "props": "ProductCardGridProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "buttonLabel",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "products",
+        "type": "ProductCardItem[]",
+        "kind": "list",
+        "item_type": "ProductCardItem",
+        "required": true,
+        "content_keys": [
+          "items",
+          "photos",
+          "prices"
+        ],
+        "item_fields": [
+          {
+            "name": "id",
+            "kind": "code",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "price",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "imageUrl",
+            "kind": "image",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "badge",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "href",
+            "kind": "setting",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "buttonLabel",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "onProductClick",
+        "type": "(product: ProductCardItem) => void",
+        "kind": "code",
+        "submits": "ProductCardItem",
+        "required": false,
+        "submit_fields": [
+          {
+            "name": "id",
+            "kind": "code",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "price",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "imageUrl",
+            "kind": "image",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "badge",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "href",
+            "kind": "setting",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "buttonLabel",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "gallery-carousel": {
+    "file": "GalleryCarousel.tsx",
+    "props": "GalleryCarouselProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "images",
+        "type": "CarouselImage[]",
+        "kind": "list",
+        "item_type": "CarouselImage",
+        "required": true,
+        "content_keys": [
+          "photos"
+        ],
+        "item_fields": [
+          {
+            "name": "id",
+            "kind": "code",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "src",
+            "kind": "image",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "alt",
+            "kind": "copy",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "title",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "caption",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "tag",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "autoplay",
+        "type": "boolean",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "autoplayInterval",
+        "type": "number",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "newsletter-signup": {
+    "file": "NewsletterSignup.tsx",
+    "props": "NewsletterSignupProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "placeholder",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 60,
+        "required": false
+      },
+      {
+        "name": "buttonText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 400,
+        "required": false
+      },
+      {
+        "name": "consentText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 400,
+        "required": false
+      },
+      {
+        "name": "onSubmit",
+        "type": "(email: string) => Promise<void> | void",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "successTitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": false
+      },
+      {
+        "name": "successMessage",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 160,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "page-header": {
+    "file": "PageHeader.tsx",
+    "props": "PageHeaderProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "breadcrumbs",
+        "type": "BreadcrumbItem[]",
+        "kind": "setting",
+        "item_type": "BreadcrumbItem",
+        "required": false,
+        "source": "plan"
+      },
+      {
+        "name": "backgroundImageUrl",
+        "type": "string",
+        "kind": "image",
+        "content_key": "photos",
+        "required": false
+      },
+      {
+        "name": "alignment",
+        "type": "\"center\" | \"left\"",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "social-links-bar": {
+    "file": "SocialLinksBar.tsx",
+    "props": "SocialLinksBarProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "handles",
+        "type": "SocialHandlesMap",
+        "kind": "fact",
+        "item_type": "SocialHandlesMap",
+        "required": true,
+        "content_key": "social_handles"
+      },
+      {
+        "name": "layout",
+        "type": "\"pills\" | \"grid\"",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "blog-list": {
+    "file": "BlogList.tsx",
+    "props": "BlogListProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "categories",
+        "type": "string[]",
+        "kind": "list",
+        "item_type": "string",
+        "required": false
+      },
+      {
+        "name": "posts",
+        "type": "BlogPostItem[]",
+        "kind": "live",
+        "item_type": "BlogPostItem",
+        "required": true
+      },
+      {
+        "name": "layout",
+        "type": "\"grid\" | \"list\"",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "blog-post": {
+    "file": "BlogPost.tsx",
+    "props": "BlogPostProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "live",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "live",
+        "max_length": 180,
+        "required": true
+      },
+      {
+        "name": "date",
+        "type": "string",
+        "kind": "live",
+        "max_length": 120,
+        "required": true
+      },
+      {
+        "name": "readTime",
+        "type": "string",
+        "kind": "live",
+        "max_length": 120,
+        "required": true
+      },
+      {
+        "name": "category",
+        "type": "string",
+        "kind": "live",
+        "max_length": 120,
+        "required": true
+      },
+      {
+        "name": "author",
+        "type": "BlogPostAuthor",
+        "kind": "live",
+        "item_type": "BlogPostAuthor",
+        "required": true
+      },
+      {
+        "name": "heroImageUrl",
+        "type": "string",
+        "kind": "live",
+        "content_key": "photos",
+        "required": true
+      },
+      {
+        "name": "heroImageAlt",
+        "type": "string",
+        "kind": "live",
+        "max_length": 120,
+        "required": true
+      },
+      {
+        "name": "content",
+        "type": "string",
+        "kind": "live",
+        "max_length": 400,
+        "required": true
+      },
+      {
+        "name": "tags",
+        "type": "string[]",
+        "kind": "live",
+        "item_type": "string",
+        "required": true
+      },
+      {
+        "name": "shareUrl",
+        "type": "string",
+        "kind": "code",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "backHref",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false,
+        "source": "plan"
+      },
+      {
+        "name": "backLabel",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "events-list": {
+    "file": "EventsList.tsx",
+    "props": "EventsListProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "events",
+        "type": "EventItem[]",
+        "kind": "live",
+        "item_type": "EventItem",
+        "required": true
+      },
+      {
+        "name": "hidePastEvents",
+        "type": "boolean",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "services-price-list": {
+    "file": "ServicesPriceList.tsx",
+    "props": "ServicesPriceListProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "services",
+        "type": "ServicePriceItem[]",
+        "kind": "list",
+        "item_type": "ServicePriceItem",
+        "required": true,
+        "content_keys": [
+          "items",
+          "prices"
+        ],
+        "item_fields": [
+          {
+            "name": "id",
+            "kind": "code",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "price",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "isStartingPrice",
+            "kind": "setting",
+            "type": "boolean",
+            "required": false,
+            "note": "e.g. displays \"from $45\""
+          },
+          {
+            "name": "duration",
+            "kind": "fact",
+            "type": "string",
+            "required": false,
+            "note": "e.g. \"45 mins\""
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "category",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "badge",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "categories",
+        "type": "string[]",
+        "kind": "list",
+        "item_type": "string",
+        "required": false
+      },
+      {
+        "name": "footnote",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 200,
+        "required": false
+      },
+      {
+        "name": "bookingCtaText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 28,
+        "required": false
+      },
+      {
+        "name": "bookingCtaHref",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "before-after-slider": {
+    "file": "BeforeAfterSlider.tsx",
+    "props": "BeforeAfterSliderProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "beforeImage",
+        "type": "SliderImageData",
+        "kind": "image",
+        "item_type": "SliderImageData",
+        "required": true,
+        "content_key": "photos"
+      },
+      {
+        "name": "afterImage",
+        "type": "SliderImageData",
+        "kind": "image",
+        "item_type": "SliderImageData",
+        "required": true,
+        "content_key": "photos"
+      },
+      {
+        "name": "initialSliderPosition",
+        "type": "number",
+        "kind": "setting",
+        "required": false,
+        "note": "0 to 100"
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "video-section": {
+    "file": "VideoSection.tsx",
+    "props": "VideoSectionProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "videoUrl",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "video_url",
+        "required": true
+      },
+      {
+        "name": "thumbnailUrl",
+        "type": "string",
+        "kind": "image",
+        "content_key": "photos",
+        "required": false
+      },
+      {
+        "name": "thumbnailAlt",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "caption",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "timeline": {
+    "file": "Timeline.tsx",
+    "props": "TimelineProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "items",
+        "type": "TimelineItem[]",
+        "kind": "list",
+        "item_type": "TimelineItem",
+        "required": true,
+        "item_fields": [
+          {
+            "name": "id",
+            "kind": "code",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "date",
+            "kind": "fact",
+            "type": "string",
+            "required": true,
+            "note": "e.g. \"2022\" or \"January 2026\""
+          },
+          {
+            "name": "title",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "tag",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "resume-skills": {
+    "file": "ResumeSkills.tsx",
+    "props": "ResumeSkillsProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "skills",
+        "type": "SkillItem[]",
+        "kind": "list",
+        "item_type": "SkillItem",
+        "required": true,
+        "item_fields": [
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "level",
+            "kind": "fact",
+            "type": "string",
+            "required": true,
+            "note": "e.g. \"Expert\", \"Advanced\", \"Proficient\" (required text label for accessibility)"
+          },
+          {
+            "name": "percentage",
+            "kind": "setting",
+            "type": "number",
+            "required": false,
+            "note": "0-100 for visual bar"
+          },
+          {
+            "name": "category",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "experience",
+        "type": "ExperienceItem[]",
+        "kind": "list",
+        "item_type": "ExperienceItem",
+        "required": true,
+        "item_fields": [
+          {
+            "name": "role",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "company",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "period",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "highlights",
+            "kind": "list",
+            "type": "string[]",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "education",
+        "type": "EducationItem[]",
+        "kind": "list",
+        "item_type": "EducationItem",
+        "required": true,
+        "item_fields": [
+          {
+            "name": "degree",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "institution",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "year",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "honors",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "case-study-detail": {
+    "file": "CaseStudyDetail.tsx",
+    "props": "CaseStudyDetailProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "clientName",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": true
+      },
+      {
+        "name": "year",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "role",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "summary",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": true
+      },
+      {
+        "name": "challenge",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "solution",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "result",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "metrics",
+        "type": "CaseStudyMetric[]",
+        "kind": "list",
+        "item_type": "CaseStudyMetric",
+        "required": true,
+        "item_fields": [
+          {
+            "name": "label",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "value",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "gallery",
+        "type": "CaseStudyGalleryItem[]",
+        "kind": "list",
+        "item_type": "CaseStudyGalleryItem",
+        "required": true,
+        "item_fields": [
+          {
+            "name": "src",
+            "kind": "image",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "alt",
+            "kind": "copy",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "caption",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "liveUrl",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "product-detail": {
+    "file": "ProductDetail.tsx",
+    "props": "ProductDetailProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "name",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": true,
+        "content_key": "items"
+      },
+      {
+        "name": "price",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": true,
+        "content_key": "prices"
+      },
+      {
+        "name": "originalPrice",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": false,
+        "content_key": "prices"
+      },
+      {
+        "name": "badge",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 400,
+        "required": false
+      },
+      {
+        "name": "images",
+        "type": "{ src: string; alt?: string }[]",
+        "kind": "list",
+        "required": true,
+        "content_key": "photos"
+      },
+      {
+        "name": "variants",
+        "type": "ProductVariantGroup[]",
+        "kind": "list",
+        "item_type": "ProductVariantGroup",
+        "required": false,
+        "item_fields": [
+          {
+            "name": "name",
+            "kind": "fact",
+            "type": "string",
+            "required": true,
+            "note": "e.g. \"Size\", \"Flavour\""
+          },
+          {
+            "name": "options",
+            "kind": "list",
+            "type": "string[]",
+            "required": true,
+            "note": "e.g. [\"Small (6\\\")\", \"Medium (8\\\")\", \"Large (10\\\")\"]"
+          }
+        ]
+      },
+      {
+        "name": "enquireButtonText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 28,
+        "required": false
+      },
+      {
+        "name": "onEnquire",
+        "type": "(selectedVariants: Record<string, string>) => void",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "enquireHref",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false
+      },
+      {
+        "name": "specifications",
+        "type": "{ label: string; value: string }[]",
+        "kind": "list",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "search-filter-bar": {
+    "file": "SearchFilterBar.tsx",
+    "props": "SearchFilterBarProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "placeholder",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 60,
+        "required": false
+      },
+      {
+        "name": "categories",
+        "type": "string[]",
+        "kind": "setting",
+        "item_type": "string",
+        "required": false,
+        "source": "plan"
+      },
+      {
+        "name": "initialCategory",
+        "type": "string",
+        "kind": "setting",
+        "max_length": 120,
+        "required": false,
+        "source": "plan"
+      },
+      {
+        "name": "initialQuery",
+        "type": "string",
+        "kind": "setting",
+        "max_length": 120,
+        "required": false,
+        "source": "plan"
+      },
+      {
+        "name": "onSearchChange",
+        "type": "(query: string, selectedCategory: string) => void",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "totalCount",
+        "type": "number",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "debounceMs",
+        "type": "number",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "appointment-slot-picker": {
+    "file": "AppointmentSlotPicker.tsx",
+    "props": "AppointmentSlotPickerProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "availability",
+        "type": "Record<string, string[]>",
+        "kind": "live",
+        "required": true,
+        "note": "dateString -> array of time strings e.g. \"2026-10-20\": [\"09:00 AM\", \"11:30 AM\"]"
+      },
+      {
+        "name": "confirmButtonText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 28,
+        "required": false
+      },
+      {
+        "name": "onSlotSelect",
+        "type": "(date: string, time: string) => void",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "announcement-bar": {
+    "file": "AnnouncementBar.tsx",
+    "props": "AnnouncementBarProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "message",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 160,
+        "required": false
+      },
+      {
+        "name": "linkText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 400,
+        "required": false
+      },
+      {
+        "name": "linkHref",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false
+      },
+      {
+        "name": "storageKey",
+        "type": "string",
+        "kind": "code",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "lead-capture-popup": {
+    "file": "LeadCapturePopup.tsx",
+    "props": "LeadCapturePopupProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 400,
+        "required": false
+      },
+      {
+        "name": "offerBadge",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "placeholder",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 60,
+        "required": false
+      },
+      {
+        "name": "buttonText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 400,
+        "required": false
+      },
+      {
+        "name": "disclaimer",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 200,
+        "required": false
+      },
+      {
+        "name": "delaySeconds",
+        "type": "number",
+        "kind": "setting",
+        "required": false,
+        "note": "opens automatically after seconds (0 disables timer)"
+      },
+      {
+        "name": "triggerOnExitIntent",
+        "type": "boolean",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "onSubmit",
+        "type": "(email: string) => Promise<void> | void",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "storageKey",
+        "type": "string",
+        "kind": "code",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "image-text-rows": {
+    "file": "ImageTextRows.tsx",
+    "props": "ImageTextRowsProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "rows",
+        "type": "ImageTextRowItem[]",
+        "kind": "list",
+        "item_type": "ImageTextRowItem",
+        "required": true,
+        "content_keys": [
+          "about_text",
+          "photos"
+        ],
+        "item_fields": [
+          {
+            "name": "id",
+            "kind": "code",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "title",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "description",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "imageUrl",
+            "kind": "image",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "imageAlt",
+            "kind": "copy",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "badge",
+            "kind": "fact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "features",
+            "kind": "list",
+            "type": "string[]",
+            "required": false
+          },
+          {
+            "name": "actionLink",
+            "kind": "setting",
+            "type": "{",
+            "required": false
+          },
+          {
+            "name": "label",
+            "kind": "fact",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "href",
+            "kind": "setting",
+            "type": "string",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "cookie-notice": {
+    "file": "CookieNotice.tsx",
+    "props": "CookieNoticeProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "message",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 160,
+        "required": false
+      },
+      {
+        "name": "acceptButtonText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 28,
+        "required": false
+      },
+      {
+        "name": "declineButtonText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 28,
+        "required": false
+      },
+      {
+        "name": "privacyPolicyHref",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false
+      },
+      {
+        "name": "privacyPolicyLabel",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "storageKey",
+        "type": "string",
+        "kind": "code",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "onAccept",
+        "type": "() => void",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "onDecline",
+        "type": "() => void",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "back-to-top": {
+    "file": "BackToTop.tsx",
+    "props": "BackToTopProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "threshold",
+        "type": "number",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "showLabel",
+        "type": "boolean",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "position",
+        "type": "\"bottom-right\" | \"bottom-left\"",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "legal-page": {
+    "file": "LegalPage.tsx",
+    "props": "LegalPageProps",
+    "in_catalogue": true,
+    "needs": [
+      {
+        "name": "badgeText",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "lastUpdated",
+        "type": "string",
+        "kind": "code",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "companyName",
+        "type": "string",
+        "kind": "fact",
+        "content_key": "business_name",
+        "required": true
+      },
+      {
+        "name": "contactEmail",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": true,
+        "content_key": "email"
+      },
+      {
+        "name": "sections",
+        "type": "LegalSection[]",
+        "kind": "code",
+        "item_type": "LegalSection",
+        "required": false,
+        "note": "standard template filled with the owner's facts, not AI-written"
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ],
+    "content_used_elsewhere": {
+      "about_text": "fills the standard legal template"
+    }
+  },
+  "seo-head": {
+    "file": "SeoHead.tsx",
+    "props": "SeoHeadProps",
+    "in_catalogue": false,
+    "needs": [
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 400,
+        "required": false
+      },
+      {
+        "name": "canonicalUrl",
+        "type": "string",
+        "kind": "code",
+        "max_length": 120,
+        "required": false
+      },
+      {
+        "name": "ogImageUrl",
+        "type": "string",
+        "kind": "image",
+        "content_key": "photos",
+        "required": false
+      },
+      {
+        "name": "siteName",
+        "type": "string",
+        "kind": "fact",
+        "max_length": 120,
+        "required": true,
+        "content_key": "business_name"
+      },
+      {
+        "name": "noIndex",
+        "type": "boolean",
+        "kind": "setting",
+        "required": false
+      },
+      {
+        "name": "keywords",
+        "type": "string[]",
+        "kind": "copy",
+        "item_type": "string",
+        "required": false,
+        "max_length": 40,
+        "note": "each keyword"
+      },
+      {
+        "name": "children",
+        "type": "React.ReactNode",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "not-found-page": {
+    "file": "NotFoundPage.tsx",
+    "props": "NotFoundPageProps",
+    "in_catalogue": false,
+    "needs": [
+      {
+        "name": "title",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 70,
+        "required": true
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 180,
+        "required": false
+      },
+      {
+        "name": "homeLabel",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "homeHref",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false
+      },
+      {
+        "name": "supportLabel",
+        "type": "string",
+        "kind": "copy",
+        "max_length": 32,
+        "required": false
+      },
+      {
+        "name": "supportHref",
+        "type": "string",
+        "kind": "setting",
+        "role": "link",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  },
+  "loading-and-error-states": {
+    "file": "LoadingAndErrorStates.tsx",
+    "props": "ComponentSkeletonProps",
+    "in_catalogue": false,
+    "needs": [
+      {
+        "name": "type",
+        "type": "SkeletonType",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "count",
+        "type": "number",
+        "kind": "code",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "kind": "code",
+        "required": false
+      }
+    ]
+  }
+}

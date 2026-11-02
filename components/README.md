@@ -96,6 +96,36 @@ Every section entry follows this schema:
 
 ---
 
+## Component Needs List (D-201)
+
+`component_needs.json` lists, for every component (the 46 catalogue entries plus `SeoHead`, `NotFoundPage` and
+`LoadingAndErrorStates`), everything it needs to render fully. The Planning Agent builds the business details form,
+the website text and its "no empty component" check from it.
+
+Each input of a component's `Props` has one **kind**:
+
+| Kind | Who provides it | Examples |
+|---|---|---|
+| `copy` | written by the AI, with a `max_length` | headline, section titles, button text |
+| `fact` | the owner; `content_key` links it to a catalogue content need | phone, address, opening hours |
+| `list` | the owner; `item_fields` describe each item, `content_keys` what the items carry | services with prices, team, FAQs |
+| `image` | the owner uploads it | logo, photos |
+| `setting` | the plan (`"source": "plan"` for navigation and page links) | links, layout, toggles |
+| `live` | the generated site's backend while it runs | free booking slots, blog posts |
+| `code` | the frontend generator wires it; never asked for | callbacks, `className`, copyright line |
+
+Forms also record what they send (`submits`, `submit_fields`), which the data model starts from. Catalogue content
+keys with no input of their own are explained in `content_used_elsewhere`.
+
+**Rebuild after changing any component's `Props`:**
+
+```bash
+.venv\Scripts\python.exe components\build_component_needs.py
+```
+
+Most kinds come from name rules; hand-checked decisions live in `OVERRIDES` in the script, so rebuilding keeps
+them. `tests/test_component_needs.py` fails when the file no longer matches the components' code.
+
 ## Vector Embeddings Regeneration
 
 To synchronize semantic vector retrieval when catalog entries or descriptions are updated:
