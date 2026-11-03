@@ -44,6 +44,23 @@ class Feature:
 
 
 @dataclass(frozen=True)
+class Component:
+    """One catalogue component, with what retrieval and the planner need to choose between components."""
+    component_id: str
+    feature_id: str
+    name: str
+    description: str
+    keywords: tuple[str, ...]
+    user_phrases: tuple[str, ...]
+    site_role: str                       # section | global | page-layout | overlay
+    pages: tuple[str, ...]
+    content_needs: tuple[str, ...]
+    data_needs: tuple[str, ...]          # what the generated site's backend must supply
+    not_for: tuple[tuple[str, str], ...]  # (component_id, when to use that one instead)
+    pairs_with: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class Capability:
     capability_id: str
     group: str                           # feature | integration
@@ -66,6 +83,7 @@ class Baseline:
 @dataclass(frozen=True)
 class Catalogue:
     features: dict[str, Feature]
+    components: dict[str, Component]
     capabilities: dict[str, Capability]
     baselines: tuple[Baseline, ...]      # sorted by priority
     page_kinds: tuple[str, ...]
@@ -177,8 +195,27 @@ def load_catalogue() -> Catalogue:
         if unknown or bad_pages:
             raise ValueError(f"site_baselines.json '{b.baseline_id}': unknown features {unknown}, pages {bad_pages}")
 
+    components_by_id = {
+        c["component_id"]: Component(
+            component_id=c["component_id"],
+            feature_id=c["featureId"],
+            name=c["name"],
+            description=c.get("description", ""),
+            keywords=tuple(c.get("keywords") or []),
+            user_phrases=tuple(c.get("userPhrases") or []),
+            site_role=c["siteRole"],
+            pages=tuple(c["pages"]),
+            content_needs=tuple(c["contentNeeds"]),
+            data_needs=tuple(c.get("dataNeeds") or []),
+            not_for=tuple((nf["id"], nf["reason"]) for nf in c.get("notFor") or []),
+            pairs_with=tuple(c.get("pairsWith") or []),
+        )
+        for c in components
+    }
+
     return Catalogue(
         features=features,
+        components=components_by_id,
         capabilities=capabilities,
         baselines=baselines,
         page_kinds=page_kinds,
