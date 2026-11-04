@@ -12,11 +12,15 @@ project's credits) whenever `VERTEX_API_KEY` is set; otherwise to the Google AI 
   `VERTEX_PROJECT` / `VERTEX_LOCATION` (for reference only; the key already names the project).
 Gemini 3 models are served from the `global` location only (`us-central1` answers 404 for them).
 
+**Models per task (`.env`).** `CLARIFICATION_MODEL`; `PLANNING_MODEL` for the Planning Agent's design and text calls
+(a Pro-class model, e.g. `gemini-2.5-pro`); `PLANNING_FIX_MODEL` for its fix rounds and plan changes (a Flash model);
+`FALLBACK_MODEL` when the primary is down. An unset task model uses the gateway's default Flash model.
+
 ## Architecture
 
 - `core/`: settings and environment configuration (`config.py`); shared dependencies (`deps.py`, incl. the signed-in user); passwords and tokens (`security.py`).
 - `db/`: PostgreSQL (Supabase) connection (`session.py`) and table definitions (`tables.py`) (D-172).
-- `migrations/`: Alembic migrations; `versions/0001_users_and_projects.py` creates users, projects and the 3-project limit (D-173, D-175); `0002_refresh_tokens.py` adds sign-in sessions (D-178); `0003_requests.py` links website requests to projects (D-179); `0004_email_tokens.py` adds email verification and password reset (D-185, D-186).
+- `migrations/`: Alembic migrations; `versions/0001_users_and_projects.py` creates users, projects and the 3-project limit (D-173, D-175); `0002_refresh_tokens.py` adds sign-in sessions (D-178); `0003_requests.py` links website requests to projects (D-179); `0004_email_tokens.py` adds email verification and password reset (D-185, D-186); `0006_paused_requests.py` adds the paused status (D-197); `0007_plan_statuses.py` adds the plan statuses (D-206).
 - `models/`: Pydantic request and response schemas (`requests.py` for the website-request API; `auth.py`; `projects.py`).
 - `routes/`: `requests.py` (website-request API), `auth.py` (sign-in), `projects.py`, `health.py`.
 - `services/`: `auth.py` (accounts and sign-in sessions, D-176 – D-178); `projects.py` (the only code that creates or deletes projects, D-174); `requests.py` (which requests belong to whom, D-179, D-180); `email_flows.py` (verification and reset links, D-185, D-186); `mailer.py` (sends email over SMTP, D-187).
@@ -98,14 +102,19 @@ put Caddy or nginx in front and have it replace `X-Forwarded-For` with the real 
 A new request whose agent run fails (e.g. the model is down) is saved as `failed` and is not counted against the
 daily limits (D-196).
 
-## Website-request API (Clarification Agent)
+## Website-request API (Clarification and Planning Agents)
+
+One request is one LangGraph run: the Clarification Agent asks and confirms, then Context Retrieval and the Planning
+Agent design the site, and the run stops at `GENERATING` until the builder agents exist (D-206).
 
 Every request belongs to a project of the signed-in user, so every path starts with `/api/projects/{pid}/requests`
 and needs `Authorization: Bearer <access token>` (D-179). A request in someone else's project, or in another project
 of the same user, answers 404 before the agent is touched.
 
 Every response has the same envelope: `{ "request_id", "status", "data" }`.
-`status` is one of `needs_clarification`, `awaiting_confirmation`, `complete`, `out_of_scope`, `failed`, `cancelled`, `reply`.
+`status` is one of `needs_clarification`, `awaiting_confirmation`, `awaiting_plan_approval` (the plan summary),
+`planned` (plan approved and frozen), `out_of_scope`, `failed`, `cancelled`, `reply`, `processing` or `paused`.
+`complete` (a finished brief) is only seen on requests that finished before planning was added.
 
 | Method and path (prefix `/api/projects/{pid}/requests`) | Body | Notes |
 |---|---|---|
@@ -115,15 +124,17 @@ Every response has the same envelope: `{ "request_id", "status", "data" }`.
 | `POST /{id}/answer` | `{ "question_id", "kind": "option \| you_decide \| other", "option_ids": [], "text": null }` | 422 if the answer does not fit the question |
 | `POST /{id}/confirmation` | `{ "decision": "confirm \| edit \| cancel \| theme_source", ... }` | 422 if the action is not available |
 | `POST /{id}/image?kind=logo\|screenshot` | multipart file | Colours from a logo or screenshot |
+| `POST /{id}/plan` | `{ "decision": "approve \| change \| cancel", "change_text": null }` | Answers the plan summary; one change per plan (422 when none is left or the text is empty); a change that would break the plan is undone (D-204) |
 
 | `POST /{id}/resume` | — | Continues a **paused** request from its last saved step; 409 if it is not paused or already running, 429 after 5 resumes in an hour |
-| `POST /{id}/cancel` | — | Ends the current request (paused, waiting for an answer, or with a finished brief) and deletes its saved run; used by *Start over* |
+| `POST /{id}/cancel` | — | Ends the current request (paused, waiting for an answer, or with a finished brief or approved plan) and deletes its saved run; used by *Start over* |
 
 The `requests` table keeps each request's project, prompt and latest status. Deleting a project deletes its
 requests and their saved runs (D-180).
 
 **One project = one website (D-200).** `POST` (new request) answers 409 `website_in_progress` while the
-project's latest request is processing, waiting for an answer, paused, or has a finished brief. *Start over*
+project's latest request is processing, waiting for an answer or a plan approval, paused, or has a finished brief
+or an approved plan. *Start over*
 cancels it first; a different website belongs in a new project.
 
 ### Persistence and resume (D-197 – D-199)

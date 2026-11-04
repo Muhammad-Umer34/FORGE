@@ -72,9 +72,10 @@ Main relationships:
 ## 6. Status
 
 - **Done:** Chapters 1 to 4 of the FYP report (intro, vision, literature review, SRS), the architecture and design write-up, the ER diagram, and the test case design.
-- **Now:** implementing the **Clarification Agent** (first stage of the pipeline).
-- **Designed but not built [confirm]:** Context Retrieval, Planning, Frontend, Backend, Database, Integration, Orchestrator/gateway, WebContainer execution and testing, document generators, UI, publishing.
-- **FYP-2:** execution and verification, doc generation, UI, publishing, and the benchmark (multi-agent vs single-agent baseline).
+- **Built:** the **Clarification Agent**, **Context Retrieval** (code only) and the **Planning Agent** (plan with user approval), run in order by the Orchestrator with saved, resumable runs; the LLM gateway; sign-in, projects and the studio screens. A run now stops at the start of generation.
+- **Next:** the builder agents (Frontend, Backend, Database), then Integration.
+- **Designed but not built [confirm]:** Frontend, Backend, Database, Integration, WebContainer execution and testing, document generators, publishing.
+- **FYP-2:** execution and verification, doc generation, publishing, and the benchmark (comparing candidate LLMs on realistic website requests).
 - **No results exist yet.** Do not invent performance numbers.
 
 ---
