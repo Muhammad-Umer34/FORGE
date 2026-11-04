@@ -106,6 +106,16 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
       setReply(null);
       setEnvelope(next);
     } catch (err) {
+      // 409 on an open request: the run moved on (another tab, a restart, a step still running), so this screen
+      // is out of date. Show where the request really stands instead of an error under a stale screen.
+      if (err instanceof ApiError && err.status === 409 && envelope) {
+        try {
+          setEnvelope(await getRequest(projectId, envelope.request_id));
+          return;
+        } catch {
+          /* fall through to the original message */
+        }
+      }
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
       setBusy(null);
