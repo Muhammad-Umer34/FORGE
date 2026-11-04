@@ -31,6 +31,8 @@ T = TypeVar("T", bound=BaseModel)
 # task -> environment variable holding its model id
 _TASK_MODEL_ENV = {
     "clarification": "CLARIFICATION_MODEL",
+    "planning": "PLANNING_MODEL",            # design and text calls: the strongest model (plan v2 §1)
+    "planning_fix": "PLANNING_FIX_MODEL",    # fix rounds and plan changes: a faster model
 }
 _DEFAULT_MODEL = "gemini-3.8-flash"
 _TRANSIENT_CODES = {408, 429, 500, 502, 503, 504}

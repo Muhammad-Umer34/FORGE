@@ -504,11 +504,18 @@ class BuildPlan(BaseModel):
 
 class PlanningState(BaseModel):
     """Working data of the Planning Agent. No other agent reads this."""
-    status: Literal["idle", "drafting", "checking", "writing_text", "awaiting_approval", "done", "failed"] = "idle"
+    status: Literal["idle", "drafting", "checking", "writing_text", "awaiting_approval", "changing", "done",
+                    "failed", "cancelled"] = "idle"
     calls_used: int = 0                        # model calls, checked against the planning limits
     fix_rounds_used: int = 0
     edits_used: int = 0
+    text_rewrites_used: int = 0
     issues: list[str] = Field(default_factory=list)          # from the last check
+    site_design: Optional[dict[str, Any]] = None             # model output of the site design call, as fixed
+    data_design: Optional[dict[str, Any]] = None             # model output of the data and API call
+    before_change: Optional[dict[str, Any]] = None           # designs and plan before a user change, to undo it
+    pending_change: Optional[str] = None                     # the user's change, waiting to be applied
+    notice: Optional[str] = None                             # plain message for the approval screen
     failure: Optional[FailureInfo] = None
 
 
