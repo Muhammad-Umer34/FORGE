@@ -5,31 +5,41 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "@/services/client";
 import { listRequests } from "@/services/projects";
-import { answerQuestion, cancelRequest, confirmBrief, createRequest, getRequest, readImageColours, resumeRequest } from "@/services/requests";
+import {
+  answerQuestion, cancelRequest, confirmBrief, createRequest, decidePlan, getRequest, readImageColours, resumeRequest,
+} from "@/services/requests";
 import { RequestSummary } from "@/types/auth";
-import { ConfirmationDecision, ReplyData, RequestEnvelope, UserAnswer } from "@/types/request";
+import { ConfirmationDecision, PlanDecision, ReplyData, RequestEnvelope, UserAnswer } from "@/types/request";
 import { ConfirmationPanel } from "./ConfirmationPanel";
 import { OutcomeView, StoppedView } from "./OutcomeView";
+import { PlanReview } from "./PlanReview";
 import { QuestionCard } from "./QuestionCard";
 import { ComposerReply, RequestComposer } from "./RequestComposer";
 import { RequestHistory } from "./RequestHistory";
 import { StartOverDialog } from "./StartOverDialog";
 import { Step, StudioHeader } from "./StudioHeader";
 
-type Busy = "start" | "answer" | "confirm" | "restore" | "theme";
+type Busy = "start" | "answer" | "confirm" | "restore" | "theme" | "plan" | "approve";
 
-// Live runs took roughly 4-13 s per step, so the wait shows what is happening.
+// Live runs took roughly 4-13 s per step; confirming now also plans the site (D-204), which takes longer.
 const PROGRESS: Record<Busy, string[]> = {
   start: ["Reading your request", "Matching it to what FORGE can build", "Preparing your next step"],
   answer: ["Saving your answer", "Checking what is still missing"],
-  confirm: ["Locking in your choices", "Writing the checks for your finished site", "Almost done"],
+  confirm: [
+    "Locking in your choices", "Writing the checks for your finished site", "Finding the right parts for each feature",
+    "Designing your pages", "Planning what your site stores", "Writing your text", "Checking the plan",
+  ],
+  plan: ["Updating your plan", "Checking the plan again", "Writing your text"],
+  approve: ["Locking in your plan"],
   restore: ["Picking up where you left off"],
   theme: ["Building your theme", "Reading the website's colours and fonts", "Checking every colour is easy to read"],
 };
 
 // One project = one website (D-200): its current request is the latest one, unless that one ended
 // without a website. The server's list decides, so any browser or device opens the same screen.
-const ACTIVE: ReadonlyArray<RequestSummary["status"]> = ["processing", "needs_clarification", "awaiting_confirmation", "complete", "paused"];
+const ACTIVE: ReadonlyArray<RequestSummary["status"]> = [
+  "processing", "needs_clarification", "awaiting_confirmation", "complete", "paused", "awaiting_plan_approval", "planned",
+];
 
 function ProgressNote({ busy }: { busy: Busy }) {
   const [index, setIndex] = useState(0);
@@ -60,7 +70,8 @@ function stepFor(envelope: RequestEnvelope | null): Step {
   if (!envelope) return "describe";
   if (envelope.status === "needs_clarification") return "answer";
   if (envelope.status === "awaiting_confirmation") return "confirm";
-  return "brief";
+  if (envelope.status === "planned") return "build";
+  return "plan";
 }
 
 interface ForgeStudioProps {
@@ -173,6 +184,10 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
     if (envelope) run(kind, () => confirmBrief(projectId, envelope.request_id, d));
   };
 
+  const decidePlanStep = (d: PlanDecision) => {
+    if (envelope) run(d.decision === "approve" ? "approve" : "plan", () => decidePlan(projectId, envelope.request_id, d));
+  };
+
   const resume = () => {
     if (envelope) run("restore", () => resumeRequest(projectId, envelope.request_id));
   };
@@ -234,6 +249,18 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
               error={error}
               onDecide={decide}
               onReadImage={readImage}
+            />
+          )}
+
+          {(envelope?.status === "awaiting_plan_approval" || envelope?.status === "planned") && (
+            <PlanReview
+              key={`${envelope.request_id}-${envelope.status}-${envelope.data.changes_left}-${envelope.data.notice ?? ""}`}
+              plan={envelope.data}
+              approved={envelope.status === "planned"}
+              busy={busy !== null}
+              error={error}
+              onDecide={decidePlanStep}
+              onStartOver={requestStartOver}
             />
           )}
 

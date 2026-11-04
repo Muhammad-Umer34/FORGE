@@ -9,12 +9,15 @@ from agents.clarification.prompts import MAX_PROMPT_CHARS
 
 # The answer bodies are the same models the graph validates on resume.
 from agents.clarification.schemas import ConfirmationDecision, UserAnswer
+from agents.planning.schemas import PlanDecision
 
 RequestStatus = Literal[
     "needs_clarification", "awaiting_confirmation", "complete", "out_of_scope", "failed", "cancelled",
     "reply",   # not a website request: data = {kind, message}; no run to resume (D-150)
     "processing",   # a step is running right now: data = {message}
     "paused",       # stopped mid-way (crash, model outage); POST .../resume continues it: data = {message}
+    "awaiting_plan_approval",   # the plan summary; POST .../plan approves, changes or cancels it (D-204)
+    "planned",      # the plan is approved and frozen; the builder agents come next: data = the plan summary
 ]
 
 
@@ -40,4 +43,5 @@ class RequestSummary(BaseModel):
     updated_at: datetime
 
 
-__all__ = ["CreateRequest", "RequestEnvelope", "RequestStatus", "RequestSummary", "UserAnswer", "ConfirmationDecision"]
+__all__ = ["CreateRequest", "RequestEnvelope", "RequestStatus", "RequestSummary", "UserAnswer", "ConfirmationDecision",
+           "PlanDecision"]

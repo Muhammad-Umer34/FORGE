@@ -81,7 +81,7 @@ def plan_view(plan: BuildPlan, p: PlanningState, limits) -> dict:
              for c in plan.components}
     hero = next((t for t in plan.texts if t.slot_id == assemble.HERO_HEADLINE), None)
     return {
-        "kind": "plan_approval",
+        "type": "plan_approval",
         "pages": [{"title": pg.title, "route": pg.route, "in_menu": pg.in_menu,
                    "sections": [names[s] for s in pg.section_ids]} for pg in plan.pages],
         "site_wide": [names[c.section_id] for c in plan.components if c.page == "all"],

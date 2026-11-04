@@ -1,7 +1,7 @@
 // D:\FYP\FORGE-1\frontend\src\services\requests.ts
 // Website-request API (backend/routes/requests.py). Every request belongs to a project (D-179).
 
-import { ConfirmationDecision, ImageColours, RequestEnvelope, UserAnswer } from "@/types/request";
+import { ConfirmationDecision, ImageColours, PlanDecision, RequestEnvelope, UserAnswer } from "@/types/request";
 import { apiFetch } from "./client";
 
 const base = (projectId: string) => `/api/projects/${encodeURIComponent(projectId)}/requests`;
@@ -21,6 +21,11 @@ export function answerQuestion(projectId: string, requestId: string, answer: Use
 
 export function confirmBrief(projectId: string, requestId: string, decision: ConfirmationDecision): Promise<RequestEnvelope> {
   return apiFetch(`${one(projectId, requestId)}/confirmation`, { method: "POST", body: JSON.stringify(decision) });
+}
+
+/** Approve the plan, ask for one change, or cancel it. */
+export function decidePlan(projectId: string, requestId: string, decision: PlanDecision): Promise<RequestEnvelope> {
+  return apiFetch(`${one(projectId, requestId)}/plan`, { method: "POST", body: JSON.stringify(decision) });
 }
 
 /** Continue a paused request from its last saved step. */

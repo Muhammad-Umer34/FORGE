@@ -21,6 +21,7 @@ from pg_support import migrate_test_database, new_engine, requires_db, session_d
 
 pytestmark = requires_db
 QUESTION = {"type": "question", "id": "q1", "text": "What should visitors do?"}
+PLAN = {"type": "plan_approval", "pages": [], "changes_left": 1}
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -54,8 +55,9 @@ class FakeGraph:
         outcome = self.threads.get(thread)
         if outcome is None:
             return SimpleNamespace(values={}, interrupts=(), next=())
-        if outcome == "question":
-            return SimpleNamespace(values={"run": True}, interrupts=(SimpleNamespace(value=QUESTION),), next=("agent",))
+        if outcome in ("question", "plan"):
+            screen = QUESTION if outcome == "question" else PLAN
+            return SimpleNamespace(values={"run": True}, interrupts=(SimpleNamespace(value=screen),), next=("agent",))
         reply = SimpleNamespace(model_dump=lambda: {"kind": "greeting", "message": "Hello!"})
         return SimpleNamespace(values={"clarification": SimpleNamespace(status="replied", reply=reply)}, interrupts=(), next=())
 
@@ -163,6 +165,7 @@ def test_nobody_else_can_see_or_continue_a_request():
                 ("POST", stranger, f"/api/projects/{pid}/requests/{rid}/answer",
                  {"json": {"question_id": "q1", "kind": "you_decide"}}),
                 ("POST", stranger, f"/api/projects/{pid}/requests/{rid}/confirmation", {"json": {"decision": "confirm"}}),
+                ("POST", stranger, f"/api/projects/{pid}/requests/{rid}/plan", {"json": {"decision": "approve"}}),
                 ("POST", stranger, f"/api/projects/{pid}/requests/{rid}/image?kind=logo",
                  {"files": {"file": ("logo.png", b"not really an image", "image/png")}}),
                 ("POST", stranger, f"/api/projects/{pid}/requests", {"json": {"prompt": "Mine now"}}),
@@ -234,8 +237,32 @@ def test_project_deleted_while_the_agent_runs():
     run(scenario())
 
 
+def test_the_plan_screen_is_approved_or_changed_through_its_own_route():
+    async def scenario():
+        async with harness() as h:
+            uid, (pid,) = await h.user_with_projects()
+            h.graph.next_outcome = "plan"
+            rid = (await h.start(uid, pid)).json()["request_id"]
+            assert await h.rows(pid) == [(rid, "awaiting_plan_approval")]
+            plan = f"/api/projects/{pid}/requests/{rid}/plan"
+            assert (await h.call("POST", uid, plan, json={"decision": "change"})).status_code == 422   # no text
+            assert (await h.call("POST", uid, f"/api/projects/{pid}/requests/{rid}/answer",
+                                 json={"question_id": "q1", "kind": "you_decide"})).status_code == 409
+            assert (await h.start(uid, pid, "Another website")).status_code == 409   # one website per project
+            response = await h.call("POST", uid, plan, json={"decision": "approve"})
+            assert response.status_code == 200 and h.graph.inputs[rid].resume == {"decision": "approve", "change_text": None}
+            PLAN["changes_left"] = 0
+            try:
+                refused = await h.call("POST", uid, plan, json={"decision": "change", "change_text": "Add a blog"})
+                assert refused.status_code == 422
+            finally:
+                PLAN["changes_left"] = 1
+    run(scenario())
+
+
 def test_main_app_registers_projects_and_request_routes():
     from backend.main import app
     paths = app.openapi()["paths"]
     assert "/api/projects" in paths and "/api/projects/{project_id}/requests/{request_id}/answer" in paths
+    assert "/api/projects/{project_id}/requests/{request_id}/plan" in paths
     assert not any(p.startswith("/api/requests") for p in paths)  # the old anonymous routes are gone

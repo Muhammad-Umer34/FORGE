@@ -20,9 +20,12 @@ from agents.clarification import nodes
 from agents.clarification.schemas import (
     AnswerInterpretation, BriefReview, GeneratedTest, GeneratedTests, IntakeItem, IntakeOutput,
 )
-from agents.gateway import CallUsage, ModelCallError
+from agents.gateway import CallUsage, InvalidOutputError, ModelCallError
 from agents.orchestrator import build_forge_graph
+from agents.planning import nodes as planning_nodes
+from agents.planning.schemas import SiteDesign
 from agents.state import RequestInfo, Stage, initial_state, msgpack_allowlist
+from test_planning import any_brief_planner
 
 
 def start(graph, prompt: str):
@@ -89,15 +92,37 @@ def test_vague_request_asks_then_confirms_then_freezes(graph, monkeypatch):
     themes = screen["themes"]
     assert len(themes) == 3 and sum(1 for th in themes if th["id"] == screen["theme_selected"]) == 1
     picked = next(th for th in themes if th["id"] != screen["theme_selected"])            # choose a non-default theme
+    monkeypatch.setattr(planning_nodes, "call_structured", any_brief_planner(("Fresh bakery treats for your table",)))
     result = graph.invoke(Command(resume={"decision": "confirm", "theme_id": picked["id"]}), config)
-    assert pending(result) is None
-    assert result["clarification"].status == "done"
-    assert result["brief"].status == "ready" and result["brief"].test_cases                  # TC-11
-    theme = result["brief"].theme
+    plan_screen = pending(result)                                              # D-204: planning runs next
+    assert plan_screen["type"] == "plan_approval" and plan_screen["hero_headline"] == "Fresh bakery treats for your table"
+    state = graph.get_state(config).values
+    assert state["clarification"].status == "done"
+    assert state["brief"].status == "ready" and state["brief"].test_cases                    # TC-11
+    theme = state["brief"].theme
     assert theme["theme_id"] == picked["id"] and theme["contrast"]["standard"] == "WCAG 2.2 AA"   # D-159
     assert set(theme["tokens"]) == {"light", "dark"} and "primary-foreground" in theme["tokens"]["light"]
-    assert result["control"].stage == Stage.RETRIEVING
-    assert result["usage"].calls == 2                                          # intake + tests
+    assert state["control"].stage == Stage.PLANNING
+    assert {c.feature_id for c in state["retrieval"].candidates} >= {"menu-catalog", "order-request"}
+
+    result = graph.invoke(Command(resume={"decision": "approve"}), config)
+    assert pending(result) is None and result["plan"].status == "approved"
+    assert result["control"].stage == Stage.GENERATING and not result["control"].failed
+    assert result["usage"].calls == 2 + 3                                      # intake + tests, then 3 planning calls
+
+
+def test_a_planning_failure_ends_the_run(graph, monkeypatch):
+    monkeypatch.setattr(nodes, "call_structured", fake_model({
+        IntakeOutput: BAKERY_INTAKE, GeneratedTests: bakery_tests, BriefReview: BriefReview()}))
+    monkeypatch.setattr(planning_nodes, "call_structured",
+                        fake_model({SiteDesign: InvalidOutputError("not a site design")}))
+    result, config = start(graph, "a website for my bakery with our menu")
+    q = pending(result)
+    result = graph.invoke(Command(resume={"question_id": q["question_id"], "kind": "option",
+                                          "option_ids": ["order-request"]}), config)
+    result = graph.invoke(Command(resume={"decision": "confirm"}), config)
+    assert pending(result) is None and result["planning"].status == "failed"
+    assert result["control"].stage == Stage.FAILED and result["control"].failure_reason.startswith("We could not finish")
 
 
 def not_a_request(kind: str) -> IntakeOutput:

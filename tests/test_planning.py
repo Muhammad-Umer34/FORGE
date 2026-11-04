@@ -134,6 +134,58 @@ class FakeModel:
         return (queue.pop(0) if len(queue) > 1 else queue[0]), CallUsage(calls=1)
 
 
+def _section(user: str, title: str, end: str):
+    return json.loads(user.split(title + "\n")[1].split("\n\n" + end)[0])
+
+
+def any_brief_planner(heroes: tuple[str, ...]) -> FakeModel:
+    """A fake model that plans any brief: every feature on Home with its first found component, a custom part for
+    each custom feature, and an entity and routes for every section that sends or shows data."""
+    def site(user):
+        brief = _section(user, "Brief:", "Placed by code")
+        opts = _section(user, "Found components per feature (choose from these):", "Inputs")
+        pages = [page("home", "/", "Home")] + [page(p["name"], f"/{p['name']}", p["name"].title())
+                                               for p in brief["pages"] if p["name"] != "home"]
+        return SiteDesign(
+            pages=pages,
+            sections=[SectionOut(page_id="home", feature_id=f, component_id=ids[0] if ids else None,
+                                 custom_spec_id=None if ids else f) for f, ids in opts.items()],
+            custom_specs=[CustomSpecOut(spec_id=f, feature_id=f, name=f, page_id="home", purpose="A custom part.",
+                                        needs=[NeedOut(name="title", kind="copy", max_length=70)])
+                          for f, ids in opts.items() if not ids])
+
+    def data(user):
+        out = DataDesign()
+        for s in _section(user, "Sections that send or show data:", "Standard"):
+            name = s["feature_id"].replace("-", "_") + "_records"
+            fields = [DataField(name=f, type="text", personal=f in ("name", "fullName", "email", "phone"))
+                      for f in s["sends"] or ["name"]]
+            out.entities.append(DataEntity(name=name, fields=fields))
+            if s["is_form"]:
+                route = f"POST /api/{name}"
+                out.routes.append(ApiRoute(route_id=route, method="POST", path=f"/api/{name}", entity=name,
+                                           request_fields=s["sends"], used_by=[s["section_id"]]))
+                out.form_rules.append(FormRule(section_id=s["section_id"], route_id=route))
+            if s["shows_live"]:
+                out.routes.append(ApiRoute(route_id=f"GET /api/{name}", method="GET", path=f"/api/{name}",
+                                           entity=name, used_by=[s["section_id"]]))
+            if any(f.personal for f in fields):
+                out.dashboard_views.append(DashboardView(entity=name, title=name, columns=["Name"]))
+        return out
+
+    fake = FakeModel(texts_fn=lambda user: good_texts(user, heroes))
+    fake.answers = {SiteDesign: [], DataDesign: [], PlanFix: []}
+    builders = {SiteDesign: site, DataDesign: data}
+    plain = fake.__call__
+
+    def call(task, schema, system, user):
+        if schema in builders:
+            fake.calls.append((task, schema.__name__))
+            return builders[schema](user), CallUsage(calls=1)
+        return plain(task, schema, system, user)
+    return call
+
+
 def run_graph(brief, fake, monkeypatch):
     monkeypatch.setattr(nodes, "call_structured", fake)
     builder = StateGraph(GraphState)
@@ -167,7 +219,7 @@ def test_salon_plan_end_to_end_through_approval(monkeypatch):
     fake = FakeModel()
     graph, config, result = run_graph(salon_brief(), fake, monkeypatch)
     view = result["__interrupt__"][0].value
-    assert view["kind"] == "plan_approval" and [p["route"] for p in view["pages"]][:2] == ["/", "/booking"]
+    assert view["type"] == "plan_approval" and [p["route"] for p in view["pages"]][:2] == ["/", "/booking"]
     assert view["pages"][0]["sections"][0] == "Hero Banner" and view["pages"][1]["sections"][0] == "Inner Page Header Banner"
     assert view["hero_headline"] == "Fresh haircuts, booked in a minute"            # generic first one rejected
     assert "Welcome to our website" in view["hero_alternatives"]

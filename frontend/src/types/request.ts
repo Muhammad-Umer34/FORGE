@@ -11,7 +11,9 @@ export type RequestStatus =
   | "cancelled"
   | "reply"
   | "processing" // a step is running right now
-  | "paused"; // stopped mid-way (crash or model outage); can be continued
+  | "paused" // stopped mid-way (crash or model outage); can be continued
+  | "awaiting_plan_approval" // the plan summary is waiting for the user (agents/planning)
+  | "planned"; // the plan is approved and frozen; building comes next
 
 export interface QuestionOption {
   option_id: string;
@@ -126,6 +128,27 @@ export interface ReplyData {
   message: string;
 }
 
+/** The plan summary the user approves (agents/planning/nodes.py plan_view). */
+export interface PlanData {
+  type: "plan_approval";
+  pages: { title: string; route: string; in_menu: boolean; sections: string[] }[];
+  site_wide: string[];
+  hero_headline: string;
+  hero_alternatives: string[];
+  custom_parts: { name: string; purpose: string }[];
+  stored: { title: string; columns: string[]; statuses: string[] }[];
+  details_needed: string[];
+  not_built: { asked: string; reason: string; alternative: string }[];
+  assumptions: string[];
+  changes_left: number;
+  notice: string | null; // e.g. a change that could not be made
+}
+
+export interface PlanDecision {
+  decision: "approve" | "change" | "cancel";
+  change_text?: string;
+}
+
 export type RequestEnvelope =
   | { request_id: string; status: "needs_clarification"; data: QuestionData }
   | { request_id: string; status: "awaiting_confirmation"; data: ConfirmationData }
@@ -134,6 +157,7 @@ export type RequestEnvelope =
   | { request_id: string; status: "failed"; data: FailedData }
   | { request_id: string; status: "cancelled"; data: Record<string, never> }
   | { request_id: string; status: "reply"; data: ReplyData }
+  | { request_id: string; status: "awaiting_plan_approval" | "planned"; data: PlanData }
   | { request_id: string; status: "paused" | "processing"; data: { message: string } };
 
 export interface UserAnswer {

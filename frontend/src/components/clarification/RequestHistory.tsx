@@ -12,6 +12,8 @@ const STATUS_LABEL: Record<RequestSummary["status"], { text: string; tone: strin
   needs_clarification: { text: "Waiting for your answer", tone: "bg-ember-soft text-ember-strong" },
   awaiting_confirmation: { text: "Ready to confirm", tone: "bg-ember-soft text-ember-strong" },
   complete: { text: "Brief ready", tone: "bg-positive-soft text-positive" },
+  awaiting_plan_approval: { text: "Plan ready to review", tone: "bg-ember-soft text-ember-strong" },
+  planned: { text: "Plan approved", tone: "bg-positive-soft text-positive" },
   out_of_scope: { text: "Not supported", tone: "bg-surface-sunk text-ink-muted" },
   failed: { text: "Needs more detail", tone: "bg-alert-soft text-alert" },
   cancelled: { text: "Cancelled", tone: "bg-surface-sunk text-ink-muted" },

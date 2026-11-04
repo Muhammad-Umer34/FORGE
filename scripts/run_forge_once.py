@@ -104,6 +104,27 @@ def ask_confirmation(payload: dict) -> dict:
             print(f"  Not accepted: {error.errors()[0]['msg']}")
 
 
+def ask_plan(payload: dict) -> dict:
+    print("\nPLAN")
+    print("Hero headline:", payload["hero_headline"], "| also:", " / ".join(payload["hero_alternatives"]))
+    for page in payload["pages"]:
+        print(f"  {page['title']} ({page['route']}): {', '.join(page['sections'])}")
+    print("On every page:", ", ".join(payload["site_wide"]))
+    for part in payload["custom_parts"]:
+        print(f"Custom part: {part['name']} - {part['purpose']}")
+    for view in payload["stored"]:
+        print(f"Dashboard: {view['title']} - {', '.join(view['columns'])}")
+    print("Details needed:", ", ".join(payload["details_needed"]))
+    if payload["notice"]:
+        print("Note:", payload["notice"])
+    choices = ["approve", "cancel"] + (["change"] if payload["changes_left"] else [])
+    while True:
+        action = input(f"Type {' / '.join(choices)}: ").strip().lower()
+        if action in choices:
+            text = input("What should change? ").strip() if action == "change" else None
+            return {"decision": action, "change_text": text}
+
+
 async def main() -> None:
     prompt = " ".join(sys.argv[1:]).strip() or input("Describe the website you want: ").strip()
     request_id = f"req_local_{uuid.uuid4().hex[:8]}"
@@ -123,7 +144,8 @@ async def main() -> None:
         if not snapshot.interrupts:
             break
         payload = snapshot.interrupts[0].value
-        answer = ask_question(payload) if payload.get("type") == "question" else ask_confirmation(payload)
+        ask = {"question": ask_question, "plan_approval": ask_plan}.get(payload.get("type"), ask_confirmation)
+        answer = ask(payload)
         graph_input = Command(resume=answer)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -137,6 +159,12 @@ async def main() -> None:
     if values.get("brief"):
         brief = values["brief"]
         print(f"Brief: {len(brief.features)} features, {len(brief.pages)} pages, {len(brief.test_cases)} tests")
+    if values.get("plan"):
+        plan = values["plan"]
+        print(f"Plan ({plan.status}): {len(plan.pages)} pages, {len(plan.components)} sections, "
+              f"{len(plan.custom_specs)} custom parts, {len(plan.api_routes)} routes")
+        print("Planning:", values["planning"].status, "| calls:", values["planning"].calls_used,
+              "| fix rounds:", values["planning"].fix_rounds_used)
     print("Model calls:", values["usage"].calls if values.get("usage") else "n/a")
     print("Full final state saved to:", out)
 

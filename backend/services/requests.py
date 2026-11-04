@@ -33,12 +33,13 @@ class RequestNotFound(Exception):
 
 
 class WebsiteInProgress(Exception):
-    """The project already has a website being described, paused, or with a finished brief."""
+    """The project already has a website being described, planned, paused, or with a finished brief or plan."""
 
 
 # One project = one website: a new request may start only when the latest one ended without a website
 # (failed, out of scope or cancelled). "Start over" cancels the current one first.
-ACTIVE_STATUSES = ("processing", "needs_clarification", "awaiting_confirmation", "complete", "paused")
+ACTIVE_STATUSES = ("processing", "needs_clarification", "awaiting_confirmation", "complete", "paused",
+                   "awaiting_plan_approval", "planned")
 
 
 async def start_request(session: AsyncSession, owner_id: uuid.UUID, project_id: uuid.UUID,

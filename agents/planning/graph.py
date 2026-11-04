@@ -7,12 +7,24 @@ check_input -> design_site (call 1) -> design_data (call 2, skipped when nothing
 -> check_plan (-> fix_plan -> assemble_plan, at most 2 rounds) -> write_texts (call 3) (-> rewrite_texts, once)
 -> finish_texts -> await_plan_approval (interrupt) -> apply_change -> assemble_plan ... | freeze
 """
+from typing import Optional, TypedDict
+
 from langgraph.graph import END, START, StateGraph
 
 from agents.planning import nodes
-from agents.state import GraphState
+from agents.state import BuildPlan, ClarifiedBrief, GraphState, PlanningState, RetrievalResult, RunConfig
 
 _ENDED = ("failed", "cancelled")
+
+
+class PlanningInput(TypedDict, total=False):
+    """What the subgraph receives. `usage` is left out on purpose: the subgraph then returns only the usage of its
+    own calls, which the parent adds to its total (passing the total in would count earlier calls twice)."""
+    brief: Optional[ClarifiedBrief]
+    retrieval: Optional[RetrievalResult]
+    plan: Optional[BuildPlan]
+    planning: PlanningState
+    run_config: RunConfig
 
 
 def _status(state: GraphState) -> str:
@@ -50,7 +62,7 @@ def _after_change(state: GraphState) -> str:
 
 
 def build_planning_graph():
-    g = StateGraph(GraphState)
+    g = StateGraph(GraphState, input_schema=PlanningInput)
     for name in ("check_input", "design_site", "design_data", "assemble_plan", "check_plan", "fix_plan",
                  "write_texts", "rewrite_texts", "finish_texts", "await_plan_approval", "apply_change", "freeze"):
         g.add_node(name, getattr(nodes, name))

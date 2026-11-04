@@ -27,11 +27,14 @@ from agents.catalogue import load_catalogue
 from agents.clarification import slots
 from agents.clarification.prompts import PROMPT_VERSIONS
 from agents.gateway import model_for, provider
+from agents.planning.nodes import plan_view
 from agents.state import STATE_VERSION, Question, RequestInfo, RunConfig, initial_state
 from backend.core.config import settings
 from backend.core.deps import get_verified_user_id
 from backend.db.session import get_session
-from backend.models.requests import ConfirmationDecision, CreateRequest, RequestEnvelope, RequestSummary, UserAnswer
+from backend.models.requests import (
+    ConfirmationDecision, CreateRequest, PlanDecision, RequestEnvelope, RequestSummary, UserAnswer,
+)
 from backend.services import limits
 from backend.services import requests as service
 
@@ -41,6 +44,10 @@ logger = logging.getLogger(__name__)
 _PAUSED = "FORGE stopped before finishing. Your progress is saved, so you can continue where you left off."
 _GONE = "This request can no longer be continued. Please start a new one."
 _UPDATED = "FORGE was updated since this request stopped. Please start it again."
+_SCREENS = {"question": "needs_clarification", "confirmation": "awaiting_confirmation",
+            "plan_approval": "awaiting_plan_approval"}
+# Statuses whose run has ended but still holds the project's website, so Start over may cancel them.
+_FINISHED_WEBSITE = ("complete", "planned")
 _WORKING = "FORGE is still working on this request."
 
 
@@ -51,7 +58,7 @@ def _config(request_id: str) -> dict:
 def _run_config() -> RunConfig:
     cat = load_catalogue()
     return RunConfig(
-        model_per_task={"clarification": f"{provider()}/{model_for('clarification')}"},
+        model_per_task={task: f"{provider()}/{model_for(task)}" for task in ("clarification", "planning", "planning_fix")},
         catalogue_version=cat.version,
         catalogue_hash=cat.catalogue_hash,
         unsupported_list_hash=cat.unsupported_list_hash,
@@ -63,11 +70,19 @@ def _run_config() -> RunConfig:
 def _envelope(request_id: str, values: dict, interrupts) -> RequestEnvelope:
     if interrupts:
         payload = interrupts[0].value
-        kind = "needs_clarification" if payload.get("type") == "question" else "awaiting_confirmation"
-        return RequestEnvelope(request_id=request_id, status=kind, data=payload)
+        return RequestEnvelope(request_id=request_id, status=_SCREENS[payload.get("type")], data=payload)
 
-    c = values["clarification"]
-    if c.status == "done":
+    c, p = values["clarification"], values.get("planning")
+    if c.status == "done" and p and p.status == "done":
+        return RequestEnvelope(request_id=request_id, status="planned",
+                               data=plan_view(values["plan"], p, values["run_config"].limits))
+    if c.status == "done" and p and p.status == "cancelled":
+        return RequestEnvelope(request_id=request_id, status="cancelled")
+    if c.status == "done" and p and p.status == "failed":
+        return RequestEnvelope(request_id=request_id, status="failed", data={
+            "category": "system", "message": p.failure.message if p.failure else "The site could not be planned.",
+            "missing": []})
+    if c.status == "done":     # runs that finished before planning existed keep their brief
         brief = values["brief"]
         return RequestEnvelope(request_id=request_id, status="complete", data={
             "requirement": brief.model_dump(mode="json", exclude={"test_cases"}),
@@ -259,8 +274,9 @@ async def cancel_request(http: Request, request_id: str = Depends(_owned_request
     try:
         async with service.one_step_at_a_time(request_id):
             state, _ = await service.run_state(graph, request_id, count_running=False)
-            finished_brief = state == "finished" and await service.stored_status(session, request_id) == "complete"
-            if state not in ("paused", "waiting_for_user") and not finished_brief:
+            stored = await service.stored_status(session, request_id)
+            finished_website = state == "finished" and stored in _FINISHED_WEBSITE
+            if state not in ("paused", "waiting_for_user") and not finished_website:
                 raise HTTPException(status.HTTP_409_CONFLICT,
                                     f"There is nothing to cancel: this request is {state.replace('_', ' ')}.")
             await service.delete_runs(graph.checkpointer, [request_id])
@@ -315,6 +331,23 @@ async def _confirm(body: ConfirmationDecision, http: Request, request_id: str, u
             except limits.RateLimited as error:
                 raise _limited(error, "You have reached today's limit for reading websites.")
     return await _record(http, session, await _run(http, request_id, Command(resume=body.model_dump())))
+
+
+@router.post("/{request_id}/plan", response_model=RequestEnvelope)
+async def decide_plan(body: PlanDecision, http: Request, request_id: str = Depends(_owned_request),
+                      session: AsyncSession = Depends(get_session)):
+    """Approve the plan, ask for one change, or cancel (plan v2 step 8, D-204)."""
+    try:
+        async with service.one_step_at_a_time(request_id):
+            payload = await _pending(http, request_id, "plan_approval")
+            if body.decision == "change":
+                if not (body.change_text or "").strip():
+                    raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "change_text is required for a change")
+                if not payload["changes_left"]:
+                    raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "No more changes can be made to this plan")
+            return await _record(http, session, await _run(http, request_id, Command(resume=body.model_dump())))
+    except service.RunInProgress:
+        raise HTTPException(status.HTTP_409_CONFLICT, _STILL_WORKING)
 
 
 @router.post("/{request_id}/image")

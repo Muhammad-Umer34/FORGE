@@ -2,19 +2,20 @@
 "use client";
 
 // The header of every signed-in page: FORGE mark, where you are (Projects / project name),
-// the four steps while a request is open, and the account menu.
+// the steps while a request is open, and the account menu.
 
 import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-export type Step = "describe" | "answer" | "confirm" | "brief";
+export type Step = "describe" | "answer" | "confirm" | "plan" | "build";
 
 const STEPS: { id: Step; label: string }[] = [
   { id: "describe", label: "Describe" },
   { id: "answer", label: "Answer" },
   { id: "confirm", label: "Confirm" },
-  { id: "brief", label: "Brief" },
+  { id: "plan", label: "Plan" },
+  { id: "build", label: "Build" },
 ];
 
 export function ForgeMark() {
