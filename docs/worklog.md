@@ -1,0 +1,164 @@
+# FORGE work log
+
+What was done, when and why, newest first. One entry per piece of work. Each entry lists the decisions
+it implements (see `decision-log.md`), the commits, how it was checked, and what was left open.
+Dates are the commit dates in git.
+
+---
+
+## 2026-11-08 · Live planning tests, data-contract fixes, project audit, this documentation
+
+**What**
+- First live runs of the Planning Agent through the studio (hair salon, bakery). Three runs failed with
+  "We could not finish planning your site"; each was traced from its saved checkpoint:
+  - req_ec94cad5cb4e: the model gave Home the route `/home`; two fix rounds kept it → **D-210**.
+  - req_c89c88eead73 and req_ec38c1bbb3d4: good first designs failed check 8 (POST routes with empty
+    `used_by`, feature ids in `used_by`, no form rules); Flash fix rounds then rewrote the plans badly
+    (one hero section; no sections at all) → **D-209, D-211**.
+- Fixes: code forces Home to `/` and numbers the menu; `complete_data` finishes the data contract; a fix
+  round that adds problems is thrown away; fix rounds use `gemini-2.5-pro`; clearer data prompt.
+- Full audit of the Clarification Agent, Planning Agent, catalogue scope and comparable AI builders:
+  report `D:/FYP/reports/FORGE agent scope review.md` (notes in `D:/FYP/research_notes/FORGE agent scope review/`).
+  Its open bugs and limits are tracked in `known-issues.md`.
+- Documentation system set up (`docs/`): the decision log moved here from the v6 plan, this work log,
+  known issues, and the logging rules in `README.md`.
+
+**Why** Live runs showed the model's designs were good but small rule gaps ended planning; code can
+apply fixed rules exactly, while model fix rounds were unreliable (also found in research: self-repair
+without outside feedback often makes output worse).
+
+**Checked** Both failed live designs reproduced as tests now pass every check with no fix round;
+a test proves a worse fix is discarded; 335 tests pass (61 database tests not run: test database down).
+
+**Open**
+- Re-run the bakery and salon requests live to confirm 3 model calls and a plan screen.
+- Work through `known-issues.md` (quick fixes first).
+- Commits: f06eda9 (planning fixes, D-209 – D-211) and the docs commit that added this folder.
+
+---
+
+## 2026-11-04 · Planning Agent built and wired into the run (Phases 4–6), first live testing
+
+**What**
+- Phase 4 (8ac55c2): planning subgraph in `agents/planning/`: input check and fixed parts in code,
+  3 model calls (site design, data and API, text), 16 code checks, up to 2 fix rounds, one text rewrite,
+  plan-approval pause with one change, freeze → **D-204**. Website text pitch rules: hero tied to the
+  business, no generic phrases, no invented facts, button verbs, no repeated titles → **D-205**.
+- Phase 5 (b04c43b): the run continues after the brief: retrieval → planning → stops at GENERATING.
+  New statuses `awaiting_plan_approval` and `planned` (migration 0007), `POST .../plan`, plan screen
+  `PlanReview.tsx`, steps Describe · Answer · Confirm · Plan · Build → **D-206**. A bug found while
+  testing: the planning subgraph sent the run's whole usage total back, counting calls twice; fixed with
+  an input schema without `usage`.
+- Phase 6 (55acfcc): backend and agents READMEs, project status, benchmark wording ("comparing
+  candidate LLMs", not a single-agent baseline).
+- Studio fixes (d782331): reload the real state after a 409 → **D-207**; extension attributes on
+  `<body>` → **D-208**.
+- Migration 0007 applied to the app database (after Supabase un-paused it).
+- Model probe on Vertex AI: only `gemini-2.5-pro` and `gemini-3.1-pro-preview` answer among Pro models;
+  `PLANNING_MODEL=gemini-2.5-pro` set in `.env`.
+- Local run setup: `D:/FYP/.claude/launch.json` starts the backend (`python -m backend.main`) and the
+  frontend (`npm run dev`); outside the repo.
+
+**Why** Plan v2 (`D:/FYP/reports/Planning Agent plan v2.pdf`): a strong model designs, code places fixed
+parts and checks everything, the user approves before building. One run per request keeps pauses,
+resume and Start over working for every step.
+
+**Checked** 331 tests pass; full-graph test goes confirm → plan → approve → GENERATING. Database route
+tests written but not run (test database paused).
+
+**Open** Builder agents (frontend, backend, database) are stubs; business details form not built.
+
+---
+
+## 2026-11-03 · Context Retrieval (Phase 3)
+
+**What** (c53acd4) Code-only retrieval in `agents/retrieval/ranker.py`: a catalogued feature gets every
+component of its feature; a custom feature gets up to 3 close keyword matches or none. `Catalogue` now
+carries each component's details → **D-203**.
+
+**Why** With 46 components the catalogue already knows the answer; embeddings would add a dependency
+and a model call for little gain.
+
+**Checked** 5 retrieval tests.
+
+---
+
+## 2026-11-02 · Component Needs List and typed Build Plan (Phases 1–2)
+
+**What**
+- Phase 1 (e62303c): `components/component_needs.json`, generated from the components' TypeScript props
+  by `build_component_needs.py`: every input's kind (copy, fact, list, image, setting, live, code),
+  type, required flag, length limit and content key; 49 components, 372 inputs → **D-201**.
+- Phase 2 (778bedb): typed `BuildPlan` in `agents/state.py` (pages, sections, custom specs with their own
+  needs, form fields, text slots, data entities, API routes, form rules, dashboard views, work plan, test
+  map), the `planning` working slice, plan views per generator, new limits, `STATE_VERSION` 2 → **D-202**.
+- Planning requirements added by the team: custom components get needs of the same kinds as catalogue
+  ones; website text, especially the hero headline, must be a strong pitch for the exact business type.
+
+**Why** The planner must know what every part needs to render fully (business details form, text,
+no-empty-component check); typed models let code check every plan.
+
+**Checked** 98 needs tests (file always matches the components' code), 7 plan-model tests.
+
+---
+
+## 2026-10-23 · Persistence, resume and one website per project
+
+**What** (a0b55a6) Runs saved in PostgreSQL every step (LangGraph `AsyncPostgresSaver`); a run cut off
+by a crash or outage is "paused" and continues from its last step (`POST .../resume`); cancel; start-up
+repair of stuck requests; one project = one website (409 `website_in_progress`, Start-over dialog);
+migration 0006 → **D-197 – D-200**. Supabase session pooler with a reset password; psycopg needs a
+SelectorEventLoop on Windows.
+
+**Why** A crash test lost a run and let a second browser start a competing website in the same project.
+
+**Report** `D:/FYP/reports/FORGE persistence plan.pdf`.
+
+---
+
+## 2026-10-21 · Code audit fixes
+
+**What** (11f0d19) The visitor's real address reaches the backend; a failed new request is saved as
+failed and not counted against limits; input fixes → **D-195, D-196**.
+
+---
+
+## 2026-10-20 · Cost and abuse limits
+
+**What** (7b00488) Rate limits as PostgreSQL counters: model-spending limits per user and per app,
+sign-up and forgot-password limits, lockout per address, size limits, daily email cap → **D-189 – D-194**.
+
+---
+
+## 2026-10-19 · Email verification and password reset
+
+**What** (8c8b653) Verification and reset links by email over SMTP; unverified users can sign in but
+not create projects or run requests → **D-185 – D-188**.
+
+---
+
+## 2026-10-17 · Clarification Agent, theming, accounts and projects
+
+**What**
+- FORGE-1 codebase with the Clarification Agent (design v6): detector-first slots, questions, brief,
+  code checks, confirmation screen, acceptance tests (e06c38d) → **D-101 – D-146**.
+- Clarification screen as the frontend's main page (50d2c52) → **D-147**; review-note fixes (1623a2a)
+  → **D-148, D-149**; greetings and off-topic messages handled before clarification (9c998ad) →
+  **D-150 – D-154**.
+- Themes from parameters with guaranteed WCAG contrast (02b6fff) → **D-155 – D-162**; colours from a
+  logo, screenshot or a website the user likes (123d58f) → **D-163 – D-171**.
+- Users and projects with a 3-project limit on Supabase (0e4faa6) → **D-172 – D-175**; JWT sign-in with
+  refresh rotation (ca0b25e) → **D-176 – D-178**; requests belong to projects (0698e08) → **D-179, D-180**;
+  sign-in, register and project screens (f2edf45) → **D-181 – D-183**; model calls on Vertex AI credits
+  (7fb6569) → **D-184**.
+
+**Design** `D:/FYP/FORGE-DOCUMENTS/FORGE_Clarification_Agent_Plan_v6.md` (+ PDF); implementation
+notes in `FORGE-DOCUMENTS/Implementation details - 01/02`.
+
+---
+
+## 2026-10-16 · Foundations and the v6 design
+
+**What** One `.env`, package imports, own venv with pinned requirements, CORS from settings, no human
+escalation, research kept outside the codebase → **D-001 – D-008**. Clarification Agent v6 designed
+(16 flaws of v5 fixed).
