@@ -147,9 +147,15 @@ def assemble_plan(state: GraphState) -> dict:
 def check_plan(state: GraphState) -> dict:
     p, plan, limits = _p(state), state["plan"], state["run_config"].limits
     p.issues = checks.run_checks(plan, state["brief"], state["retrieval"], load_catalogue(), limits)
+    update: dict = {"planning": p}
+    if p.before_fix:
+        before, p.before_fix = p.before_fix, None
+        if len(p.issues) > len(before["issues"]):    # the fix made it worse (seen live): keep the earlier design
+            p.site_design, p.data_design, p.issues = before["site_design"], before["data_design"], before["issues"]
+            plan = update["plan"] = BuildPlan.model_validate(before["plan"])
     if not p.issues:
         p.status = "writing_text"
-        return {"planning": p}
+        return update
     if p.status == "changing" and p.before_change:        # the user's change broke the plan: undo it
         before = p.before_change
         p.site_design, p.data_design = before["site_design"], before["data_design"]
@@ -157,14 +163,17 @@ def check_plan(state: GraphState) -> dict:
         p.notice = "That change could not be made without breaking the plan, so the plan is unchanged."
         return {"planning": p, "plan": BuildPlan.model_validate(before["plan"])}
     if p.fix_rounds_used >= limits.max_plan_fix_rounds:
-        return {"planning": _fail(p, "check_plan", "; ".join(p.issues))}
+        update["planning"] = _fail(p, "check_plan", "; ".join(p.issues))
+        return update
     p.status = "checking"
-    return {"planning": p}
+    return update
 
 
 def fix_plan(state: GraphState) -> dict:
     p = _p(state)
     p.fix_rounds_used += 1
+    p.before_fix = {"site_design": p.site_design, "data_design": p.data_design, "issues": p.issues,
+                    "plan": state["plan"].model_dump(mode="json")}
     return _redesign(state, p, "fix_plan", prompts.fix_user(_design(p), p.issues))
 
 

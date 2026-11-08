@@ -9,8 +9,8 @@ from agents.planning import fixed
 from agents.planning.content_schema import derive_content_schema, load_needs, needs_of
 from agents.planning.schemas import DataDesign, SiteDesign
 from agents.state import (
-    Assumption, BuildPlan, ClarifiedBrief, CustomComponentSpec, Need, NotBuilt, PlannedComponent, PlannedPage,
-    PlanTestLink, RetrievalResult, TextSlot, WorkTask,
+    Assumption, BuildPlan, ClarifiedBrief, CustomComponentSpec, DashboardView, FormRule, Need, NotBuilt,
+    PlannedComponent, PlannedPage, PlanTestLink, RetrievalResult, TextSlot, WorkTask,
 )
 
 HERO_HEADLINE = "home.hero.headline"
@@ -21,12 +21,17 @@ def section_id(page_id: str, feature_id: str) -> str:
 
 
 def tidy(site: SiteDesign) -> SiteDesign:
-    """Code fixes first: drop sections on pages that do not exist and a feature repeated on one page, keep
-    footer links to real pages (all pages when none are given), and put any page no one can reach into the
-    footer."""
+    """Code fixes first: Home is always at "/" and first, the menu is numbered in page order, drop sections on
+    pages that do not exist and a feature repeated on one page, keep footer links to real pages (all pages when
+    none are given), and put any page no one can reach into the footer."""
     site = site.model_copy(deep=True)
     for p in site.pages:
         p.page_id, p.route = p.page_id.strip().lower(), "/" + p.route.strip().strip("/").lower()
+        if p.page_id == "home":
+            p.route = "/"                     # the model sometimes writes "/home" and does not fix it when told
+    site.pages.sort(key=lambda p: p.page_id != "home")
+    for order, p in enumerate(p for p in site.pages if p.in_menu):
+        p.menu_order = order
     pages = {p.page_id for p in site.pages}
     seen, sections = set(), []
     for s in site.sections:
@@ -149,6 +154,76 @@ def _test_map(brief: ClarifiedBrief, plan: BuildPlan) -> list[PlanTestLink]:
     return links
 
 
+def complete_data(plan: BuildPlan) -> None:
+    """Code fixes for the data contract. Live runs left POST routes with no `used_by`, named sections by feature
+    id, left out form rules and dashboard views, and added routes nothing calls; all of this follows from the
+    sections, so code completes it instead of spending a fix round."""
+    by_key: dict[str, list[str]] = {}
+    for c in plan.components:
+        for key in (c.section_id, c.feature_id, c.component_id):
+            if key:
+                by_key.setdefault(key, []).append(c.section_id)
+
+    def resolve(keys: list[str]) -> list[str]:
+        return list(dict.fromkeys(s for k in keys for s in by_key.get(k, [])))
+
+    entities = {e.name: e for e in plan.data_entities}
+    feature_of = {c.section_id: c.feature_id for c in plan.components}
+
+    for r in plan.api_routes:
+        r.route_id, r.used_by = f"{r.method} {r.path}", resolve(r.used_by)
+    plan.api_routes = [r for r in plan.api_routes if r.entity in entities]   # a route must use a stored type
+    routes = {r.route_id: r for r in plan.api_routes}
+    by_path = {(r.method, r.path): r.route_id for r in plan.api_routes}
+    rules = []
+    for rule in plan.form_rules:
+        sections = resolve([rule.section_id])
+        method, _, path = rule.route_id.partition(" ")
+        rule.route_id = by_path.get((method, path), rule.route_id)
+        if sections and rule.route_id in routes:
+            rule.section_id = sections[0]
+            rules.append(rule)
+    plan.form_rules = rules
+
+    def entity_serves(r, sid):
+        return feature_of.get(sid) in entities[r.entity].feature_ids
+
+    for sid in form_sections(plan):
+        if any(r.section_id == sid for r in plan.form_rules):
+            continue
+        posts = [r for r in plan.api_routes if r.method == "POST"]
+        unclaimed = [r for r in posts if not r.used_by]
+        route = (next((r for r in posts if sid in r.used_by), None)
+                 or next((r for r in posts if entity_serves(r, sid)), None)
+                 or (unclaimed[0] if len(unclaimed) == 1 else None))
+        if route is None:
+            continue
+        if sid not in route.used_by:
+            route.used_by.append(sid)
+        required = {f.name for f in entities[route.entity].fields if f.required}
+        plan.form_rules.append(FormRule(section_id=sid, route_id=route.route_id,
+                                        required_fields=[f for f in route.request_fields if f in required]))
+    for sid in live_sections(plan):
+        if not any(sid in r.used_by for r in plan.api_routes):
+            route = next((r for r in plan.api_routes if r.method == "GET" and entity_serves(r, sid)), None)
+            if route:
+                route.used_by.append(sid)
+
+    plan.api_routes = [r for r in plan.api_routes if r.used_by]
+    used = {r.entity for r in plan.api_routes}
+    used |= {link for e in plan.data_entities if e.name in used for link in e.links}
+    plan.data_entities = [e for e in plan.data_entities if e.name in used]
+    plan.form_rules = [r for r in plan.form_rules if r.route_id in {x.route_id for x in plan.api_routes}]
+    kept = {e.name for e in plan.data_entities}
+    plan.dashboard_views = [v for v in plan.dashboard_views if v.entity in kept]
+    viewed = {v.entity for v in plan.dashboard_views}
+    plan.dashboard_views += [
+        DashboardView(entity=e.name, title=e.name.replace("_", " ").capitalize(),
+                      columns=[f.name.replace("_", " ").capitalize() for f in e.fields], statuses=["New", "Done"],
+                      default_status="New")
+        for e in plan.data_entities if e.name not in viewed and any(f.personal for f in e.fields)]
+
+
 def build_plan(brief: ClarifiedBrief, retrieval: RetrievalResult, site: SiteDesign, data: DataDesign | None,
                cat: Catalogue, old_texts: list[TextSlot] | None = None) -> BuildPlan:
     pages = [p.model_copy(deep=True) for p in site.pages]
@@ -167,6 +242,7 @@ def build_plan(brief: ClarifiedBrief, retrieval: RetrievalResult, site: SiteDesi
         not_built=[NotBuilt(asked=u.asked, reason=u.reason, alternative=u.alternative_text) for u in brief.unsupported],
         assumptions=[Assumption(text=u, reason="Chosen while planning the site") for u in site.unsure],
     )
+    complete_data(plan)
     entities = {e.name: e for e in plan.data_entities}
     routes = {r.route_id: r for r in plan.api_routes}
     slot_ids = {t.slot_id for t in plan.texts}

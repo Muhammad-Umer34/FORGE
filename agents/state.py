@@ -514,6 +514,7 @@ class PlanningState(BaseModel):
     site_design: Optional[dict[str, Any]] = None             # model output of the site design call, as fixed
     data_design: Optional[dict[str, Any]] = None             # model output of the data and API call
     before_change: Optional[dict[str, Any]] = None           # designs and plan before a user change, to undo it
+    before_fix: Optional[dict[str, Any]] = None              # designs, plan and issues before a fix round
     pending_change: Optional[str] = None                     # the user's change, waiting to be applied
     notice: Optional[str] = None                             # plain message for the approval screen
     failure: Optional[FailureInfo] = None

@@ -49,7 +49,9 @@ How to design:
   any detail about a person. links name other entities.
 - routes: route_id is "METHOD /api/path". Each route uses one entity, lists request_fields from that entity,
   the response_fields, plain validation rules, and used_by: the section ids that call it.
-- Every form section posts to exactly one route. Every section with live data gets a GET route.
+- used_by holds section ids exactly as given (e.g. "order.order-request"), never feature ids. Every form section
+  posts to exactly one POST route, and that route lists the form's section id in used_by. Every section with live
+  data gets a GET route that lists it. Do not add routes no section calls.
 - form_rules: one per form section, with its route, required fields and plain rules (e.g. "no two bookings for
   the same date and time").
 - dashboard_views: for each entity that stores visitor submissions, the columns the owner sees in the FORGE

@@ -313,13 +313,107 @@ def test_each_check_catches_its_fault(break_it, number):
     assert any(i.startswith(number) for i in _issues(brief, plan)), _issues(brief, plan)
 
 
+def test_code_puts_home_at_the_root_first_and_numbers_the_menu():
+    site = salon_site()
+    site.pages[0].route = "/home"                      # as a live run returned, twice, after being told
+    site.pages.reverse()
+    tidy = assemble.tidy(site)
+    assert [(p.page_id, p.route, p.menu_order) for p in tidy.pages] == [
+        ("home", "/", 0), ("contact", "/contact", 1), ("gallery", "/gallery", 2), ("booking", "/booking", 3)]
+    brief, plan = built_plan(site=site)
+    assert _issues(brief, plan) == []
+
+
+def _live_brief(business, features, pages, tests):
+    return ClarifiedBrief(status="ready", frozen_at=datetime.now(timezone.utc), business_type=business, goal="x",
+                          features=[feature(f, p) for f, p in features], pages=[{"name": n, "sections": []} for n in pages],
+                          theme=THEME, test_cases=[acceptance(f"T0{i}", ref) for i, ref in enumerate(tests, 1)])
+
+
+def _sections(*rows):
+    return [SectionOut(page_id=pg, feature_id=f, component_id=c) for pg, f, c in rows]
+
+
+def _person():
+    return [DataField(name="customer_name", type="text", personal=True), DataField(name="phone", type="phone", personal=True),
+            DataField(name="email", type="email", personal=True)]
+
+
+def test_the_live_bakery_design_passes_without_a_fix_round():
+    """req_ec38c1bbb3d4: the POST route had no used_by, no form rule or dashboard view, and an unused GET route."""
+    brief = _live_brief("bakery", [("menu-catalog", "must"), ("order-request", "must"), ("location-map", "must"),
+                                   ("about-story", "should"), ("contact-info", "should")],
+                        ["home", "about", "contact", "menu", "order"],
+                        ["menu-catalog", "order-request", "location-map", "order-request", "about-story", "contact-info"])
+    site = SiteDesign(pages=[page("home", "/", "Home"), page("menu", "/menu", "Menu"), page("order", "/order", "Order"),
+                             page("about", "/about", "About"), page("contact", "/contact", "Contact")],
+                      sections=_sections(("menu", "menu-catalog", "menu-catalog-grid"),
+                                         ("order", "order-request", "order-request-form"), ("about", "about-story", "about-us"),
+                                         ("contact", "location-map", "location-map"),
+                                         ("contact", "contact-info", "contact-info-block")))
+    data = DataDesign(
+        entities=[DataEntity(name="cake_items", fields=[DataField(name="name", type="text")]),
+                  DataEntity(name="order_requests", feature_ids=["order-request"],
+                             fields=_person() + [DataField(name="items", type="long_text")])],
+        routes=[ApiRoute(route_id="GET /api/menu", method="GET", path="/api/menu", entity="cake_items",
+                         used_by=["menu.menu-catalog"]),
+                ApiRoute(route_id="POST /api/orders", method="POST", path="/api/orders", entity="order_requests",
+                         request_fields=["customer_name", "phone", "email", "items"]),
+                ApiRoute(route_id="GET /api/orders", method="GET", path="/api/orders", entity="order_requests")])
+    _, plan = built_plan(brief, site, data)
+    assert _issues(brief, plan) == []
+    assert [(r.section_id, r.route_id, r.consent_required) for r in plan.form_rules] == [
+        ("order.order-request", "POST /api/orders", True)]
+    assert "GET /api/orders" not in {r.route_id for r in plan.api_routes}
+    assert [v.entity for v in plan.dashboard_views] == ["order_requests"]
+
+
+def test_the_live_salon_design_passes_without_a_fix_round():
+    """req_c89c88eead73: used_by held feature ids, the POST route had none, and a route used no stored type."""
+    brief = _live_brief("hair salon", [("booking", "must"), ("services-price-list", "must"),
+                                       ("services-overview", "should"), ("contact-info", "should")],
+                        ["home", "booking", "contact", "services"],
+                        ["booking", "services-price-list", "booking", "services-overview", "contact-info"])
+    site = SiteDesign(pages=[page("home", "/", "Home"), page("services", "/services", "Services"),
+                             page("booking", "/booking", "Book"), page("contact", "/contact", "Contact")],
+                      sections=_sections(("home", "services-overview", "features-grid"),
+                                         ("services", "services-price-list", "services-price-list"),
+                                         ("booking", "booking", "booking-form"), ("contact", "contact-info", "contact-info-block")))
+    data = DataDesign(
+        entities=[DataEntity(name="services", feature_ids=["services-price-list"], fields=[DataField(name="name", type="text")]),
+                  DataEntity(name="booking_requests", feature_ids=["booking"],
+                             fields=_person() + [DataField(name="date", type="date"), DataField(name="time", type="time")])],
+        routes=[ApiRoute(route_id="GET /api/services", method="GET", path="/api/services", entity="services",
+                         used_by=["services-price-list"]),
+                ApiRoute(route_id="POST /api/bookings", method="POST", path="/api/bookings", entity="booking_requests",
+                         request_fields=["customer_name", "phone", "email", "date", "time"]),
+                ApiRoute(route_id="GET /api/availability", method="GET", path="/api/availability",
+                         entity="booking_requests", used_by=["booking.booking"]),
+                ApiRoute(route_id="GET /api/contact", method="GET", path="/api/contact", used_by=["contact-info"])])
+    _, plan = built_plan(brief, site, data)
+    assert _issues(brief, plan) == []
+    routes = {r.route_id: r.used_by for r in plan.api_routes}
+    assert routes["GET /api/services"] == ["services.services-price-list"] and "GET /api/contact" not in routes
+    assert routes["POST /api/bookings"] == ["booking.booking"]
+
+
+def test_a_fix_that_makes_the_plan_worse_is_thrown_away(monkeypatch):
+    worse = PlanFix(site=salon_site(drop=("booking", "services-price-list", "gallery")), data=salon_data())
+    fake = FakeModel(site=salon_site(drop=("booking",)), fixes=[worse, PlanFix(site=salon_site(), data=salon_data())])
+    graph, config, result = run_graph(salon_brief(), fake, monkeypatch)
+    p = inner(graph, config)["planning"]
+    assert "__interrupt__" in result and p.fix_rounds_used == 2 and p.before_fix is None
+
+
 def test_a_must_feature_without_a_section_and_data_on_an_info_site_are_caught():
     brief, plan = built_plan(site=salon_site(drop=("booking",)))
     assert any(i.startswith("3:") for i in _issues(brief, plan))
     brief = info_brief()
     site = SiteDesign(pages=[page("home", "/", "Home")],
                       sections=[SectionOut(page_id="home", feature_id="services-overview", component_id="features-grid")])
-    _, plan = built_plan(brief, site, salon_data())
+    data = salon_data()
+    data.routes[1].used_by = ["home.services-overview"]    # a real section, but one that sends and shows nothing
+    _, plan = built_plan(brief, site, data)
     assert any(i.startswith("10:") for i in _issues(brief, plan))
 
 
