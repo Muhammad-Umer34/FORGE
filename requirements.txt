@@ -7,6 +7,7 @@ pydantic==2.13.4
 # LLM and agent orchestration
 langchain-core==1.6.9
 langchain-google-genai==4.3.7
+langchain-openai==1.7.0          # OpenRouter, which speaks the OpenAI API (D-218)
 langgraph==1.2.14
 
 # Tracing of every run and model call, optional: on when the LANGFUSE_* keys are set (D-215)

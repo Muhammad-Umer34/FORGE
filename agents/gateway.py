@@ -4,7 +4,7 @@ Minimal LLM gateway (decisions D-128, D-138). Every model call made by an agent 
 call_structured(), so agents contain no provider code. The gateway:
   * picks the model for a task from the environment (the single FORGE-1/.env),
   * sends every call to one provider: Vertex AI (Google Cloud, uses the project's credits) or the
-    Google AI Studio API, chosen by LLM_PROVIDER (D-184),
+    Google AI Studio API, or OpenRouter (many makers' models, D-218), chosen by LLM_PROVIDER (D-184),
   * asks for structured output that matches a Pydantic schema,
   * retries an invalid output once, sending the parse error back to the model,
   * retries transient provider errors (HTTP 429/5xx, timeouts) with backoff, then tries
@@ -15,6 +15,7 @@ call_structured(), so agents contain no provider code. The gateway:
 The per-call LLM_CALL database record is written later by the API layer (D-133).
 """
 import os
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -44,6 +45,12 @@ PRICES = {
     "gemini-2.5-pro": (1.25, 10.00),
     "gemini-3.8-flash": (0.75, 3.75),          # introductory price until 2026-12-31
     "gemini-3.1-flash-lite": (0.75, 3.75),     # not listed: priced as Flash so the estimate is never low
+    # OpenRouter (openrouter.ai/api/v1/models, 2026-11-13), D-218
+    "openai/gpt-6-luna": (0.10, 0.50),
+    "xiaomi/mimo-v2.6-pro": (0.435, 0.87),
+    "deepseek/deepseek-v4.1-flash": (0.30, 1.20),
+    "z-ai/glm-5.3-flash": (0.04, 0.078),
+    "deepseek/deepseek-v4-flash-0731": (0.043, 0.30),
 }
 _UNKNOWN_PRICE = PRICES["gemini-2.5-pro"]     # an unlisted model is priced like the dearest one
 
@@ -87,11 +94,11 @@ def model_for(task: str) -> str:
 
 
 def provider() -> str:
-    """'vertex' or 'studio'. LLM_PROVIDER decides; if it is not set, Vertex AI is used whenever
+    """'vertex', 'studio' or 'openrouter' (D-218). LLM_PROVIDER decides; if it is not set, Vertex AI is used whenever
     VERTEX_API_KEY exists. Primary and fallback model always use the same provider, so all spending
     lands on one bill (D-184)."""
     chosen = os.getenv("LLM_PROVIDER", "").strip().lower()
-    if chosen in ("vertex", "studio"):
+    if chosen in ("vertex", "studio", "openrouter"):
         return chosen
     return "vertex" if os.getenv("VERTEX_API_KEY") else "studio"
 
@@ -99,10 +106,17 @@ def provider() -> str:
 # The Google SDK reads these two by itself and, in Vertex mode, prefers them over the key we pass,
 # so the AI Studio key is stored as STUDIO_API_KEY instead (D-184).
 _SDK_KEY_VARIABLES = ("GOOGLE_API_KEY", "GEMINI_API_KEY")
+# Clients are built one at a time: in Vertex mode the Google SDK puts the key in GOOGLE_API_KEY while it builds a
+# client, and a check running in another thread at that moment would refuse (seen in the first parallel eval run).
+_CLIENT_LOCK = threading.Lock()
+
+
+_KEY_VARIABLE = {"vertex": "VERTEX_API_KEY", "studio": "STUDIO_API_KEY", "openrouter": "OPENROUTER_API_KEY"}
+OPENROUTER_URL = "https://openrouter.ai/api/v1"
 
 
 def api_key() -> str:
-    return os.getenv("VERTEX_API_KEY" if provider() == "vertex" else "STUDIO_API_KEY", "")
+    return os.getenv(_KEY_VARIABLE[provider()], "")
 
 
 def _check_vertex_environment() -> None:
@@ -130,13 +144,35 @@ def _is_transient(error: Exception) -> bool:
 
 
 def _llm(model: str):
+    if provider() == "openrouter":
+        return _openrouter_client(model)
+    # Vertex AI with an API key bound to the project ("express mode"): the key carries the project,
+    # and project/location would require a service-account login instead of a key.
+    with _CLIENT_LOCK:   # the Google SDK sets GOOGLE_API_KEY for a moment while it builds a Vertex client
+        if provider() == "vertex":
+            _check_vertex_environment()
+        return _google_client(model)
+
+
+def _openrouter_client(model: str):
+    """OpenRouter speaks the OpenAI API, so the OpenAI LangChain client is used with OpenRouter's address (D-218).
+    Model ids carry the maker, e.g. "xiaomi/mimo-v2.6-pro"."""
+    from langchain_openai import ChatOpenAI   # imported here: only needed when OpenRouter is the provider
+
+    return ChatOpenAI(
+        model=model,
+        api_key=api_key(),
+        base_url=OPENROUTER_URL,
+        temperature=0,          # extraction should be repeatable (D-127)
+        max_retries=0,          # retries are handled here
+        timeout=60,
+    )
+
+
+def _google_client(model: str):
     # Imported here so modules that never call a model (and unit tests) do not need the provider package.
     from langchain_google_genai import ChatGoogleGenerativeAI
 
-    if provider() == "vertex":
-        _check_vertex_environment()
-    # Vertex AI with an API key bound to the project ("express mode"): the key carries the project,
-    # and project/location would require a service-account login instead of a key.
     return ChatGoogleGenerativeAI(
         model=model,
         google_api_key=api_key(),

@@ -6,6 +6,46 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-13 · Evaluation baseline and OpenRouter comparison
+
+**What**
+- Langfuse connected (keys in `.env`); every evaluation run is traced with the tags `eval`, the provider, the brief id
+  and its group.
+- **Bug found by the first baseline run**: 71 of 72 runs failed at once with "GOOGLE_API_KEY is set". The Google SDK
+  puts the key in `GOOGLE_API_KEY` for a moment while it builds a Vertex client; with 3 runs in parallel, another
+  thread's safety check saw it. Clients are now built one at a time (`gateway._CLIENT_LOCK`); the studio would have hit
+  the same failure with two users at once. Test: 40 clients built from 8 threads.
+- **OpenRouter in the gateway** → **D-218**: `LLM_PROVIDER=openrouter`, `OPENROUTER_API_KEY`, `langchain-openai==1.7.0`,
+  prices of the 5 allowed models (from openrouter.ai, 2026-11-13). All 4 tried models return valid structured output.
+- **Baseline and comparison**, 24 briefs x 3 runs per provider:
+
+| 72 runs each (24 briefs x 3) | Gemini: 2.5 Pro (planning) + 3.8 Flash (clarification) | OpenRouter: MiMo v2.6 Pro (planning) + GPT-6 Luna (clarification) |
+|---|---|---|
+| Correct outcome | 93.1% | 93.1% |
+| Valid plans (briefs that should plan) | 92.4% | 92.4% |
+| Must-feature coverage | 92.0% | 89.9% |
+| Fix rounds per run | 0 | 0.28 |
+| Model calls per run | 7.8 | 5.1 |
+| Cost per run (total) | $0.027 ($1.97) | $0.009 ($0.68) |
+| Time per run | 47 s | 134 s (booking briefs 420 s) |
+| Failures | 5, all the hero relevance rule (check 7) | dropped must sections (check 3), data links written as `x_id -> table` (check 9), a button rule misfire, one reply cut at 131k tokens |
+
+**Why** Phase 1 asked for baseline numbers; the OpenRouter key offered cheaper models, so both were measured on the
+same set before choosing.
+
+**Decision** Gemini stays the default (D-218); OpenRouter is one `.env` change away.
+
+**Checked** 2 new gateway tests (OpenRouter client; parallel Vertex clients); full suite passes except the 61
+database tests (test database down). Results: `scripts/runs/eval_20261113_130210.json` (Gemini) and
+`scripts/runs/eval_openrouter_20261113_133943.json` (gitignored).
+
+**Open**
+- New issues from the runs: KI-20 (hero relevance rule, every Gemini failure), KI-21 (`cta_body` read as a button),
+  KI-22 (link format), KI-23 (no output-token limit).
+- The OpenRouter key expires on 2026-12-05.
+
+---
+
 ## 2026-11-13 · Phase 1: make runs visible and measurable
 
 **What** Phase 1 of the roadmap in `D:/FYP/reports/FORGE architecture lessons from peers.md`.

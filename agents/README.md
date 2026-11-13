@@ -12,7 +12,8 @@ One website request is one LangGraph run (`orchestrator/graph.py`), saved step b
 3. **Planning** (`planning/`, D-204): designs the whole site on paper and pauses for the user's approval.
 4. The run stops at `GENERATING` until the builder agents exist.
 
-Every model call goes through `gateway.py`; agents never write to the database (D-133).
+Every model call goes through `gateway.py`; agents never write to the database (D-133). `LLM_PROVIDER` picks
+Vertex AI (default), AI Studio or OpenRouter (D-218); the models per task are set in `.env`.
 
 ## Watching and measuring runs (Phase 1)
 

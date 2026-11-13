@@ -17,6 +17,7 @@ class Settings:
     # The choice itself lives in agents/gateway.py; these are read here only to check the setup at start.
     STUDIO_API_KEY: str = os.getenv("STUDIO_API_KEY", "")   # not GEMINI_API_KEY: see agents/gateway.py
     VERTEX_API_KEY: str = os.getenv("VERTEX_API_KEY", "")
+    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")   # LLM_PROVIDER=openrouter (D-218)
     CLARIFICATION_MODEL: str = os.getenv("CLARIFICATION_MODEL", "gemini-3.8-flash")
     FALLBACK_MODEL: str = os.getenv("FALLBACK_MODEL", "gemini-3.1-flash-lite")
 
@@ -78,5 +79,6 @@ class Settings:
 
 settings = Settings()
 
-if not (settings.VERTEX_API_KEY or settings.STUDIO_API_KEY):
-    raise ValueError("No model key: set VERTEX_API_KEY (Vertex AI) or STUDIO_API_KEY (AI Studio) in FORGE-1/.env.")
+if not (settings.VERTEX_API_KEY or settings.STUDIO_API_KEY or settings.OPENROUTER_API_KEY):
+    raise ValueError("No model key: set VERTEX_API_KEY (Vertex AI), STUDIO_API_KEY (AI Studio) or OPENROUTER_API_KEY "
+                     "(OpenRouter) in FORGE-1/.env.")

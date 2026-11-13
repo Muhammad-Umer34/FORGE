@@ -32,6 +32,10 @@ Retr = Context Retrieval.
 | KI-17 | `LocationMap` and `VideoSection` embed any host (no allowlist, no sandbox) | Components | Low-Medium (security) | Open |
 | KI-18 | Small tidy-ups: `ConfirmationState.decision` lacks `theme_source`; `repairs_used` not reset after edit; unused custom specs count toward the limit; routes keep spaces; `SettingOut.value` only accepts strings; dead `VectorSearcher` | Several | Low | Open |
 | KI-19 | The worse-fix guard (D-211) compares only the number of problems, so a fix that swaps one failure for a different one is accepted; it should require strict improvement and no newly failing check | Plan | Medium | Fixed, see below |
+| KI-20 | The hero relevance rule fails good headlines: no stemming ("classes" is cut to "clas"), and vague briefs give few business words; all 5 Gemini baseline failures (vague-02 x3, scope-03, personal-03) | Plan | High | Open |
+| KI-21 | Any text input whose name contains "cta" is treated as a button, so a paragraph such as `cta_body` fails "a button must start with a verb" (`texts.is_button`) | Plan | Medium | Open |
+| KI-22 | Data links written as `service_id -> services` (MiMo) are not reduced to the entity name, so check 9 fails every fix round; code could normalise them | Plan | Medium | Open |
+| KI-23 | No limit on output tokens: one OpenRouter reply ran to 131,072 tokens and failed; set a maximum per task in the gateway | Gateway | Medium | Open |
 
 ## Scope limits
 

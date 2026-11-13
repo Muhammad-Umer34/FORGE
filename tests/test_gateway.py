@@ -6,7 +6,7 @@ from agents import gateway
 
 @pytest.fixture
 def env(monkeypatch):
-    for name in ("LLM_PROVIDER", "VERTEX_API_KEY", "STUDIO_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
+    for name in ("LLM_PROVIDER", "VERTEX_API_KEY", "STUDIO_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENROUTER_API_KEY"):
         monkeypatch.delenv(name, raising=False)
     return monkeypatch
 
@@ -123,3 +123,26 @@ def test_tracing_groups_a_run_under_its_request(monkeypatch):
     assert config["configurable"] == {"thread_id": "req_1"}
     assert len(config["callbacks"]) == 1
     assert config["metadata"] == {"langfuse_session_id": "req_1", "langfuse_tags": ["eval"]}
+
+
+# ---------------------------------------------------------------- OpenRouter (D-218) and parallel clients
+def test_openrouter_client_uses_its_key_and_address(env):
+    env.setenv("VERTEX_API_KEY", "vertex-key")
+    env.setenv("OPENROUTER_API_KEY", "or-key")
+    env.setenv("LLM_PROVIDER", "openrouter")
+    client = gateway._llm("xiaomi/mimo-v2.6-pro")
+    assert gateway.api_key() == "or-key"
+    assert client.model_name == "xiaomi/mimo-v2.6-pro"
+    assert client.openai_api_base == gateway.OPENROUTER_URL
+    assert client.openai_api_key.get_secret_value() == "or-key"
+
+
+def test_vertex_clients_can_be_built_in_parallel(env):
+    """The Google SDK sets GOOGLE_API_KEY for a moment while building a Vertex client; the first parallel eval run
+    failed 71 of 72 runs because another thread's check saw it."""
+    from concurrent.futures import ThreadPoolExecutor
+    env.setenv("VERTEX_API_KEY", "vertex-key")
+    with ThreadPoolExecutor(8) as pool:
+        clients = list(pool.map(lambda _: gateway._llm("gemini-3.8-flash"), range(40)))
+    assert len(clients) == 40
+

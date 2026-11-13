@@ -30,6 +30,7 @@ from langgraph.types import Command  # noqa: E402
 from agents import tracing  # noqa: E402
 from agents.clarification import slots  # noqa: E402
 from agents.clarification.schemas import UserAnswer  # noqa: E402
+from agents.gateway import provider  # noqa: E402
 from agents.orchestrator import build_forge_graph  # noqa: E402
 from agents.state import Question, RequestInfo, initial_state, msgpack_allowlist  # noqa: E402
 from backend.routes.requests import _run_config  # noqa: E402  the same run settings the API uses
@@ -118,7 +119,7 @@ def measure(brief: dict, values: dict, seconds: float, error: str | None) -> dic
 
 async def run_one(graph, brief: dict, n: int) -> dict:
     request_id = f"eval_{brief['id']}_{n}_{uuid.uuid4().hex[:6]}"
-    config = tracing.run_config(request_id, ("eval", brief["id"], brief["group"]))
+    config = tracing.run_config(request_id, ("eval", provider(), brief["id"], brief["group"]))
     graph_input = initial_state(
         RequestInfo(request_id=request_id, user_id="eval", project_id="eval", prompt=brief["prompt"],
                     created_at=datetime.now(timezone.utc)),
@@ -194,7 +195,7 @@ async def main() -> None:
     result = {"at": datetime.now(timezone.utc).isoformat(), "runs_per_brief": args.runs,
               "models": _run_config().model_per_task, "summary": summary(list(rows)), "rows": list(rows)}
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    out = OUTPUT_DIR / f"eval_{datetime.now():%Y%m%d_%H%M%S}.json"
+    out = OUTPUT_DIR / f"eval_{provider()}_{datetime.now():%Y%m%d_%H%M%S}.json"
     out.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
     print("\nSUMMARY")
     print(json.dumps(result["summary"], indent=2))
