@@ -34,7 +34,10 @@ def after_clarification(state: GraphState) -> dict:
 
 def retrieval(state: GraphState) -> dict:
     """Context Retrieval (D-203): code only, so it is a plain node."""
+    usage = state.get("usage")
+    spent = usage.estimated_cost_usd if usage else 0.0
     return {"retrieval": rank_and_retrieve_components(state["brief"]),
+            "planning": state["planning"].model_copy(update={"spent_before_usd": spent}),   # for the budget (D-216)
             **_set_stage(state, Stage.PLANNING, "")}
 
 

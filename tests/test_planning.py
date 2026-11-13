@@ -126,7 +126,7 @@ class FakeModel:
         self.answers = {SiteDesign: [site or salon_site()], DataDesign: [data or salon_data()], PlanFix: list(fixes)}
         self.texts_fn, self.calls = texts_fn, []
 
-    def __call__(self, task, schema, system, user):
+    def __call__(self, task, schema, system, user, budget_usd=None):
         self.calls.append((task, schema.__name__))
         if schema is SiteTexts:
             return self.texts_fn(user), CallUsage(calls=1)
@@ -178,7 +178,7 @@ def any_brief_planner(heroes: tuple[str, ...]) -> FakeModel:
     builders = {SiteDesign: site, DataDesign: data}
     plain = fake.__call__
 
-    def call(task, schema, system, user):
+    def call(task, schema, system, user, budget_usd=None):
         if schema in builders:
             fake.calls.append((task, schema.__name__))
             return builders[schema](user), CallUsage(calls=1)
@@ -562,3 +562,28 @@ def test_a_missing_required_text_goes_to_the_rewrite_round():         # KI-03
 ])
 def test_a_fix_is_kept_only_when_it_strictly_helps(before, after, kept):
     assert nodes.fix_helped(before, after) is kept
+
+
+def test_planning_ends_cleanly_when_the_run_budget_is_spent(monkeypatch):     # D-216
+    from agents.gateway import SPENDING_LIMIT, SPENDING_LIMIT_MESSAGE, BudgetExceededError
+    from agents.orchestrator.graph import retrieval
+    from agents.state import UsageSummary
+
+    def refuse(task, schema, system, user, budget_usd=None):
+        assert budget_usd is not None and budget_usd <= 0
+        raise BudgetExceededError(SPENDING_LIMIT)
+
+    monkeypatch.setattr(nodes, "call_structured", refuse)
+    builder = StateGraph(GraphState)
+    builder.add_node("planning", build_planning_graph())
+    builder.add_edge(START, "planning")
+    graph = builder.compile(checkpointer=InMemorySaver())
+    brief = salon_brief()
+    state = initial_state(RequestInfo(request_id="r", user_id="u", project_id="p", prompt="x",
+                                      created_at=datetime.now(timezone.utc)))
+    state.update(brief=brief, usage=UsageSummary(estimated_cost_usd=state["run_config"].limits.max_run_cost_usd))
+    state.update(retrieval(state))           # hands Planning what Clarification spent
+    assert state["planning"].spent_before_usd == state["run_config"].limits.max_run_cost_usd
+    result = graph.invoke(state, {"configurable": {"thread_id": "t"}})
+    assert result["planning"].status == "failed"
+    assert result["planning"].failure.message == SPENDING_LIMIT_MESSAGE

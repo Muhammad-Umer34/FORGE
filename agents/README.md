@@ -14,6 +14,19 @@ One website request is one LangGraph run (`orchestrator/graph.py`), saved step b
 
 Every model call goes through `gateway.py`; agents never write to the database (D-133).
 
+## Watching and measuring runs (Phase 1)
+
+- **Tracing** (`tracing.py`, D-215): when `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set in `.env`
+  (`LANGFUSE_BASE_URL` picks Langfuse Cloud or a self-hosted server), every step and model call of a run is sent to
+  Langfuse, grouped by request id (one session per request). Without the keys nothing changes.
+- **Cost and budget** (`gateway.py`, D-216): each call's cost comes from the price table `PRICES` (USD per 1M tokens,
+  checked 2026-11-13); the run total is `usage.estimated_cost_usd`. Before every call the gateway refuses once the run
+  has spent `Limits.max_run_cost_usd` ($1.00, placeholder), and the run ends as failed with a plain message.
+- **Evaluation set** (`scripts/eval_briefs.json`, `scripts/run_eval.py`, D-217): 24 fixed briefs in 8 groups, each
+  with the expected outcome, the features the plan must and must not contain, and the answer key of a strict
+  simulated owner. `run_eval.py` runs them (3 times each by default) and reports correct outcomes, valid plans,
+  feature coverage, questions, calls, fix rounds, failed checks, cost and time.
+
 ## Planning Agent (`planning/`)
 
 | Module | What it does |

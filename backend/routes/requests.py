@@ -21,7 +21,7 @@ from fastapi.concurrency import run_in_threadpool
 from langgraph.types import Command
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from agents import logo_colours
+from agents import logo_colours, tracing
 
 from agents.catalogue import load_catalogue
 from agents.clarification import slots
@@ -113,7 +113,7 @@ async def _run(http: Request, request_id: str, graph_input) -> RequestEnvelope:
     """Run the graph until it waits for the user or ends. Callers hold `one_step_at_a_time`."""
     graph = http.app.state.forge_graph
     try:   # "sync": each step is saved before the next one starts, so a crash loses at most the current step
-        await graph.ainvoke(graph_input, _config(request_id), durability="sync")
+        await graph.ainvoke(graph_input, tracing.run_config(request_id, ("studio",)), durability="sync")
     except Exception as error:   # a bug or an outage, never the user's fault
         logger.exception("Run %s stopped", request_id)
         state, _ = await service.run_state(graph, request_id, count_running=False)

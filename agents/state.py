@@ -504,6 +504,7 @@ class BuildPlan(BaseModel):
 
 class PlanningState(BaseModel):
     """Working data of the Planning Agent. No other agent reads this."""
+    spent_before_usd: float = 0.0              # what the run had spent when planning started (D-216)
     status: Literal["idle", "drafting", "checking", "writing_text", "awaiting_approval", "changing", "done",
                     "failed", "cancelled"] = "idle"
     calls_used: int = 0                        # model calls, checked against the planning limits
@@ -600,6 +601,7 @@ class Limits(BaseModel):
     max_text_rewrites: int = 1                 # rewrite round for website text that fails the pitch rules
     max_data_entities: int = 6                 # size caps on the generated backend (plan v2 §4)
     max_api_routes: int = 10
+    max_run_cost_usd: float = 1.00             # PLACEHOLDER: spending cap per run, checked before each call (D-216)
 
 
 class ErrorRecord(BaseModel):
@@ -661,6 +663,16 @@ class UsageSummary(BaseModel):
 def merge_dict(old: dict, new: dict) -> dict:
     """Parallel branches write different keys, so merge them."""
     return {**(old or {}), **(new or {})}
+
+
+def budget_left(state, spent_before_usd: float = 0.0) -> float:
+    """What the run may still spend. `usage` is the run's total in the Orchestrator and Clarification, but only
+    Planning's own calls inside the planning subgraph (it does not receive the run total, FX-01), so Planning
+    passes what was spent before it started. Calls inside one step are added after the step, so a step can pass
+    the cap by its own calls. shortcut: at most one step's calls over the cap; track per call if that matters."""
+    usage = state.get("usage")
+    spent = spent_before_usd + (usage.estimated_cost_usd if usage else 0.0)
+    return state["run_config"].limits.max_run_cost_usd - spent
 
 
 def sum_usage(old: Optional[UsageSummary], new: Optional[UsageSummary]) -> UsageSummary:
@@ -903,3 +915,5 @@ def msgpack_allowlist() -> list[tuple[str, str]]:
 # ---------------------------------------------------------------- Phase 0 fixes (2026-11-13)
 # 1. Limits: max_pages and max_test_cases removed; every in-scope page and test is built (D-212).
 #    Saved runs still load: pydantic ignores the two old fields.
+# 2. Limits.max_run_cost_usd; UsageSummary.estimated_cost_usd is now filled by the gateway (D-216);
+#    PlanningState.spent_before_usd, set by the retrieval step. New fields with defaults: saved runs still load.

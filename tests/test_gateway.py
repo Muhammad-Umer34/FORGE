@@ -61,3 +61,65 @@ def test_vertex_client_uses_the_vertex_key(env):
     client = gateway._llm("gemini-3.1-flash-lite")
     assert client.client._api_client.vertexai is True
     assert client.client._api_client.api_key == "vertex-key"  # what the SDK really sends
+
+
+# ---------------------------------------------------------------- cost and budget (D-216)
+def test_cost_uses_the_price_table_and_prices_unknown_models_high():
+    assert gateway.cost_of("gemini-2.5-pro", 1_000_000, 100_000) == pytest.approx(1.25 + 1.00)
+    assert gateway.cost_of("gemini-3.8-flash", 2_000, 1_000) == pytest.approx((2_000 * 0.75 + 1_000 * 3.75) / 1e6)
+    assert gateway.cost_of("some-new-model", 1_000_000, 0) == gateway.cost_of("gemini-2.5-pro", 1_000_000, 0)
+
+
+class _Reply:
+    usage_metadata = {"input_tokens": 10_000, "output_tokens": 2_000}
+
+
+class _FakeLLM:
+    def with_structured_output(self, schema, include_raw):
+        return self
+
+    def invoke(self, messages):
+        return {"raw": _Reply(), "parsed": "ok", "parsing_error": None}
+
+
+def test_each_call_adds_its_cost(monkeypatch):
+    monkeypatch.setattr(gateway, "_llm", lambda model: _FakeLLM())
+    monkeypatch.setattr(gateway, "model_for", lambda task: "gemini-2.5-pro")
+    result, usage = gateway.call_structured("planning", object, "s", "u", budget_usd=0.5)
+    assert result == "ok" and usage.cost_usd == pytest.approx((10_000 * 1.25 + 2_000 * 10.0) / 1e6)
+
+
+@pytest.mark.parametrize("budget", [0.0, -0.01])
+def test_no_call_is_made_once_the_budget_is_spent(monkeypatch, budget):
+    monkeypatch.setattr(gateway, "_llm", lambda model: pytest.fail("the model must not be called"))
+    with pytest.raises(gateway.BudgetExceededError):
+        gateway.call_structured("planning", object, "s", "u", budget_usd=budget)
+
+
+def test_budget_left_is_the_cap_minus_what_the_run_spent():
+    from datetime import datetime, timezone
+    from agents.state import RequestInfo, UsageSummary, budget_left, initial_state
+    state = initial_state(RequestInfo(request_id="r", user_id="u", project_id="p", prompt="x",
+                                      created_at=datetime.now(timezone.utc)))
+    assert budget_left(state) == state["run_config"].limits.max_run_cost_usd
+    state["usage"] = UsageSummary(estimated_cost_usd=0.4)
+    assert budget_left(state) == pytest.approx(state["run_config"].limits.max_run_cost_usd - 0.4)
+
+
+# ---------------------------------------------------------------- tracing (D-215)
+def test_tracing_is_off_without_keys(monkeypatch):
+    from agents import tracing
+    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
+    monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
+    assert tracing.run_config("req_1") == {"configurable": {"thread_id": "req_1"}}
+
+
+def test_tracing_groups_a_run_under_its_request(monkeypatch):
+    from agents import tracing
+    monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
+    monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
+    monkeypatch.setenv("LANGFUSE_TRACING_ENABLED", "false")      # build the handler, send nothing
+    config = tracing.run_config("req_1", ("eval",))
+    assert config["configurable"] == {"thread_id": "req_1"}
+    assert len(config["callbacks"]) == 1
+    assert config["metadata"] == {"langfuse_session_id": "req_1", "langfuse_tags": ["eval"]}

@@ -9,10 +9,10 @@ call_structured(), so agents contain no provider code. The gateway:
   * retries an invalid output once, sending the parse error back to the model,
   * retries transient provider errors (HTTP 429/5xx, timeouts) with backoff, then tries
     the fallback model once (D-121, D-140),
-  * returns the usage of the call (tokens, latency) for the run's usage totals.
+  * returns the usage of the call (tokens, latency, estimated cost) for the run's usage totals,
+  * refuses a call once the run has spent its budget (D-216).
 
 The per-call LLM_CALL database record is written later by the API layer (D-133).
-Cost is not estimated yet: MODEL_CONFIG prices are not set up.
 """
 import os
 import time
@@ -38,6 +38,15 @@ _DEFAULT_MODEL = "gemini-3.8-flash"
 _TRANSIENT_CODES = {408, 429, 500, 502, 503, 504}
 _BACKOFF_SECONDS = (1.0, 3.0)          # PLACEHOLDER: waits before the 2nd and 3rd attempt
 
+# USD per 1M tokens (input, output), Vertex AI, prompts under 200k tokens. Checked 2026-11-13 on
+# cloud.google.com/vertex-ai/generative-ai/pricing (D-216). Update when a model or price changes.
+PRICES = {
+    "gemini-2.5-pro": (1.25, 10.00),
+    "gemini-3.8-flash": (0.75, 3.75),          # introductory price until 2026-12-31
+    "gemini-3.1-flash-lite": (0.75, 3.75),     # not listed: priced as Flash so the estimate is never low
+}
+_UNKNOWN_PRICE = PRICES["gemini-2.5-pro"]     # an unlisted model is priced like the dearest one
+
 
 class ModelCallError(Exception):
     """The call failed for good. Nodes turn this into a FAILED run with category 'system'."""
@@ -47,6 +56,16 @@ class InvalidOutputError(ModelCallError):
     """The model returned output that does not match the schema, twice."""
 
 
+SPENDING_LIMIT = "the run reached its spending limit"
+SPENDING_LIMIT_MESSAGE = ("This request used up its AI budget before it finished. Please start again with a "
+                          "shorter description.")
+
+
+class BudgetExceededError(InvalidOutputError):
+    """The run has spent its budget. Steps handle it like output that failed twice: the run ends as failed
+    (not paused), because continuing it would only hit the same limit again (D-216)."""
+
+
 @dataclass
 class CallUsage:
     calls: int = 0
@@ -54,7 +73,13 @@ class CallUsage:
     completion_tokens: int = 0
     unknown_token_calls: int = 0
     latency_ms: int = 0
+    cost_usd: float = 0.0
     models: list[str] = field(default_factory=list)
+
+
+def cost_of(model: str, prompt_tokens: int, completion_tokens: int) -> float:
+    price_in, price_out = PRICES.get(model, _UNKNOWN_PRICE)
+    return (prompt_tokens * price_in + completion_tokens * price_out) / 1_000_000
 
 
 def model_for(task: str) -> str:
@@ -132,8 +157,10 @@ def _invoke_once(model: str, schema: type[T], messages: list, usage: CallUsage) 
         usage.models.append(model)
     meta = getattr(result.get("raw"), "usage_metadata", None) or {}
     if meta:
-        usage.prompt_tokens += int(meta.get("input_tokens") or 0)
-        usage.completion_tokens += int(meta.get("output_tokens") or 0)
+        tokens_in, tokens_out = int(meta.get("input_tokens") or 0), int(meta.get("output_tokens") or 0)
+        usage.prompt_tokens += tokens_in
+        usage.completion_tokens += tokens_out
+        usage.cost_usd += cost_of(model, tokens_in, tokens_out)
     else:
         usage.unknown_token_calls += 1
     return result
@@ -164,11 +191,15 @@ def _invoke_with_retries(schema: type[T], messages: list, task: str, usage: Call
     raise ModelCallError(f"{type(last_error).__name__}: {last_error}") from last_error
 
 
-def call_structured(task: str, schema: type[T], system: str, user: str) -> tuple[T, CallUsage]:
+def call_structured(task: str, schema: type[T], system: str, user: str,
+                    budget_usd: float | None = None) -> tuple[T, CallUsage]:
     """
-    Ask the model for output matching `schema`. Raises ModelCallError (provider failure) or
-    InvalidOutputError (schema not met after one corrective retry).
+    Ask the model for output matching `schema`. Raises ModelCallError (provider failure),
+    InvalidOutputError (schema not met after one corrective retry) or BudgetExceededError (`budget_usd`,
+    what the run may still spend, is used up).
     """
+    if budget_usd is not None and budget_usd <= 0:
+        raise BudgetExceededError(SPENDING_LIMIT)
     usage = CallUsage()
     messages = [SystemMessage(content=system), HumanMessage(content=user)]
     result = _invoke_with_retries(schema, messages, task, usage)

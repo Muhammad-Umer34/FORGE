@@ -25,6 +25,7 @@ from pydantic import BaseModel, ValidationError  # noqa: E402
 
 from agents.clarification import slots  # noqa: E402
 from agents.clarification.schemas import ConfirmationDecision, UserAnswer  # noqa: E402
+from agents import tracing  # noqa: E402
 from agents.orchestrator import build_forge_graph  # noqa: E402
 from agents.state import Question, RequestInfo, initial_state, msgpack_allowlist  # noqa: E402
 from backend.routes.requests import _run_config  # noqa: E402  the same run settings the API uses
@@ -130,7 +131,7 @@ async def main() -> None:
     request_id = f"req_local_{uuid.uuid4().hex[:8]}"
     saver = InMemorySaver(serde=JsonPlusSerializer(allowed_msgpack_modules=msgpack_allowlist()))
     graph = build_forge_graph().compile(checkpointer=saver)
-    config = {"configurable": {"thread_id": request_id}}
+    config = tracing.run_config(request_id, ("script",))
 
     graph_input = initial_state(
         RequestInfo(request_id=request_id, user_id="local-dev", project_id="local-dev", prompt=prompt,
@@ -148,6 +149,7 @@ async def main() -> None:
         answer = ask(payload)
         graph_input = Command(resume=answer)
 
+    tracing.flush()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     out = OUTPUT_DIR / f"{request_id}.json"
     out.write_text(json.dumps(to_json(snapshot.values), indent=2, ensure_ascii=False), encoding="utf-8")

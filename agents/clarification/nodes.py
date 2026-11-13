@@ -20,10 +20,12 @@ from agents.clarification.schemas import (
     IntakeOutput, GeneratedTests, UserAnswer,
 )
 from agents import reference_style, theming
-from agents.gateway import CallUsage, InvalidOutputError, ModelCallError, call_structured
+from agents.gateway import (
+    SPENDING_LIMIT, SPENDING_LIMIT_MESSAGE, CallUsage, InvalidOutputError, ModelCallError, call_structured,
+)
 from agents.state import (
     BriefCheck, ClarificationState, ClarifiedBrief, FailureInfo, GraphState, Limits,
-    UsageSummary, can_freeze, sum_usage,
+    UsageSummary, budget_left, can_freeze, sum_usage,
 )
 
 TASK = "clarification"
@@ -42,7 +44,7 @@ def _ctx(state: GraphState) -> tuple[ClarificationState, Limits, Catalogue]:
 
 def _fail(c: ClarificationState, node: str, category: str, detail: str | None = None,
           missing: list[str] | None = None) -> ClarificationState:
-    message = FAILURE_MESSAGES[category]
+    message = SPENDING_LIMIT_MESSAGE if detail == SPENDING_LIMIT else FAILURE_MESSAGES[category]
     if missing:
         message += " Please start again and include: " + "; ".join(missing) + "."
     c.failure = FailureInfo(node=node, category=category, message=message, detail=detail,
@@ -51,14 +53,14 @@ def _fail(c: ClarificationState, node: str, category: str, detail: str | None = 
     return c
 
 
-def _call(c: ClarificationState, schema, system: str, user: str) -> tuple[Any, UsageSummary]:
+def _call(state: GraphState, c: ClarificationState, schema, system: str, user: str) -> tuple[Any, UsageSummary]:
     """One gateway call; counts it against the budget even when it fails. If the model cannot be reached at all,
     the ModelCallError is not caught by the steps: the run stops before the step, its checkpoint stays, and the
     user can continue it later (persistence plan). Output the model got wrong twice (InvalidOutputError) is
     handled by each step."""
     usage = CallUsage()
     try:
-        result, usage = call_structured(TASK, schema, system, user)
+        result, usage = call_structured(TASK, schema, system, user, budget_left(state))
         return result, _summary(usage)
     finally:
         c.calls_used += max(usage.calls, 1)
@@ -66,7 +68,8 @@ def _call(c: ClarificationState, schema, system: str, user: str) -> tuple[Any, U
 
 def _summary(u: CallUsage) -> UsageSummary:
     return UsageSummary(calls=u.calls, prompt_tokens=u.prompt_tokens, completion_tokens=u.completion_tokens,
-                        unknown_token_calls=u.unknown_token_calls, total_latency_ms=u.latency_ms)
+                        unknown_token_calls=u.unknown_token_calls, total_latency_ms=u.latency_ms,
+                        estimated_cost_usd=u.cost_usd)
 
 
 def _prompt(state: GraphState) -> str:
@@ -129,7 +132,7 @@ def intake(state: GraphState) -> dict:
     if obvious:
         return {"clarification": _reply(c, obvious, text)}
     try:
-        out, usage = _call(c, IntakeOutput, prompts.INTAKE_SYSTEM,
+        out, usage = _call(state, c, IntakeOutput, prompts.INTAKE_SYSTEM,
                            prompts.intake_user(text, cat.feature_summary(), cat.unsupported_summary()))
     except InvalidOutputError as error:
         return {"clarification": _fail(c, "intake", "understanding", str(error))}
@@ -243,7 +246,7 @@ def interpret_answer(state: GraphState) -> dict:
         c.risk_flags.append("free_text_answer")
         options = [o.model_dump(include={"option_id", "label"}) for o in q.options]
         try:
-            out, usage = _call(c, AnswerInterpretation, prompts.ANSWER_SYSTEM,
+            out, usage = _call(state, c, AnswerInterpretation, prompts.ANSWER_SYSTEM,
                                prompts.answer_user(q.text, options, clean, cat.feature_summary()))
         except InvalidOutputError as error:   # other ModelCallErrors pause the run (persistence plan)
             return {"clarification": _fail(c, "interpret_answer", "system", str(error))}
@@ -287,7 +290,7 @@ def check_brief(state: GraphState) -> dict:
     if not issues and c.risk_flags and not reviewed and slots.free_text_allowed(c, limits):
         answers = [q.answer_text or ", ".join(q.answer_option_ids) for q in c.questions if q.answer_kind]
         try:   # optional call (D-126): a failure only skips the review
-            out, usage = _call(c, BriefReview, prompts.REVIEW_SYSTEM,
+            out, usage = _call(state, c, BriefReview, prompts.REVIEW_SYSTEM,
                                prompts.review_user(_prompt(state), answers, briefs.brief_view_for_model(brief)))
             update["usage"] = usage
             reviewed = True
@@ -383,7 +386,7 @@ def apply_confirmation(state: GraphState) -> dict:
         c.risk_flags.append("free_text_edit")
         current = [{"id": f.id, "name": f.name} for f in state["brief"].features]
         try:
-            out, usage = _call(c, EditInterpretation, prompts.EDIT_SYSTEM,
+            out, usage = _call(state, c, EditInterpretation, prompts.EDIT_SYSTEM,
                                prompts.edit_user(current, text, cat.feature_summary()))
         except InvalidOutputError as error:
             return {"clarification": _fail(c, "apply_confirmation", "system", str(error))}
@@ -428,7 +431,7 @@ def generate_tests(state: GraphState) -> dict:
         if attempt and c.calls_used >= limits.call_hard_cap:
             break
         try:
-            out, usage = _call(c, GeneratedTests, prompts.TESTS_SYSTEM,
+            out, usage = _call(state, c, GeneratedTests, prompts.TESTS_SYSTEM,
                                prompts.tests_user(view, issues))
         except InvalidOutputError as error:
             return {"clarification": _fail(c, "generate_tests", "system", str(error)), "usage": total}

@@ -6,6 +6,33 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-13 · Phase 1: make runs visible and measurable
+
+**What** Phase 1 of the roadmap in `D:/FYP/reports/FORGE architecture lessons from peers.md`.
+- **Tracing** → **D-215**: `agents/tracing.py` builds each run's config with a Langfuse callback handler when the
+  `LANGFUSE_*` keys are set; used by the studio API (`backend/routes/requests.py`), `run_forge_once.py` and the
+  evaluation runner. `langfuse==5.1.0` added to `requirements.txt`.
+- **Cost and spending cap** → **D-216**: price table and cost per call in `gateway.py`; `max_run_cost_usd` ($1.00)
+  checked before every call; a spent budget ends the run as failed with its own message. Found while testing: the
+  planning subgraph never sees the run total (its input leaves out `usage`, FX-01), so the retrieval step now hands
+  Planning what was already spent (`PlanningState.spent_before_usd`).
+- **Evaluation set** → **D-217**: `scripts/eval_briefs.json` (24 briefs) and `scripts/run_eval.py`.
+
+**Why** Without traces a failed run had to be read out of checkpoints by hand; without a cost cap a builder loop
+could spend the credits; without fixed briefs and numbers no change can be shown to be an improvement, and the
+thesis needs measured results.
+
+**Checked** 33 new tests (cost, budget refusal, budget hand-over to Planning, tracing on and off, every brief uses
+real catalogue ids): 385 pass; the 61 database tests were not run (test database down). One live evaluation run
+(booking-01): planned correctly, 0 questions, 8 model calls, $0.030, 42 s.
+
+**Open**
+- Create the Langfuse project and put its keys in `.env` (tracing is off until then).
+- Run the full baseline (24 briefs × 3, about $2–4) and record the numbers here.
+- Prices of `gemini-3.1-flash-lite` not published; priced as Flash for now.
+
+---
+
 ## 2026-11-13 · Phase 0: stop losing valid runs
 
 **What** Phase 0 of the roadmap in `D:/FYP/reports/FORGE architecture lessons from peers.md`: the bugs that end

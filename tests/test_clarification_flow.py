@@ -43,7 +43,7 @@ def pending(result) -> dict | None:
 
 # ---------------------------------------------------------------- offline (fake model)
 def fake_model(responses: dict):
-    def call(task, schema, system, user):
+    def call(task, schema, system, user, budget_usd=None):
         value = responses[schema]
         if isinstance(value, Exception):
             raise value

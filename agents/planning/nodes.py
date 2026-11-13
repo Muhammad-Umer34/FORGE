@@ -14,10 +14,10 @@ from langgraph.types import interrupt
 
 from agents.catalogue import load_catalogue
 from agents.clarification.prompts import sanitise
-from agents.gateway import CallUsage, InvalidOutputError, call_structured
+from agents.gateway import SPENDING_LIMIT, SPENDING_LIMIT_MESSAGE, CallUsage, InvalidOutputError, call_structured
 from agents.planning import assemble, checks, fixed, prompts, texts
 from agents.planning.schemas import DataDesign, PlanDecision, PlanFix, SiteDesign, SiteTexts
-from agents.state import BuildPlan, FailureInfo, GraphState, PlanningState, UsageSummary
+from agents.state import BuildPlan, FailureInfo, GraphState, PlanningState, UsageSummary, budget_left
 
 FAILURE_MESSAGE = "We could not finish planning your site. Please try again."
 MAX_CHANGE_CHARS = 500
@@ -30,21 +30,23 @@ def _p(state: GraphState) -> PlanningState:
 
 def _fail(p: PlanningState, node: str, detail: str) -> PlanningState:
     """Planning runs on a confirmed brief, so a failure is always a system problem (plan v2 §10)."""
-    p.failure = FailureInfo(node=node, category="system", message=FAILURE_MESSAGE, detail=detail[:2000],
+    message = SPENDING_LIMIT_MESSAGE if detail == SPENDING_LIMIT else FAILURE_MESSAGE
+    p.failure = FailureInfo(node=node, category="system", message=message, detail=detail[:2000],
                             at=datetime.now(timezone.utc))
     p.status = "failed"
     return p
 
 
-def _call(p: PlanningState, task: str, schema, system: str, user: str) -> tuple[Any, UsageSummary]:
+def _call(state: GraphState, p: PlanningState, task: str, schema, system: str, user: str) -> tuple[Any, UsageSummary]:
     """One gateway call, counted even when it fails. A model that cannot be reached raises ModelCallError, which
     stops the run before this step so it can be continued later; output wrong twice is handled by each step."""
     usage = CallUsage()
     try:
-        result, usage = call_structured(task, schema, system, user)
+        result, usage = call_structured(task, schema, system, user, budget_left(state, p.spent_before_usd))
         return result, UsageSummary(calls=usage.calls, prompt_tokens=usage.prompt_tokens,
                                     completion_tokens=usage.completion_tokens,
-                                    unknown_token_calls=usage.unknown_token_calls, total_latency_ms=usage.latency_ms)
+                                    unknown_token_calls=usage.unknown_token_calls, total_latency_ms=usage.latency_ms,
+                                    estimated_cost_usd=usage.cost_usd)
     finally:
         p.calls_used += max(usage.calls, 1)
 
@@ -113,7 +115,7 @@ def design_site(state: GraphState) -> dict:
     user = prompts.site_user(_brief_view(state), fixed.fixed_view(brief, retrieval, cat), opts,
                              assemble.component_inputs([c for ids in opts.values() for c in ids]), limits)
     try:
-        out, usage = _call(p, "planning", SiteDesign, prompts.site_system(cat, limits), user)
+        out, usage = _call(state, p, "planning", SiteDesign, prompts.site_system(cat, limits), user)
     except InvalidOutputError as error:
         return {"planning": _fail(p, "design_site", str(error))}
     p.site_design = assemble.tidy(out).model_dump(mode="json")
@@ -131,7 +133,7 @@ def design_data(state: GraphState) -> dict:
     feature_ids = {s["feature_id"] for s in sections}
     starters = {k: v for k, v in prompts.DATA_STARTERS.items() if k in feature_ids}
     try:
-        out, usage = _call(p, "planning", DataDesign, prompts.data_system(state["run_config"].limits),
+        out, usage = _call(state, p, "planning", DataDesign, prompts.data_system(state["run_config"].limits),
                            prompts.data_user(_brief_view(state), sections, starters))
     except InvalidOutputError as error:
         return {"planning": _fail(p, "design_data", str(error))}
@@ -189,7 +191,7 @@ def _design(p: PlanningState) -> dict:
 
 def _redesign(state: GraphState, p: PlanningState, node: str, user: str) -> dict:
     try:
-        out, usage = _call(p, "planning_fix", PlanFix, prompts.FIX_SYSTEM, user)
+        out, usage = _call(state, p, "planning_fix", PlanFix, prompts.FIX_SYSTEM, user)
     except InvalidOutputError as error:
         return {"planning": _fail(p, node, str(error))}
     p.site_design = assemble.tidy(out.site).model_dump(mode="json")
@@ -230,7 +232,7 @@ def write_texts(state: GraphState) -> dict:
     p, plan = _p(state), state["plan"].model_copy(deep=True)
     rules = texts.rules_for(state["brief"], plan)
     try:
-        out, usage = _call(p, "planning", SiteTexts, prompts.TEXT_SYSTEM,
+        out, usage = _call(state, p, "planning", SiteTexts, prompts.TEXT_SYSTEM,
                            prompts.text_user(_text_context(state), _slot_view(plan), sorted(rules.placeholders)))
     except InvalidOutputError as error:
         return {"planning": _fail(p, "write_texts", str(error))}
@@ -246,7 +248,7 @@ def rewrite_texts(state: GraphState) -> dict:
     problems = texts.text_problems(plan, rules)
     p.text_rewrites_used += 1
     try:
-        out, usage = _call(p, "planning_fix", SiteTexts, prompts.REWRITE_SYSTEM,
+        out, usage = _call(state, p, "planning_fix", SiteTexts, prompts.REWRITE_SYSTEM,
                            prompts.rewrite_user(_text_context(state), _slot_view(plan, set(problems)),
                                                 sorted(rules.placeholders), problems))
     except InvalidOutputError as error:
