@@ -38,6 +38,9 @@ _TASK_MODEL_ENV = {
 _DEFAULT_MODEL = "gemini-3.8-flash"
 _TRANSIENT_CODES = {408, 429, 500, 502, 503, 504}
 _BACKOFF_SECONDS = (1.0, 3.0)          # PLACEHOLDER: waits before the 2nd and 3rd attempt
+# PLACEHOLDER: longest reply a call may write, thinking included. The longest real one (a site's text) is far below;
+# an OpenRouter reply once ran to 131,072 tokens and failed (KI-23).
+MAX_OUTPUT_TOKENS = 32_768
 
 # USD per 1M tokens (input, output), Vertex AI, prompts under 200k tokens. Checked 2026-11-13 on
 # cloud.google.com/vertex-ai/generative-ai/pricing (D-216). Update when a model or price changes.
@@ -163,6 +166,7 @@ def _openrouter_client(model: str):
         model=model,
         api_key=api_key(),
         base_url=OPENROUTER_URL,
+        max_tokens=MAX_OUTPUT_TOKENS,
         temperature=0,          # extraction should be repeatable (D-127)
         max_retries=0,          # retries are handled here
         timeout=60,
@@ -177,6 +181,7 @@ def _google_client(model: str):
         model=model,
         google_api_key=api_key(),
         vertexai=provider() == "vertex",
+        max_output_tokens=MAX_OUTPUT_TOKENS,
         temperature=0,          # extraction should be repeatable (D-127)
         max_retries=0,          # retries are handled here
         timeout=60,

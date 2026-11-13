@@ -6,6 +6,45 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-13 · Phase 2: raise brief and plan quality
+
+**What** Phase 2 of the roadmap in `D:/FYP/reports/FORGE architecture lessons from peers.md`, plus the four issues the
+baseline found. The team decided sites are English only, so the planned site-language field was dropped.
+- **Defaults instead of FAILED** → **D-219** (supersedes D-112): `slots.apply_defaults`.
+- **Patch-only fix rounds and section-scoped changes** → **D-220**: `PlanPatch`, `assemble.apply_patch`; texts of
+  unchanged sections kept after a change; a change whose text fails is undone.
+- **SEO head on every page, a 404 page, checks 17 and 18, accessibility rules** → **D-221**.
+- **Audience, content notes and style notes in the brief; English-only copy** → **D-222**.
+- **Hero relevance never ends planning; plural stems; button names; link names; output-token cap** → **D-223**
+  (KI-20 to KI-23).
+- Assumptions on the plan screen now include the brief's (the "You decide" choices and the new defaults).
+
+**Why** Planning used to fail on recoverable gaps and on one strict text rule, regenerate whole plans to fix one
+item, rewrite all copy for one change, and leave SEO and accessibility to chance.
+
+**Checked** 20 new tests; 405 pass (database tests not run: test database down). Evaluation re-run on Gemini, same
+24 briefs x 3 (`scripts/runs/eval_vertex_20261113_193151.json`):
+
+| Gemini, 72 runs each (24 briefs x 3) | Baseline (after Phase 1) | After Phase 2 |
+|---|---|---|
+| Correct outcome | 93.1% | **100%** |
+| Valid plans | 92.4% | **100%** |
+| Must-feature coverage | 92.0% | **97.8%** |
+| Questions per run | 0.57 | 0.46 |
+| Fix rounds per run | 0 | 0 |
+| Model calls per run | 7.8 | 7.75 |
+| Cost per run (total) | $0.027 ($1.97) | $0.030 ($2.18), the extra search titles and descriptions |
+| Time per run | 47 s | 51 s |
+| Failures | 5 (hero relevance rule) | 0; the only miss: forms-03 plans a contact form instead of the lead-capture form, 3 of 3 runs |
+
+**Open**
+- forms-03: the plan uses the contact form where the brief expected lead capture (planner choice or expectation; look
+  at it with the brief owner).
+- Phase 3 (builders) next. Raised while discussing it: building sites by code from the plan risks look-alike sites
+  (SL-13); proposal to add component variants and a model-chosen design direction to the plan before the builders.
+
+---
+
 ## 2026-11-13 · Evaluation baseline and OpenRouter comparison
 
 **What**

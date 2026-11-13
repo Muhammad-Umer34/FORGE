@@ -71,10 +71,33 @@ class DataDesign(BaseModel):
     dashboard_views: list[DashboardView] = Field(default_factory=list)
 
 
-class PlanFix(BaseModel):
-    """A fix round or a user change: the whole corrected design."""
-    site: SiteDesign
-    data: DataDesign = Field(default_factory=DataDesign)
+class SectionKey(BaseModel):
+    page_id: str
+    feature_id: str
+
+
+class PageOrder(BaseModel):
+    """New top-to-bottom order of a page's sections, by feature id; sections not listed keep their place after."""
+    page_id: str
+    feature_ids: list[str]
+
+
+class PlanPatch(BaseModel):
+    """A fix round or a user change: only what changes (D-220). Code merges it into the current design; everything
+    not named here stays exactly as it is. Items are matched by their id and replaced whole."""
+    pages: list[PlannedPage] = Field(default_factory=list)            # added or changed, by page_id
+    remove_page_ids: list[str] = Field(default_factory=list)
+    sections: list[SectionOut] = Field(default_factory=list)          # added or changed, by page_id + feature_id
+    remove_sections: list[SectionKey] = Field(default_factory=list)
+    section_order: list[PageOrder] = Field(default_factory=list)
+    custom_specs: list[CustomSpecOut] = Field(default_factory=list)   # added or changed, by spec_id
+    footer_links: Optional[list[str]] = None                         # the whole new list, only when it changes
+    entities: list[DataEntity] = Field(default_factory=list)          # added or changed, by name
+    remove_entities: list[str] = Field(default_factory=list)
+    routes: list[ApiRoute] = Field(default_factory=list)              # added or changed, by route_id
+    remove_route_ids: list[str] = Field(default_factory=list)
+    form_rules: list[FormRule] = Field(default_factory=list)          # added or changed, by section_id
+    dashboard_views: list[DashboardView] = Field(default_factory=list)   # added or changed, by entity
 
 
 class TextOut(BaseModel):

@@ -7,10 +7,25 @@ from agents.catalogue import Catalogue
 from agents.state import BriefFeature, ClarifiedBrief, RetrievalResult
 
 # Placed by code on every site, never chosen by the model: (section id, component, feature).
-LAYOUT = (("all.navbar", "navbar", "navigation"), ("all.footer", "footer", "footer"))
+LAYOUT = (("all.navbar", "navbar", "navigation"), ("all.footer", "footer", "footer"),
+          ("all.not-found", "not-found-page", "not-found"))          # the 404 page (D-221)
 HERO = ("home.hero", "hero-banner", "hero-header")
 PAGE_HEADER = ("page-header", "page-header")                  # (component, feature) on every inner page
-CODE_FEATURES = {"navigation", "footer", "hero-header", "page-header"}
+# Search-engine head of every page (D-221): not a visible section, so it is not in the page's section list.
+SEO = ("seo", "seo-head", "seo")                              # (section suffix, component, feature)
+SEO_TEXT = {"title": 60, "description": 160}                  # the head texts written, with their search-result limits
+H1_PARTS = ("hero-banner", "page-header")                     # the one H1 of a page: the hero on Home, else the header
+# Names for parts that are not in the catalogue, for the plan screen.
+CODE_PART_NAMES = {"not-found-page": "Page not found (404)", "seo-head": "Search title and description"}
+# Rules every builder follows (D-221); the plan carries them so they are not forgotten.
+ACCESSIBILITY_RULES = (
+    "Every image has alt text from its caption or item name; decorative images have empty alt text.",
+    "Every form field has a visible label; errors say what to fix next to the field.",
+    "One H1 per page: the hero headline on Home, the page header title on other pages; headings never skip a level.",
+    "Every link and button has a clear name and a visible focus style; nothing works by hover only.",
+    "Text and buttons use the theme tokens, whose contrast is already checked (WCAG AA, D-155).",
+)
+CODE_FEATURES = {"navigation", "footer", "hero-header", "page-header", "not-found", "seo"}
 SITE_WIDE_ROLES = ("global", "overlay")
 # Features built from several components used together: (main component, extra page component, route).
 TOGETHER = {"blog": ("blog-list", "blog-post", "/blog/[slug]")}

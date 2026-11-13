@@ -22,14 +22,23 @@ _STOP = {"a", "an", "and", "the", "of", "for", "to", "with", "on", "in", "my", "
          "feature", "needs", "generated", "code", "want", "need", "like", "some", "add"}
 
 
+_NOT_PLURAL = {"bus", "campus", "status", "bonus", "focus", "virus", "plus", "census", "chorus", "news", "lens"}
+
+
+def stem(word: str) -> str:
+    """Singular form of a plural, so "classes" and "class" match (KI-20): -ies -> -y, -es after s/x/z/ch/sh, -s."""
+    if len(word) > 4 and word.endswith("ies"):
+        return word[:-3] + "y"
+    if len(word) > 4 and word.endswith(("sses", "shes", "ches", "xes", "zes")):
+        return word[:-2]
+    if len(word) > 3 and word.endswith("s") and not word.endswith(("ss", "is")) and word not in _NOT_PLURAL:
+        return word[:-1]
+    return word
+
+
 def words(text: str) -> set[str]:
-    """Lower-case content words, with a plural 's' removed so "stamps" matches "stamp"."""
-    out = set()
-    for word in re.findall(r"[a-z0-9]+", text.lower()):
-        if word in _STOP or len(word) < 3:
-            continue
-        out.add(word[:-1] if word.endswith("s") and len(word) > 3 else word)
-    return out
+    """Lower-case content words in singular form, so "stamps" matches "stamp"."""
+    return {stem(w) for w in re.findall(r"[a-z0-9]+", text.lower()) if w not in _STOP and len(w) >= 3}
 
 
 def _component_words(c: Component) -> set[str]:

@@ -99,3 +99,14 @@ def test_a_large_site_has_no_page_limit():                            # KI-05, D
     assert len(b.pages) > 10
     assert not [i for i in briefs.code_checks(b, c, CAT, LIMITS) if "page" in i]
     assert not [g for g in slots.open_gaps(c, CAT, LIMITS) if g.key == "page_limit"]
+
+
+def test_audience_and_the_users_notes_reach_the_brief():                  # D-219, KI-09, SL-06
+    c = bakery()
+    c.audience = "office workers in Gulberg"
+    c.requested_items += [RequestedItem(item_id="i5", text="show our prices", kind="content"),
+                          RequestedItem(item_id="i6", text="soft pastel look", kind="style")]
+    grounding.ground_items(c, CAT)
+    b = briefs.draft_brief(c, CAT)
+    assert b.audience == "office workers in Gulberg" and "For: office workers in Gulberg." in b.clarified_text
+    assert b.content_notes == ["show our prices"] and b.style_notes == ["soft pastel look"]

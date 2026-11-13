@@ -1,6 +1,6 @@
 # D:\FYP\FORGE-1\agents\planning\checks.py
 """
-The 16 checks every Build Plan must pass (plan v2 §8). Each problem is one plain sentence, so the same list
+The 18 checks every Build Plan must pass (plan v2 §8). Each problem is one plain sentence, so the same list
 is shown to the model in a fix round and written to the error log when planning stops.
 """
 import re
@@ -57,7 +57,7 @@ def _structure(plan: BuildPlan, brief: ClarifiedBrief, retrieval: RetrievalResul
         elif c.role == "feature" and (c.feature_id, c.component_id) not in found \
                 and c.component_id not in [extra for _, extra, _ in fixed.TOGETHER.values()]:
             out.append(f"4: '{c.component_id}' was not found for feature '{c.feature_id}'")
-        elif c.component_id not in cat.components:
+        elif c.component_id not in cat.components and c.component_id not in fixed.CODE_PART_NAMES:
             out.append(f"4: '{c.component_id}' is not a catalogue component")
     if len(plan.custom_specs) > limits.max_custom_features:
         out.append(f"4: {len(plan.custom_specs)} custom parts, at most {limits.max_custom_features}")
@@ -97,7 +97,8 @@ def _completeness(plan: BuildPlan, with_texts: bool, rules: texts.TextRules | No
                     out.append(f"6: {where} has no links")
     # 7. text passes the pitch rules
     if with_texts and rules:
-        out += [f"7: text '{sid}': {'; '.join(p)}" for sid, p in texts.check_all(plan.texts, rules).items()]
+        out += [f"7: text '{sid}': {'; '.join(p)}"
+                for sid, p in texts.check_all(plan.texts, rules, relevance=False).items()]
     return out
 
 
@@ -200,9 +201,33 @@ def _has_loop(deps: dict[str, list[str]]) -> bool:
     return any(visit(n) for n in deps)
 
 
+def _seo_and_access(plan: BuildPlan, with_texts: bool) -> list[str]:
+    """17: every page has a search title (unique) and description; 18: every page has exactly one H1 (D-221)."""
+    out = []
+    texts_by_id = {t.slot_id: t.text.strip() for t in plan.texts}
+    titles: dict[str, str] = {}
+    for p in plan.pages:
+        head = f"{p.page_id}.{fixed.SEO[0]}"
+        if not any(c.section_id == head for c in plan.components):
+            out.append(f"17: page '{p.page_id}' has no search title and description")
+        elif with_texts:
+            title, description = texts_by_id.get(f"{head}.title", ""), texts_by_id.get(f"{head}.description", "")
+            if not title or not description:
+                out.append(f"17: page '{p.page_id}' needs a search title and description")
+            elif title.lower() in titles and "[" not in p.route:
+                out.append(f"17: page '{p.page_id}' has the same search title as '{titles[title.lower()]}'")
+            titles.setdefault(title.lower(), p.page_id)
+        if "[" in p.route:
+            continue                                  # one page per item: its H1 is the item's own title
+        h1 = sum(c.page == p.page_id and c.component_id in fixed.H1_PARTS for c in plan.components)
+        if h1 != 1:
+            out.append(f"18: page '{p.page_id}' has {h1} main headings (H1); it needs exactly one")
+    return out
+
+
 def run_checks(plan: BuildPlan, brief: ClarifiedBrief, retrieval: RetrievalResult, cat: Catalogue, limits: Limits,
                with_texts: bool = False) -> list[str]:
     """All problems, each prefixed with its check number. Check 7 (text) runs once the text is written."""
     rules = texts.rules_for(brief, plan) if with_texts else None
     return (_structure(plan, brief, retrieval, cat, limits) + _completeness(plan, with_texts, rules)
-            + _data(plan, limits) + _safety(plan, brief))
+            + _data(plan, limits) + _safety(plan, brief) + _seo_and_access(plan, with_texts))

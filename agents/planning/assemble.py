@@ -4,10 +4,12 @@ Planning step 5 (plan v2 §5), code only: tidy what the model designed, merge it
 out everything that follows from it: sections in order, the business details form, the text slots, the data
 contract with consent rules, the work plan, the test map and the not-built list.
 """
+import re
+
 from agents.catalogue import Catalogue
 from agents.planning import fixed
 from agents.planning.content_schema import derive_content_schema, load_needs, needs_of
-from agents.planning.schemas import DataDesign, SiteDesign
+from agents.planning.schemas import DataDesign, PlanPatch, SiteDesign
 from agents.state import (
     Assumption, BuildPlan, ClarifiedBrief, CustomComponentSpec, DashboardView, FormRule, Need, NotBuilt,
     PlannedComponent, PlannedPage, PlanTestLink, RetrievalResult, TextSlot, WorkTask,
@@ -46,6 +48,39 @@ def tidy(site: SiteDesign) -> SiteDesign:
     site.footer_links = [p for p in dict.fromkeys(site.footer_links) if p in pages] or [p.page_id for p in site.pages]
     site.footer_links += [p.page_id for p in site.pages if not p.in_menu and p.page_id not in site.footer_links]
     return site
+
+
+def _merge(items: list, new: list, key, remove=()) -> list:
+    """Replace items with the same key in place, add new ones at the end, drop removed keys."""
+    removed = set(remove)
+    out = {key(x): x for x in items if key(x) not in removed}
+    for x in new:
+        if key(x) not in removed:
+            out[key(x)] = x
+    return list(out.values())
+
+
+def apply_patch(site: dict, data: dict | None, patch: PlanPatch) -> tuple[SiteDesign, DataDesign | None]:
+    """Merge a fix or a user change into the current design (D-220): only the named items change."""
+    s = SiteDesign.model_validate(site)
+    d = DataDesign.model_validate(data or {})
+    s.pages = _merge(s.pages, patch.pages, lambda p: p.page_id, patch.remove_page_ids)
+    s.sections = _merge(s.sections, patch.sections, lambda x: (x.page_id, x.feature_id),
+                        [(k.page_id, k.feature_id) for k in patch.remove_sections])
+    for order in patch.section_order:
+        rank = {fid: n for n, fid in enumerate(order.feature_ids)}
+        on_page = [x for x in s.sections if x.page_id == order.page_id]
+        on_page.sort(key=lambda x: rank.get(x.feature_id, len(rank)))
+        slots = iter(on_page)
+        s.sections = [next(slots) if x.page_id == order.page_id else x for x in s.sections]
+    s.custom_specs = _merge(s.custom_specs, patch.custom_specs, lambda x: x.spec_id)
+    if patch.footer_links is not None:
+        s.footer_links = patch.footer_links
+    d.entities = _merge(d.entities, patch.entities, lambda e: e.name, patch.remove_entities)
+    d.routes = _merge(d.routes, patch.routes, lambda r: r.route_id, patch.remove_route_ids)
+    d.form_rules = _merge(d.form_rules, patch.form_rules, lambda r: r.section_id)
+    d.dashboard_views = _merge(d.dashboard_views, patch.dashboard_views, lambda v: v.entity)
+    return tidy(s), (d if d.entities or d.routes else None)
 
 
 def form_sections(plan: BuildPlan) -> list[str]:
@@ -95,6 +130,8 @@ def _components(site: SiteDesign, brief: ClarifiedBrief, cat: Catalogue,
                  else (section_id(page.page_id, "header"), *fixed.PAGE_HEADER))
         out.append(PlannedComponent(section_id=first[0], page=page.page_id, role="layout",
                                     component_id=first[1], feature_id=first[2]))
+        out.append(PlannedComponent(section_id=section_id(page.page_id, fixed.SEO[0]), page=page.page_id,
+                                    role="layout", component_id=fixed.SEO[1], feature_id=fixed.SEO[2]))
         for order, s in enumerate((s for s in site.sections if s.page_id == page.page_id), start=1):
             custom = bool(s.custom_spec_id) and not s.component_id
             if custom and s.custom_spec_id in specs:
@@ -117,6 +154,8 @@ def _together_pages(site: SiteDesign, pages: list[PlannedPage], comps: list[Plan
                                      purpose="One page per item, opened from the list"))
             comps.append(PlannedComponent(section_id=f"{pid}.{fid}", page=pid, role="feature", feature_id=fid,
                                           component_id=extra))
+            comps.append(PlannedComponent(section_id=section_id(pid, fixed.SEO[0]), page=pid, role="layout",
+                                          component_id=fixed.SEO[1], feature_id=fixed.SEO[2]))
 
 
 def _text_slots(comps: list[PlannedComponent], specs: dict[str, CustomComponentSpec],
@@ -125,10 +164,10 @@ def _text_slots(comps: list[PlannedComponent], specs: dict[str, CustomComponentS
     slots = []
     for c in comps:
         for n in needs_of(c, specs):
-            if n["kind"] == "copy":
+            if n["kind"] == "copy" and (c.component_id != fixed.SEO[1] or n["name"] in fixed.SEO_TEXT):
                 sid = f"{c.section_id}.{n['name']}"
-                slot = TextSlot(slot_id=sid, section_id=c.section_id, prop=n["name"],
-                                max_length=n.get("max_length") or 200)
+                limit = fixed.SEO_TEXT[n["name"]] if c.component_id == fixed.SEO[1] else n.get("max_length") or 200
+                slot = TextSlot(slot_id=sid, section_id=c.section_id, prop=n["name"], max_length=limit)
                 if sid in kept:
                     slot.text, slot.alternatives = kept[sid].text, kept[sid].alternatives
                 slots.append(slot)
@@ -157,6 +196,15 @@ def _test_map(brief: ClarifiedBrief, plan: BuildPlan) -> list[PlanTestLink]:
     return links
 
 
+def _link_name(link: str, names: set[str]) -> str:
+    """'service_id -> services (optional)' or 'service_id' -> 'services' (KI-22): the entity a link points to."""
+    target = re.sub(r"\(.*?\)", "", link.split("->")[-1]).strip().split(" ")[0] if link.strip() else link
+    if target not in names and target.endswith("_id"):
+        base = target[:-3]
+        target = next((n for n in (base, f"{base}s", f"{base}es") if n in names), target)
+    return target
+
+
 def complete_data(plan: BuildPlan) -> None:
     """Code fixes for the data contract. Live runs left POST routes with no `used_by`, named sections by feature
     id, left out form rules and dashboard views, and added routes nothing calls; all of this follows from the
@@ -171,6 +219,8 @@ def complete_data(plan: BuildPlan) -> None:
         return list(dict.fromkeys(s for k in keys for s in by_key.get(k, [])))
 
     entities = {e.name: e for e in plan.data_entities}
+    for e in plan.data_entities:
+        e.links = list(dict.fromkeys(_link_name(link, set(entities)) for link in e.links))
     feature_of = {c.section_id: c.feature_id for c in plan.components}
 
     for r in plan.api_routes:
@@ -235,7 +285,8 @@ def build_plan(brief: ClarifiedBrief, retrieval: RetrievalResult, site: SiteDesi
     comps = _components(site, brief, cat, specs)
     _together_pages(site, pages, comps)
     for p in pages:
-        p.section_ids = [c.section_id for c in sorted(comps, key=lambda c: c.order) if c.page == p.page_id]
+        p.section_ids = [c.section_id for c in sorted(comps, key=lambda c: c.order)
+                         if c.page == p.page_id and c.component_id != fixed.SEO[1]]
     data = data or DataDesign()
     plan = BuildPlan(
         brief_version=brief.version, pages=pages, footer_links=site.footer_links, components=comps,
@@ -244,7 +295,9 @@ def build_plan(brief: ClarifiedBrief, retrieval: RetrievalResult, site: SiteDesi
         data_entities=data.entities, api_routes=data.routes, dashboard_views=data.dashboard_views,
         form_rules=[r.model_copy(deep=True) for r in data.form_rules],
         not_built=[NotBuilt(asked=u.asked, reason=u.reason, alternative=u.alternative_text) for u in brief.unsupported],
-        assumptions=[Assumption(text=u, reason="Chosen while planning the site") for u in site.unsure],
+        assumptions=list(brief.assumptions)            # what was decided for the user before planning (D-219)
+        + [Assumption(text=u, reason="Chosen while planning the site") for u in site.unsure],
+        accessibility=list(fixed.ACCESSIBILITY_RULES),
     )
     complete_data(plan)
     entities = {e.name: e for e in plan.data_entities}

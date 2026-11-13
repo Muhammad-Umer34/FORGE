@@ -87,6 +87,9 @@ def draft_brief(c: ClarificationState, cat: Catalogue, version: int = 1) -> Clar
         baseline=grounding.choose_baseline(c, cat),
         business_type=c.business_type,
         goal=c.goal or "",
+        audience=c.audience or "",
+        content_notes=[i.text for i in c.requested_items if i.resolution == "noted" and i.resolved_to == "content"],
+        style_notes=[i.text for i in c.requested_items if i.resolution == "noted" and i.resolved_to == "style"],
         features=features,
         pages=pages,
         content_needs=sorted({k for fid in feature_ids for k in cat.features[fid].content_needs}),
@@ -122,6 +125,8 @@ def clarified_text(brief: ClarifiedBrief, c: ClarificationState) -> str:
         parts.append(f"A {n}-page website.")
     if brief.goal:
         parts.append(f"Goal: {brief.goal.rstrip('.')}.")
+    if brief.audience:
+        parts.append(f"For: {brief.audience.rstrip('.')}.")
     actions = [f.id for f in brief.features if f.id in VISITOR_ACTION_FEATURES]
     if actions:
         phrases = [_ACTION_PHRASES[a] for a in actions]

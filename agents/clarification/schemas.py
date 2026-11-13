@@ -44,6 +44,9 @@ class IntakeOutput(BaseModel):
     is_business: bool = Field(description="True for a business or organisation; false for a personal or one-off event site.")
     business_type: Optional[str] = Field(default=None, description="Short label such as 'bakery' or 'dental clinic', or null.")
     goal: Optional[str] = Field(default=None, description="One short sentence in your own words: what the site should achieve. Null if unknown.")
+    audience: Optional[str] = Field(
+        default=None, description="Who the site's visitors are, in a few words (e.g. 'parents of O-level students in "
+                                  "Lahore'), only if the request says or clearly implies it. Otherwise null.")
     no_visitor_actions: bool = Field(
         default=False, description="True only if the user says visitors should not contact, order or book through the site.")
     style_hint: Optional[str] = Field(default=None, description="Look-and-feel words the user used, or null.")

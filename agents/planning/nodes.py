@@ -16,10 +16,11 @@ from agents.catalogue import load_catalogue
 from agents.clarification.prompts import sanitise
 from agents.gateway import SPENDING_LIMIT, SPENDING_LIMIT_MESSAGE, CallUsage, InvalidOutputError, call_structured
 from agents.planning import assemble, checks, fixed, prompts, texts
-from agents.planning.schemas import DataDesign, PlanDecision, PlanFix, SiteDesign, SiteTexts
-from agents.state import BuildPlan, FailureInfo, GraphState, PlanningState, UsageSummary, budget_left
+from agents.planning.schemas import DataDesign, PlanDecision, PlanPatch, SiteDesign, SiteTexts
+from agents.state import Assumption, BuildPlan, FailureInfo, GraphState, PlanningState, UsageSummary, budget_left
 
 FAILURE_MESSAGE = "We could not finish planning your site. Please try again."
+_HERO_NOTE = "The main headline may not say clearly what you offer: pick another one or change it."
 MAX_CHANGE_CHARS = 500
 
 
@@ -79,7 +80,8 @@ def plan_view(plan: BuildPlan, p: PlanningState, limits) -> dict:
     cat = load_catalogue()
     specs = {s.spec_id: s.name for s in plan.custom_specs}
     names = {c.section_id: specs.get(c.custom_spec_id) if c.custom else
-             cat.components[c.component_id].name if c.component_id in cat.components else c.section_id
+             cat.components[c.component_id].name if c.component_id in cat.components else
+             fixed.CODE_PART_NAMES.get(c.component_id or "", c.section_id)
              for c in plan.components}
     hero = next((t for t in plan.texts if t.slot_id == assemble.HERO_HEADLINE), None)
     return {
@@ -159,16 +161,21 @@ def check_plan(state: GraphState) -> dict:
         p.status = "writing_text"
         return update
     if p.status == "changing" and p.before_change:        # the user's change broke the plan: undo it
-        before = p.before_change
-        p.site_design, p.data_design = before["site_design"], before["data_design"]
-        p.before_change, p.status = None, "awaiting_approval"
-        p.notice = "That change could not be made without breaking the plan, so the plan is unchanged."
-        return {"planning": p, "plan": BuildPlan.model_validate(before["plan"])}
+        return _undo_change(p)
     if p.fix_rounds_used >= limits.max_plan_fix_rounds:
         update["planning"] = _fail(p, "check_plan", "; ".join(p.issues))
         return update
     p.status = "checking"
     return update
+
+
+def _undo_change(p: PlanningState) -> dict:
+    """The user's change broke the plan or its text: back to the plan they saw, with a notice (KI-12)."""
+    before = p.before_change
+    p.site_design, p.data_design = before["site_design"], before["data_design"]
+    p.before_change, p.status, p.issues = None, "awaiting_approval", []
+    p.notice = "That change could not be made without breaking the plan, so the plan is unchanged."
+    return {"planning": p, "plan": BuildPlan.model_validate(before["plan"])}
 
 
 def fix_helped(before: list[str], after: list[str]) -> bool:
@@ -191,11 +198,12 @@ def _design(p: PlanningState) -> dict:
 
 def _redesign(state: GraphState, p: PlanningState, node: str, user: str) -> dict:
     try:
-        out, usage = _call(state, p, "planning_fix", PlanFix, prompts.FIX_SYSTEM, user)
+        out, usage = _call(state, p, "planning_fix", PlanPatch, prompts.FIX_SYSTEM, user)
     except InvalidOutputError as error:
         return {"planning": _fail(p, node, str(error))}
-    p.site_design = assemble.tidy(out.site).model_dump(mode="json")
-    p.data_design = out.data.model_dump(mode="json") if (out.data.entities or out.data.routes) else None
+    site, data = assemble.apply_patch(p.site_design, p.data_design, out)     # only the named items change (D-220)
+    p.site_design = site.model_dump(mode="json")
+    p.data_design = data.model_dump(mode="json") if data else None
     return {"planning": p, "usage": usage}
 
 
@@ -203,6 +211,7 @@ def _redesign(state: GraphState, p: PlanningState, node: str, user: str) -> dict
 def _text_context(state: GraphState) -> dict:
     brief = state["brief"]
     return {"business_type": brief.business_type, "goal": brief.goal, "audience": brief.audience,
+            "content_notes": brief.content_notes, "style_notes": brief.style_notes,
             "theme": (brief.theme or {}).get("params", {}),
             "features": [f.name for f in brief.features if f.tier != "unsupported"]}
 
@@ -217,26 +226,52 @@ def _slot_view(plan: BuildPlan, only: set[str] | None = None) -> list[dict]:
             for t in plan.texts if only is None or t.slot_id in only]
 
 
-def _apply_texts(plan: BuildPlan, out: SiteTexts, rules: texts.TextRules) -> None:
-    written = {t.slot_id: t.text.strip() for t in out.texts}
+def _apply_texts(plan: BuildPlan, out: SiteTexts, rules: texts.TextRules, only: set[str] | None = None) -> None:
+    written = {t.slot_id: t.text.strip() for t in out.texts if only is None or t.slot_id in only}
     for t in plan.texts:
         if t.slot_id in written:
             t.text = written[t.slot_id]
     hero = next((t for t in plan.texts if t.slot_id == assemble.HERO_HEADLINE), None)
-    if hero and out.hero_headlines:
+    if hero and out.hero_headlines and (only is None or hero.slot_id in only):
         sub = next((t.text for t in plan.texts if t.slot_id == "home.hero.subheadline"), "")
         hero.text, hero.alternatives = texts.pick_hero(out.hero_headlines, hero, sub, rules)
+
+
+def _keep_unchanged_texts(plan: BuildPlan, before: dict) -> set[str]:
+    """After a user's change, sections that did not change keep their text (KI-12). Returns the kept slot ids."""
+    old = BuildPlan.model_validate(before["plan"])
+    old_specs = {s.spec_id: s for s in old.custom_specs}
+    new_specs = {s.spec_id: s for s in plan.custom_specs}
+
+    def shape(c, specs):
+        return c.component_id, c.custom_spec_id, c.settings, specs.get(c.custom_spec_id)
+    unchanged = {c.section_id for c in plan.components
+                 for o in old.components if o.section_id == c.section_id and shape(o, old_specs) == shape(c, new_specs)}
+    old_texts = {t.slot_id: t for t in old.texts}
+    kept = set()
+    for t in plan.texts:
+        if t.section_id in unchanged and t.slot_id in old_texts:
+            t.text, t.alternatives = old_texts[t.slot_id].text, old_texts[t.slot_id].alternatives
+            kept.add(t.slot_id)
+    return kept
 
 
 def write_texts(state: GraphState) -> dict:
     p, plan = _p(state), state["plan"].model_copy(deep=True)
     rules = texts.rules_for(state["brief"], plan)
+    context, only = _text_context(state), None
+    if p.before_change:                               # a user's change: rewrite only the changed sections
+        only = {t.slot_id for t in plan.texts} - _keep_unchanged_texts(plan, p.before_change)
+        context["change_requested_by_owner"] = p.before_change.get("change")
+    if only == set():
+        p.issues = [f"{k}: {'; '.join(v)}" for k, v in texts.text_problems(plan, rules).items()]
+        return {"planning": p, "plan": plan}
     try:
         out, usage = _call(state, p, "planning", SiteTexts, prompts.TEXT_SYSTEM,
-                           prompts.text_user(_text_context(state), _slot_view(plan), sorted(rules.placeholders)))
+                           prompts.text_user(context, _slot_view(plan, only), sorted(rules.placeholders)))
     except InvalidOutputError as error:
-        return {"planning": _fail(p, "write_texts", str(error))}
-    _apply_texts(plan, out, rules)
+        return _undo_change(p) if p.before_change else {"planning": _fail(p, "write_texts", str(error))}
+    _apply_texts(plan, out, rules, only)
     p.issues = [f"{k}: {'; '.join(v)}" for k, v in texts.text_problems(plan, rules).items()]
     return {"planning": p, "plan": plan, "usage": usage}
 
@@ -252,7 +287,7 @@ def rewrite_texts(state: GraphState) -> dict:
                            prompts.rewrite_user(_text_context(state), _slot_view(plan, set(problems)),
                                                 sorted(rules.placeholders), problems))
     except InvalidOutputError as error:
-        return {"planning": _fail(p, "rewrite_texts", str(error))}
+        return _undo_change(p) if p.before_change else {"planning": _fail(p, "rewrite_texts", str(error))}
     if assemble.HERO_HEADLINE not in problems:
         out.hero_headlines = []                    # keep the chosen hero
     _apply_texts(plan, out, rules)
@@ -270,7 +305,11 @@ def finish_texts(state: GraphState) -> dict:
     p.issues = checks.run_checks(plan, state["brief"], state["retrieval"], load_catalogue(),
                                  state["run_config"].limits, with_texts=True)
     if p.issues:
+        if p.before_change:                           # the change broke the text: back to the approved-for-review plan
+            return _undo_change(p)
         return {"planning": _fail(p, "finish_texts", "; ".join(p.issues)), "plan": plan}
+    if not texts.hero_is_relevant(plan.texts, rules) and not any(a.text == _HERO_NOTE for a in plan.assumptions):
+        plan.assumptions.append(Assumption(text=_HERO_NOTE, reason="The headline does not name what the business offers"))
     p.status, p.before_change = "awaiting_approval", None
     return {"planning": p, "plan": plan}
 
@@ -302,9 +341,9 @@ def apply_change(state: GraphState) -> dict:
                     else "No more changes can be made to this plan. Approve it, or start over.")
         return {"planning": p}
     p.edits_used += 1
-    p.before_change = {"site_design": p.site_design, "data_design": p.data_design,
-                       "plan": state["plan"].model_dump(mode="json")}
     change, p.pending_change = p.pending_change, None
+    p.before_change = {"site_design": p.site_design, "data_design": p.data_design,
+                       "plan": state["plan"].model_dump(mode="json"), "change": change}
     return _redesign(state, p, "apply_change", prompts.fix_user(_design(p), [], change))
 
 

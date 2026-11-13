@@ -218,6 +218,7 @@ class ClarificationState(BaseModel):
     is_business: bool = True                   # a business or organisation (not a personal or event site)
     business_type: Optional[str] = None        # short label written by the agent, e.g. "bakery"
     goal: Optional[str] = None                 # one short sentence written by the agent
+    audience: Optional[str] = None             # who the visitors are, when the request says so (D-222)
     style_hint: Optional[str] = None
     personality: Optional[str] = None          # theme feel the user described (agents/theming.py PERSONALITIES)
     hue_family: Optional[str] = None           # colour family the user named (agents/theming.py HUE_FAMILIES)
@@ -299,7 +300,9 @@ class ClarifiedBrief(BaseModel):
     baseline: Optional[str] = None             # starting template (D-134); None when no baseline fits
     business_type: Optional[str] = None
     goal: str = ""                             # a short summary written by the agent, not a copy of the prompt
-    audience: str = ""
+    audience: str = ""                         # filled from the intake call since D-222 (was always empty, KI-09)
+    content_notes: list[str] = Field(default_factory=list)   # the user's wishes about content, e.g. "show prices" (D-222)
+    style_notes: list[str] = Field(default_factory=list)     # look-and-feel words the user used (D-222)
     features: list[BriefFeature] = Field(default_factory=list)
     pages: list[dict[str, Any]] = Field(default_factory=list)   # {name, sections: [feature ids]}
     content_needs: list[str] = Field(default_factory=list)      # keys only; advisory, the plan's content_schema is final
@@ -485,6 +488,7 @@ class BuildPlan(BaseModel):
     built_by: Literal["model", "code"] = "model"             # "code": no model call was needed, or the fallback
     pages: list[PlannedPage] = Field(default_factory=list)
     footer_links: list[str] = Field(default_factory=list)   # page ids
+    accessibility: list[str] = Field(default_factory=list)   # rules every builder follows (D-221)
     components: list[PlannedComponent] = Field(default_factory=list)
     custom_specs: list[CustomComponentSpec] = Field(default_factory=list)
     theme: dict[str, Any] = Field(default_factory=dict)      # exact copy of brief.theme; never written by a model
@@ -917,3 +921,5 @@ def msgpack_allowlist() -> list[tuple[str, str]]:
 #    Saved runs still load: pydantic ignores the two old fields.
 # 2. Limits.max_run_cost_usd; UsageSummary.estimated_cost_usd is now filled by the gateway (D-216);
 #    PlanningState.spent_before_usd, set by the retrieval step. New fields with defaults: saved runs still load.
+# 3. Phase 2: ClarificationState.audience; ClarifiedBrief.content_notes and style_notes, audience now filled (D-222);
+#    BuildPlan.accessibility (D-221). New fields with defaults: saved runs still load.

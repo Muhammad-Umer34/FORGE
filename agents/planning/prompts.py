@@ -59,12 +59,18 @@ How to design:
 {_RULES_SHARED}"""
 
 FIX_SYSTEM = f"""You are the Planning Agent of FORGE. Code checked your plan and found the problems listed.
-Return the whole design again with every problem fixed and nothing else changed. If a change request from the
-user is given instead, apply only that change, keep every feature and acceptance test possible, and change nothing
-else.
+Return a patch: only the items that must change to fix every problem. Everything you do not return stays exactly
+as it is, so never repeat unchanged items. A returned item replaces the item with the same id whole (pages by
+page_id, sections by page_id and feature_id, custom specs by spec_id, entities by name, routes by route_id, form
+rules by section_id, dashboard views by entity), so give every field of it. Use the remove lists to delete items,
+section_order to reorder a page, and footer_links only to replace the whole footer list.
+If a change request from the user is given instead, patch only what that change needs, keep every feature and
+acceptance test possible, and change nothing else.
 {_RULES_SHARED}"""
 
-TEXT_SYSTEM = """You are the copywriter of FORGE. Write every piece of text on this small-business website.
+TEXT_SYSTEM = """You are the copywriter of FORGE. Write every piece of text on this small-business website, in
+English (FORGE builds English sites only). Write for the audience given, and follow the owner's content and style
+notes where they apply.
 
 The text must sell this exact business to its visitors:
 - hero_headlines: three different headlines, best first, at most 8 words each. Each one is a strong pitch for this

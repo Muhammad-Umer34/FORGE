@@ -31,6 +31,12 @@ VERBS = {"book", "call", "see", "view", "get", "start", "explore", "browse", "co
          "buy", "add", "open", "reply", "connect"}
 
 
+# Feature names that say nothing about the business ("About us", "Contact form"): not counted as business words.
+_GENERIC_FEATURE_WORDS = words("about story contact form info information detail call action navigation footer "
+                               "header hero social link back top cookie notice legal faq announcement key stat "
+                               "content row page header search filter video")
+
+
 @dataclass
 class TextRules:
     relevance: set[str]                 # words of this business; the hero must use at least one
@@ -38,15 +44,19 @@ class TextRules:
 
 
 def rules_for(brief: ClarifiedBrief, plan: BuildPlan) -> TextRules:
-    # Business type, goal and audience only: feature names ("about", "contact") would let any text pass.
+    # Business type, goal, audience and the must features' names, without names that fit any site ("about",
+    # "contact"), which would let any text pass (KI-20: vague briefs gave too few words).
+    features = " ".join(f.name for f in brief.features if f.priority == "must" and f.tier != "unsupported")
     relevance = words(" ".join((brief.business_type or "", brief.goal, brief.audience)))
+    relevance |= words(features) - _GENERIC_FEATURE_WORDS
     keys = {f.key for f in plan.content_schema if f.kind == "fact"} | {"business_name"}
     return TextRules(relevance=relevance, placeholders=keys)
 
 
 def is_button(slot: TextSlot) -> bool:
-    prop = slot.prop.lower()
-    return "cta" in prop or "button" in prop
+    """ctaText, buttonLabel, submitButtonText... are buttons; cta_body or ctaTitle are not (KI-21)."""
+    prop = re.sub(r"[^a-z]", "", slot.prop.lower())
+    return ("cta" in prop or "button" in prop) and (prop.endswith(("text", "label")) or prop in ("cta", "button"))
 
 
 def _plain(text: str) -> str:
@@ -75,8 +85,10 @@ def check_text(slot: TextSlot, text: str, rules: TextRules) -> list[str]:
     return problems
 
 
-def check_all(texts: list[TextSlot], rules: TextRules) -> dict[str, list[str]]:
-    """Problems per slot id, including repeated titles and a hero that is not about this business."""
+def check_all(texts: list[TextSlot], rules: TextRules, relevance: bool = True) -> dict[str, list[str]]:
+    """Problems per slot id, including repeated titles and (unless `relevance` is off) a hero that is not about this
+    business. The relevance rule asks for a rewrite but never ends planning: a headline the owner can change in one
+    click is not worth a failed run (KI-20); the plan screen says so instead."""
     out: dict[str, list[str]] = {}
     for t in texts:
         if problems := check_text(t, t.text, rules):
@@ -89,7 +101,7 @@ def check_all(texts: list[TextSlot], rules: TextRules) -> dict[str, list[str]]:
                 out.setdefault(t.slot_id, []).append(f"same title as {titles[key]}")
             titles.setdefault(key, t.slot_id)
     hero = " ".join(t.text for t in texts if t.slot_id.startswith(HERO) and t.prop in ("headline", "subheadline"))
-    if hero.strip() and not words(_plain(hero)) & rules.relevance:
+    if relevance and hero.strip() and not hero_is_relevant(texts, rules):
         out.setdefault(HERO + "headline", []).append(
             "the hero does not say what this business offers; use words such as " + ", ".join(sorted(rules.relevance)[:8]))
     return out
@@ -101,6 +113,11 @@ def text_problems(plan: BuildPlan, rules: TextRules) -> dict[str, list[str]]:
     for sid in sorted(required_slots(plan) - {t.slot_id for t in plan.texts if t.text.strip()}):
         out.setdefault(sid, []).append("required text is missing")
     return out
+
+
+def hero_is_relevant(texts: list[TextSlot], rules: TextRules) -> bool:
+    hero = " ".join(t.text for t in texts if t.slot_id.startswith(HERO) and t.prop in ("headline", "subheadline"))
+    return not hero.strip() or not rules.relevance or bool(words(_plain(hero)) & rules.relevance)
 
 
 def pick_hero(candidates: list[str], slot: TextSlot, subheadline: str, rules: TextRules) -> tuple[str, list[str]]:

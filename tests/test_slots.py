@@ -1,4 +1,4 @@
-"""Slot checklist, gaps and question policy (v6 Sections 6 and 8, D-102, D-104, D-112). No model calls."""
+"""Slot checklist, gaps and question policy (v6 Sections 6 and 8, D-102, D-104, D-219). No model calls."""
 from agents.catalogue import load_catalogue
 from agents.clarification import grounding, slots
 from agents.clarification.schemas import UserAnswer
@@ -50,18 +50,30 @@ def test_visitor_question_is_multi_select_with_recommendation():
     assert [o.option_id for o in q.options if o.recommended] == ["order-request"]   # catalog baseline
 
 
-def test_blocking_gap_is_never_defaulted_when_questions_run_out():
+def test_nothing_known_is_never_guessed_when_questions_run_out():          # D-219 keeps this part of D-112
     c = state(questions_used=LIMITS.max_questions)
-    action, missing = slots.select_next(c, CAT, LIMITS)
-    assert action == "fail"
-    assert "what the website is for" in missing
+    action, _ = slots.select_next(c, CAT, LIMITS)
+    assert action == "defaults"
+    assert "what the website is for" in slots.apply_defaults(c, CAT, LIMITS)
+
+
+def test_gaps_left_after_the_questions_get_stated_defaults():              # D-219, SL-04
+    c = state(questions_used=LIMITS.max_questions, business_type="bakery",
+              requested_items=[RequestedItem(item_id="i1", text="cake menu", candidate_feature_id="menu-catalog",
+                                             alternative_feature_id="product-grid")])
+    grounding.ground_items(c, CAT)
+    assert {g.key for g in slots.open_gaps(c, CAT, LIMITS)} >= {"purpose", "visitor_actions", "item:i1"}
+    assert slots.apply_defaults(c, CAT, LIMITS) == []
+    assert slots.open_gaps(c, CAT, LIMITS) == []
+    assert len(c.assumptions) == 3 and all("chosen for you" in a.text for a in c.assumptions)
+    assert all(slots.get_slot(c, n).source == "user_delegated" for n in ("purpose", "visitor_actions"))
 
 
 def test_same_slot_is_asked_at_most_twice():
     c = state()
     ask(c), ask(c)
     action, _ = slots.select_next(c, CAT, LIMITS)
-    assert action == "fail"
+    assert action == "defaults"
 
 
 def test_answer_validation():

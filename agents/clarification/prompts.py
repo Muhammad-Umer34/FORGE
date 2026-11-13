@@ -9,7 +9,7 @@ import json
 import re
 
 PROMPT_VERSIONS = {
-    "intake": "v6.6",
+    "intake": "v6.7",
     "answer": "v6.1",
     "edit": "v6.1",
     "review": "v6.2",
@@ -66,7 +66,7 @@ Rules:
 - A link to another website the user wants to look like ("like www.example.com") is not an item.
 - personality, hue_family and brand_colour describe the look ONLY when the user said something about it;
   otherwise leave them null. Colour words map to the nearest hue_family (gold -> amber, maroon -> red, beige -> brown).
-- goal and business_type are short, in your own words. Never copy long parts of the request.
+- goal, business_type and audience are short, in your own words. Never copy long parts of the request.
   The goal never mentions anything from the UNSUPPORTED LIST.
 - message_kind: decide first whether the user wants a website. A greeting together with a website request is
   website_request. Questions about FORGE itself are about_forge. Maths, science, general knowledge, writing

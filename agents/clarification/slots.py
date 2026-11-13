@@ -119,16 +119,15 @@ def build_question(gap: Gap, c: ClarificationState, cat: Catalogue, limits: Limi
 
 def select_next(c: ClarificationState, cat: Catalogue, limits: Limits) -> tuple[str, object]:
     """
-    ("ask", Question) | ("draft", None) | ("fail", [missing...]).
-    Blocking gaps are never filled with a default (D-112): when questions run out, the run fails
-    and the missing information is listed.
+    ("ask", Question) | ("draft", None) | ("defaults", None).
+    When the questions run out with gaps left, the caller applies stated defaults (D-219, replaces D-112).
     """
     gaps = open_gaps(c, cat, limits)
     if not gaps:
         return "draft", None
     gap = gaps[0]
     if c.questions_used >= limits.max_questions or times_asked(c, gap.key) > limits.max_reasks_per_slot:
-        return "fail", [g.missing for g in gaps]
+        return "defaults", None
     if gap.key in ("purpose", "visitor_actions"):
         get_slot(c, gap.key).asks += 1
     return "ask", build_question(gap, c, cat, limits)
@@ -195,6 +194,48 @@ def apply_option_answer(c: ClarificationState, q: Question, option_ids: list[str
         for item in grounding.custom_items(c):
             if item.item_id not in option_ids:
                 item.resolution, item.resolved_to = "unsupported", "limit"
+
+
+def _default_choice(gap: Gap, q: Question, c: ClarificationState, cat: Catalogue) -> list[str]:
+    """The answer "You decide" would give; for the questions without that button, the safe choice."""
+    baseline = grounding.choose_baseline(c, cat)
+    if gap.kind == "A":
+        return [baseline or "brochure"]
+    if gap.kind == "B":
+        return [_DEFAULT_VISITOR_ACTION.get(baseline or "", "contact-form")]
+    if gap.kind == "C":
+        item = next(i for i in c.requested_items if i.item_id == gap.item_id)
+        return [item.candidate_feature_id]
+    if gap.kind == "D":
+        return ["yes"]                                   # build the rest of the site without it
+    return [o.option_id for o in q.options][:q.max_selections or len(q.options)]   # custom_limit: keep the first
+
+
+def apply_defaults(c: ClarificationState, cat: Catalogue, limits: Limits) -> list[str]:
+    """
+    The questions are used up and gaps remain (D-219, replaces D-112). Each gap gets the default "You decide" would
+    give, logged as an assumption the user sees on the confirmation screen (where Edit or Cancel can undo it).
+    Returns what is still missing: only when nothing about the site is known, so a default would be a guess.
+    """
+    for _ in range(20):                                  # each default closes one gap
+        gaps = open_gaps(c, cat, limits)
+        if not gaps:
+            return []
+        gap = gaps[0]
+        if gap.kind == "A" and not (c.business_type or c.goal or c.matches):
+            return [g.missing for g in gaps]
+        q = build_question(gap, c, cat, limits)
+        choice = _default_choice(gap, q, c, cat)
+        apply_option_answer(c, q, choice, cat, delegated=True)
+        labels = [o.label for o in q.options if o.option_id in choice]
+        c.assumptions.append(Assumption(
+            text=f"{', '.join(labels)} (chosen for you)",
+            reason=f'Not answered within the question limit: "{q.text}". Change it with Edit.',
+            default_applied=", ".join(choice),
+        ))
+        if "defaults_applied" not in c.risk_flags:
+            c.risk_flags.append("defaults_applied")
+    return [g.missing for g in open_gaps(c, cat, limits)]
 
 
 def apply_you_decide(c: ClarificationState, q: Question, cat: Catalogue) -> None:

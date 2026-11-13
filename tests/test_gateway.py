@@ -146,3 +146,10 @@ def test_vertex_clients_can_be_built_in_parallel(env):
         clients = list(pool.map(lambda _: gateway._llm("gemini-3.8-flash"), range(40)))
     assert len(clients) == 40
 
+
+def test_every_client_has_an_output_token_cap(env):                      # KI-23
+    env.setenv("VERTEX_API_KEY", "vertex-key")
+    assert gateway._llm("gemini-2.5-pro").max_output_tokens == gateway.MAX_OUTPUT_TOKENS
+    env.setenv("OPENROUTER_API_KEY", "or-key")
+    env.setenv("LLM_PROVIDER", "openrouter")
+    assert gateway._llm("xiaomi/mimo-v2.6-pro").max_tokens == gateway.MAX_OUTPUT_TOKENS

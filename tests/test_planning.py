@@ -14,7 +14,7 @@ from agents.catalogue import load_catalogue
 from agents.gateway import CallUsage
 from agents.planning import assemble, build_planning_graph, checks, nodes, texts
 from agents.planning.schemas import (
-    CustomSpecOut, DataDesign, NeedOut, PlanFix, SectionOut, SiteDesign, SiteTexts, TextOut,
+    CustomSpecOut, DataDesign, NeedOut, PlanPatch, SectionKey, SectionOut, SiteDesign, SiteTexts, TextOut,
 )
 from agents.retrieval.ranker import rank_and_retrieve_components
 from agents.state import (
@@ -123,7 +123,7 @@ class FakeModel:
     """Answers each schema from a queue (first answer is reused when the queue runs dry); records every call."""
 
     def __init__(self, site=None, data=None, fixes=(), texts_fn=good_texts):
-        self.answers = {SiteDesign: [site or salon_site()], DataDesign: [data or salon_data()], PlanFix: list(fixes)}
+        self.answers = {SiteDesign: [site or salon_site()], DataDesign: [data or salon_data()], PlanPatch: list(fixes)}
         self.texts_fn, self.calls = texts_fn, []
 
     def __call__(self, task, schema, system, user, budget_usd=None):
@@ -174,7 +174,7 @@ def any_brief_planner(heroes: tuple[str, ...]) -> FakeModel:
         return out
 
     fake = FakeModel(texts_fn=lambda user: good_texts(user, heroes))
-    fake.answers = {SiteDesign: [], DataDesign: [], PlanFix: []}
+    fake.answers = {SiteDesign: [], DataDesign: [], PlanPatch: []}
     builders = {SiteDesign: site, DataDesign: data}
     plain = fake.__call__
 
@@ -233,7 +233,8 @@ def test_salon_plan_end_to_end_through_approval(monkeypatch):
     assert {t.test_id: t.targets for t in plan.test_map}["T01"] == ["booking.booking", "POST /api/bookings",
                                                                     "GET /api/availability"]
     assert plan.custom_specs[0].needs[0].type == "number" and plan.theme == THEME
-    assert [c.section_id for c in plan.components if c.page == "all"] == ["all.navbar", "all.footer", "all.whatsapp-chat"]
+    assert [c.section_id for c in plan.components if c.page == "all"] == ["all.navbar", "all.footer", "all.not-found",
+                                                                         "all.whatsapp-chat"]
 
     done = graph.invoke(Command(resume={"decision": "approve"}), config)
     assert done["plan"].status == "approved" and done["plan"].approved_at
@@ -257,17 +258,27 @@ def test_a_site_that_stores_nothing_skips_the_data_call_and_the_backend(monkeypa
 
 
 # ---------------------------------------------------------------- fix rounds
+def _add_booking() -> PlanPatch:
+    """The fix a model should return when booking is missing: the section and the data it posts to."""
+    data = salon_data()
+    return PlanPatch(sections=[SectionOut(page_id="booking", feature_id="booking", component_id="booking-form")],
+                     entities=data.entities, routes=data.routes, form_rules=data.form_rules,
+                     dashboard_views=data.dashboard_views)
+
+
+ADD_BOOKING = _add_booking()
+
 def test_a_missing_must_feature_goes_back_to_the_model_once(monkeypatch):
-    fake = FakeModel(site=salon_site(drop=("booking",)), fixes=[PlanFix(site=salon_site(), data=salon_data())])
+    fake = FakeModel(site=salon_site(drop=("booking",)), fixes=[ADD_BOOKING])
     graph, config, result = run_graph(salon_brief(), fake, monkeypatch)
     p = inner(graph, config)["planning"]
     assert "__interrupt__" in result and p.fix_rounds_used == 1
-    assert ("planning_fix", "PlanFix") in fake.calls
+    assert ("planning_fix", "PlanPatch") in fake.calls
 
 
 def test_planning_stops_after_two_failed_fix_rounds(monkeypatch):
     broken = salon_site(drop=("booking",))
-    fake = FakeModel(site=broken, fixes=[PlanFix(site=broken, data=salon_data())])
+    fake = FakeModel(site=broken, fixes=[PlanPatch()])
     graph, config, result = run_graph(salon_brief(), fake, monkeypatch)
     p = result["planning"]
     assert p.status == "failed" and p.fix_rounds_used == 2 and "__interrupt__" not in result
@@ -398,8 +409,9 @@ def test_the_live_salon_design_passes_without_a_fix_round():
 
 
 def test_a_fix_that_makes_the_plan_worse_is_thrown_away(monkeypatch):
-    worse = PlanFix(site=salon_site(drop=("booking", "services-price-list", "gallery")), data=salon_data())
-    fake = FakeModel(site=salon_site(drop=("booking",)), fixes=[worse, PlanFix(site=salon_site(), data=salon_data())])
+    worse = PlanPatch(remove_sections=[SectionKey(page_id="home", feature_id="services-price-list"),
+                                       SectionKey(page_id="gallery", feature_id="gallery")])
+    fake = FakeModel(site=salon_site(drop=("booking",)), fixes=[worse, ADD_BOOKING])
     graph, config, result = run_graph(salon_brief(), fake, monkeypatch)
     p = inner(graph, config)["planning"]
     assert "__interrupt__" in result and p.fix_rounds_used == 2 and p.before_fix is None
@@ -472,9 +484,8 @@ def test_text_that_still_fails_after_the_rewrite_is_left_out_when_optional(monke
 
 # ---------------------------------------------------------------- plan changes
 def test_one_change_is_applied_and_then_no_more_are_allowed(monkeypatch):
-    changed = salon_site()
-    changed.sections[3].component_id = "image-gallery"
-    fake = FakeModel(fixes=[PlanFix(site=changed, data=salon_data())])
+    changed = salon_site().sections[3].model_copy(update={"component_id": "image-gallery"})
+    fake = FakeModel(fixes=[PlanPatch(sections=[changed])])
     graph, config, _ = run_graph(salon_brief(), fake, monkeypatch)
     after = graph.invoke(Command(resume={"decision": "change", "change_text": "Use a grid gallery"}), config)
     view = after["__interrupt__"][0].value
@@ -485,7 +496,7 @@ def test_one_change_is_applied_and_then_no_more_are_allowed(monkeypatch):
 
 
 def test_a_change_that_breaks_the_plan_is_undone(monkeypatch):
-    fake = FakeModel(fixes=[PlanFix(site=salon_site(drop=("booking",)), data=salon_data())])
+    fake = FakeModel(fixes=[PlanPatch(remove_sections=[SectionKey(page_id="booking", feature_id="booking")])])
     graph, config, _ = run_graph(salon_brief(), fake, monkeypatch)
     before = inner(graph, config)["plan"]
     after = graph.invoke(Command(resume={"decision": "change", "change_text": "Remove booking"}), config)
@@ -587,3 +598,133 @@ def test_planning_ends_cleanly_when_the_run_budget_is_spent(monkeypatch):     # 
     result = graph.invoke(state, {"configurable": {"thread_id": "t"}})
     assert result["planning"].status == "failed"
     assert result["planning"].failure.message == SPENDING_LIMIT_MESSAGE
+
+
+# ---------------------------------------------------------------- Phase 2 (2026-11-13)
+def test_a_patch_changes_only_what_it_names():                            # D-220
+    from agents.planning.schemas import PageOrder
+    site = assemble.tidy(salon_site()).model_dump(mode="json")
+    data = salon_data().model_dump(mode="json")
+    gallery = SectionOut(page_id="gallery", feature_id="gallery", component_id="image-gallery")
+    patch = PlanPatch(sections=[gallery], remove_sections=[SectionKey(page_id="contact", feature_id="location-map")],
+                      section_order=[PageOrder(page_id="home", feature_ids=["custom-loyalty-stamp-card"])],
+                      remove_entities=["time_slots"], remove_route_ids=["GET /api/availability"])
+    new_site, new_data = assemble.apply_patch(site, data, patch)
+    assert [(s.page_id, s.feature_id) for s in new_site.sections] == [
+        ("home", "custom-loyalty-stamp-card"), ("home", "services-price-list"), ("booking", "booking"),
+        ("gallery", "gallery")]
+    assert next(s for s in new_site.sections if s.feature_id == "gallery").component_id == "image-gallery"
+    assert [p.page_id for p in new_site.pages] == ["home", "booking", "gallery", "contact"]      # untouched
+    assert [e.name for e in new_data.entities] == ["booking_requests"]
+    assert [r.route_id for r in new_data.routes] == ["POST /api/bookings"]
+
+
+def _record_texts(fake):
+    seen = []
+
+    def call(task, schema, system, user, budget_usd=None):
+        if schema is SiteTexts:
+            seen.append(user)
+        return fake(task, schema, system, user, budget_usd)
+    return call, seen
+
+
+def test_a_users_change_rewrites_only_the_changed_section(monkeypatch):    # KI-12
+    changed = salon_site().sections[3].model_copy(update={"component_id": "image-gallery"})
+    fake, seen = _record_texts(FakeModel(fixes=[PlanPatch(sections=[changed])]))
+    graph, config, _ = run_graph(salon_brief(), fake, monkeypatch)
+    before = {t.slot_id: t.text for t in inner(graph, config)["plan"].texts}
+    graph.invoke(Command(resume={"decision": "change", "change_text": "Use a grid gallery"}), config)
+    after = inner(graph, config)["plan"]
+    asked = {s["slot_id"] for s in json.loads(seen[-1].split("Text slots to write:\n")[1].split("\n\nProblems")[0])}
+    assert asked and all(sid.startswith("gallery.gallery.") for sid in asked)
+    assert "Use a grid gallery" in seen[-1]
+    assert all(t.text == before[t.slot_id] for t in after.texts if not t.slot_id.startswith("gallery.gallery."))
+
+
+def test_a_change_whose_text_fails_is_undone(monkeypatch):                # KI-12
+    from agents.gateway import InvalidOutputError
+    changed = salon_site().sections[3].model_copy(update={"component_id": "image-gallery"})
+    fake = FakeModel(fixes=[PlanPatch(sections=[changed])])
+    graph, config, _ = run_graph(salon_brief(), fake, monkeypatch)
+    before = inner(graph, config)["plan"]
+
+    def broken_text(user):
+        raise InvalidOutputError("invalid structured output")
+    fake.texts_fn = broken_text
+    after = graph.invoke(Command(resume={"decision": "change", "change_text": "Use a grid gallery"}), config)
+    assert "could not be made" in after["__interrupt__"][0].value["notice"]
+    assert inner(graph, config)["plan"].components == before.components
+
+
+def test_every_page_gets_a_search_head_and_the_site_a_404_page():         # D-221, SL-07
+    brief, plan = built_plan()
+    for p in plan.pages:
+        head = f"{p.page_id}.seo"
+        assert any(c.section_id == head and c.component_id == "seo-head" for c in plan.components)
+        assert head not in p.section_ids
+        limits = {t.prop: t.max_length for t in plan.texts if t.section_id == head}
+        assert limits == {"title": 60, "description": 160}
+    assert any(c.section_id == "all.not-found" for c in plan.components)
+    assert len(plan.accessibility) == 5
+    assert _issues(brief, plan) == []
+
+
+def test_search_titles_must_differ_and_each_page_has_one_main_heading():   # D-221
+    brief, plan = built_plan()
+    for t in plan.texts:
+        if t.prop == "title" and t.section_id.endswith(".seo"):
+            t.text = "Same title"
+    plan.components.append(plan.components[1].model_copy(update={"section_id": "contact.hero2", "page": "contact",
+                                                                  "component_id": "hero-banner"}))
+    found = checks.run_checks(plan, brief, rank_and_retrieve_components(brief), load_catalogue(), Limits(),
+                              with_texts=True)
+    assert any(i.startswith("17:") and "same search title" in i for i in found)
+    assert any(i.startswith("18:") and "'contact' has 2 main headings" in i for i in found)
+
+
+def test_the_briefs_assumptions_are_shown_on_the_plan():                 # D-219
+    from agents.state import Assumption
+    brief = salon_brief()
+    brief.assumptions = [Assumption(text="Book a time (chosen for you)", reason="Not answered")]
+    _, plan = built_plan(brief=brief)
+    assert plan.assumptions[0].text == "Book a time (chosen for you)"
+
+
+def test_relevance_counts_must_feature_names_and_plurals():                # KI-20
+    brief = info_brief()
+    brief.business_type, brief.goal = "studio", ""
+    brief.features.append(feature("booking", name="Class booking"))
+    rules = texts.rules_for(brief, built_plan()[1])
+    assert {"studio", "class", "booking"} <= rules.relevance and "contact" not in rules.relevance
+    hero = TextSlot(slot_id="home.hero.headline", section_id="home.hero", prop="headline", max_length=80,
+                    text="Find your classes this week")
+    assert texts.hero_is_relevant([hero], rules)
+
+
+def test_a_hero_that_misses_the_business_words_does_not_fail_planning(monkeypatch):   # KI-20
+    def generic(user):
+        out = good_texts(user, heroes=("Make every day lovely",))
+        for t in out.texts:
+            if t.slot_id == "home.hero.subheadline":
+                t.text = "Something lovely is waiting"
+        return out
+    fake = FakeModel(texts_fn=generic)
+    graph, config, result = run_graph(salon_brief(), fake, monkeypatch)
+    assert "__interrupt__" in result
+    assert any("main headline may not say" in a for a in result["__interrupt__"][0].value["assumptions"])
+
+
+@pytest.mark.parametrize("prop, button", [("ctaText", True), ("buttonLabel", True), ("submitButtonText", True),
+                                          ("cta_body", False), ("ctaTitle", False), ("body", False)])
+def test_only_real_button_inputs_are_buttons(prop, button):              # KI-21
+    assert texts.is_button(TextSlot(slot_id=f"s.{prop}", section_id="s", prop=prop, max_length=40)) is button
+
+
+def test_links_written_with_arrows_or_ids_are_read_as_entity_names():    # KI-22
+    data = salon_data()
+    data.entities[0].links = ["slot_id -> time_slots (optional)"]
+    data.entities[1].links = ["booking_request_id"]
+    _, plan = built_plan(data=data)
+    links = {e.name: e.links for e in plan.data_entities}
+    assert links["booking_requests"] == ["time_slots"] and links["time_slots"] == ["booking_requests"]

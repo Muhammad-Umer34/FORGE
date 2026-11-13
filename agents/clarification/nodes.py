@@ -143,6 +143,7 @@ def intake(state: GraphState) -> dict:
 
     c.detected_language, c.romanized = out.detected_language, out.romanized
     c.is_business, c.business_type, c.goal, c.style_hint = out.is_business, out.business_type, out.goal, out.style_hint
+    c.audience = out.audience
     c.personality = out.personality if out.personality in theming.PERSONALITIES else None
     c.hue_family = out.hue_family if out.hue_family in theming.HUE_FAMILIES else None
     # A hex code in the user's own words wins over the model's reading of it (D-158).
@@ -201,8 +202,10 @@ def select_question(state: GraphState) -> dict:
         c.status = "awaiting_answer"
     elif action == "draft":
         c.status = "drafting"
+    elif missing := slots.apply_defaults(c, cat, limits):    # questions used up: stated defaults (D-219)
+        _fail(c, "select_question", "missing_info", missing=missing)
     else:
-        _fail(c, "select_question", "missing_info", missing=value)
+        c.status = "drafting"
     return {"clarification": c}
 
 

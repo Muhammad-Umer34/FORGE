@@ -21,10 +21,10 @@ Retr = Context Retrieval.
 | KI-06 | Urdu, Arabic or emoji custom features all get the id `custom-item`; the second is dropped, then confirm fails (`brief.py:29-30`) | Clar | High | Fixed, see below |
 | KI-07 | Custom parts can never get a data model or API: only catalogue `onSubmit` components count as forms (`assemble.py` `form_sections`) | Plan | High | Open |
 | KI-08 | Refusal path drops what it promises: `partial` tier never loaded; non-core refusals promise a link button that never enters the brief; a capability beats a valid feature (`catalogue.py`, `slots.py:189-195`, `grounding.py:111-117`) | Clar | Medium | Open |
-| KI-09 | `brief.audience` is never filled, yet Planning uses it for copy and the hero relevance rule | Clar→Plan | Medium | Open |
+| KI-09 | `brief.audience` is never filled, yet Planning uses it for copy and the hero relevance rule | Clar→Plan | Medium | Fixed, see below |
 | KI-10 | Emails and bare domains in the prompt (`info@x.pk`, "Daraz.pk store") become style references read by Playwright (`reference_style.py:34`) | Clar | Medium | Open |
 | KI-11 | Data links are kept only one level deep (booking → class → trainer loses `trainers`), so check 9 fails every round (`assemble.complete_data`) | Plan | Medium | Fixed, see below |
-| KI-12 | A user's plan change rewrites all copy without the change text, and a text-stage failure after a change ends the run | Plan | Medium | Open |
+| KI-12 | A user's plan change rewrites all copy without the change text, and a text-stage failure after a change ends the run | Plan | Medium | Fixed, see below |
 | KI-13 | Custom features cannot be removed with Edit (`clarification/nodes.py:393-399`, `brief.py:48-52`) | Clar | Medium | Open |
 | KI-14 | Code-fixable plan faults waste fix rounds: section/footer/spec page ids not lower-cased; code-added `/blog/[slug]` counts toward the page cap; data prompt never asks for `feature_ids` | Plan | Medium | Fixed, see below |
 | KI-15 | Retrieval offers page layouts and site-wide parts as sections ("Live chat" → WhatsApp button); weak plural handling; one generic word is enough to match (`ranker.py:25-32, 46-50`) | Retr | Medium | Open |
@@ -32,10 +32,10 @@ Retr = Context Retrieval.
 | KI-17 | `LocationMap` and `VideoSection` embed any host (no allowlist, no sandbox) | Components | Low-Medium (security) | Open |
 | KI-18 | Small tidy-ups: `ConfirmationState.decision` lacks `theme_source`; `repairs_used` not reset after edit; unused custom specs count toward the limit; routes keep spaces; `SettingOut.value` only accepts strings; dead `VectorSearcher` | Several | Low | Open |
 | KI-19 | The worse-fix guard (D-211) compares only the number of problems, so a fix that swaps one failure for a different one is accepted; it should require strict improvement and no newly failing check | Plan | Medium | Fixed, see below |
-| KI-20 | The hero relevance rule fails good headlines: no stemming ("classes" is cut to "clas"), and vague briefs give few business words; all 5 Gemini baseline failures (vague-02 x3, scope-03, personal-03) | Plan | High | Open |
-| KI-21 | Any text input whose name contains "cta" is treated as a button, so a paragraph such as `cta_body` fails "a button must start with a verb" (`texts.is_button`) | Plan | Medium | Open |
-| KI-22 | Data links written as `service_id -> services` (MiMo) are not reduced to the entity name, so check 9 fails every fix round; code could normalise them | Plan | Medium | Open |
-| KI-23 | No limit on output tokens: one OpenRouter reply ran to 131,072 tokens and failed; set a maximum per task in the gateway | Gateway | Medium | Open |
+| KI-20 | The hero relevance rule fails good headlines: no stemming ("classes" is cut to "clas"), and vague briefs give few business words; all 5 Gemini baseline failures (vague-02 x3, scope-03, personal-03) | Plan | High | Fixed, see below |
+| KI-21 | Any text input whose name contains "cta" is treated as a button, so a paragraph such as `cta_body` fails "a button must start with a verb" (`texts.is_button`) | Plan | Medium | Fixed, see below |
+| KI-22 | Data links written as `service_id -> services` (MiMo) are not reduced to the entity name, so check 9 fails every fix round; code could normalise them | Plan | Medium | Fixed, see below |
+| KI-23 | No limit on output tokens: one OpenRouter reply ran to 131,072 tokens and failed; set a maximum per task in the gateway | Gateway | Medium | Fixed, see below |
 
 ## Scope limits
 
@@ -44,10 +44,10 @@ Retr = Context Retrieval.
 | SL-01 | Links to outside services (payment link, Calendly, Foodpanda, tickets, Daraz/Shopify, Google review link) are refused as integrations; existing components already accept links | Partly D-136; unlisted-integration rule accidental | Open (needs a D-decision) |
 | SL-02 | One failed required text ends planning; all digits banned ("24/7", "3D"); single-word claim lists; relevance rule without stemming | D-205; word lists accidental | Open |
 | SL-03 | Pages come from a closed list of 16 kinds (no Admissions, Courses, Careers); custom features have no page and only a short label | Accidental | Open |
-| SL-04 | Recoverable situations end as FAILED (ambiguity after 4 questions, ambiguous edits) | Partly D-104 | Open |
+| SL-04 | Recoverable situations end as FAILED (ambiguity after 4 questions, ambiguous edits) | Partly D-104 | Fixed, see below |
 | SL-05 | Front-end-only features refused: countdown, analytics, several branches, 360 tour, live-stream embed | Accidental | Open (needs a D-decision) |
-| SL-06 | Language, content wishes and style notes never reach Planning; no language or RTL field in brief or plan | Accidental | Open |
-| SL-07 | Build Plan has no SEO head, 404 page, menu labels, missing-photo rule or accessibility requirement | Accidental | Open |
+| SL-06 | Language, content wishes and style notes never reach Planning; no language or RTL field in brief or plan | Accidental | Fixed, see below |
+| SL-07 | Build Plan has no SEO head, 404 page, menu labels, missing-photo rule or accessibility requirement | Accidental | Fixed, see below |
 | SL-08 | Per-item pages exist only for the blog (no product, portfolio or event detail pages) | Accidental | Open |
 | SL-09 | Catalogued features are locked to their own components (cannot go custom) | Plan v2 checks | Open |
 | SL-10 | Check 13 forces "should" features with tests into the plan, against the prompt | Accidental | Open |
@@ -76,3 +76,12 @@ Retr = Context Retrieval.
 | KI-14 | Code-fixable plan faults waste fix rounds: section/footer/spec page ids not lower-cased; code-added `/blog/[slug]` counts toward the page cap; data prompt never asks for `feature_ids` | `tidy` lower-cases section, spec and footer page ids; no page cap (D-212); data prompt asks for `feature_ids` | Fixed (Phase 0, 2026-11-13) |
 | KI-16 | Copy rules misfire on buttons: "Let's talk", cookie "Accept"/"Decline", "Donate", "Enroll" fail the verb check (`texts.py`) | Text before an apostrophe is the verb ("Let's" -> let); accept, decline, donate, enroll, register and others added | Fixed (Phase 0, 2026-11-13) |
 | KI-19 | The worse-fix guard (D-211) compares only the number of problems, so a fix that swaps one failure for a different one is accepted; it should require strict improvement and no newly failing check | D-214 | Fixed (Phase 0, 2026-11-13) |
+| KI-09 | `brief.audience` is never filled, yet Planning uses it for copy and the hero relevance rule | D-222 | Fixed (Phase 2, 2026-11-13) |
+| KI-12 | A user's plan change rewrites all copy without the change text, and a text-stage failure after a change ends the run | D-220 | Fixed (Phase 2, 2026-11-13) |
+| KI-20 | The hero relevance rule fails good headlines: no stemming ("classes" is cut to "clas"), and vague briefs give few business words; all 5 Gemini baseline failures (vague-02 x3, scope-03, personal-03) | D-223 | Fixed (Phase 2, 2026-11-13) |
+| KI-21 | Any text input whose name contains "cta" is treated as a button, so a paragraph such as `cta_body` fails "a button must start with a verb" (`texts.is_button`) | D-223 | Fixed (Phase 2, 2026-11-13) |
+| KI-22 | Data links written as `service_id -> services` (MiMo) are not reduced to the entity name, so check 9 fails every fix round; code could normalise them | D-223 | Fixed (Phase 2, 2026-11-13) |
+| KI-23 | No limit on output tokens: one OpenRouter reply ran to 131,072 tokens and failed; set a maximum per task in the gateway | D-223 | Fixed (Phase 2, 2026-11-13) |
+| SL-04 | Recoverable situations end as FAILED (ambiguity after 4 questions, ambiguous edits) | D-219 | Fixed (Phase 2, 2026-11-13) |
+| SL-06 | Language, content wishes and style notes never reach Planning; no language or RTL field in brief or plan | D-222 (audience and notes; sites are English only, no language field) | Fixed (Phase 2, 2026-11-13) |
+| SL-07 | Build Plan has no SEO head, 404 page, menu labels, missing-photo rule or accessibility requirement | D-221 | Fixed (Phase 2, 2026-11-13) |

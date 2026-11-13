@@ -35,11 +35,11 @@ Vertex AI (default), AI Studio or OpenRouter (D-218); the models per task are se
 | `fixed.py` | Checks the input; places the parts every site has (header, footer, site-wide parts, hero first on Home, a page header on inner pages) and lists the components the model may choose from |
 | `schemas.py` | The formats the model must answer in: site design, data and API design, plan fix, website text, plan decision |
 | `prompts.py` | The prompts and the standard starting designs for known forms (booking, contact, order, newsletter, blog, events) |
-| `assemble.py` | Tidies the model's design and builds the `BuildPlan`: sections in order, text slots, consent on forms with personal data, work plan, test map, not-built list |
+| `assemble.py` | Tidies the model's design and builds the `BuildPlan`: sections in order, a search head on every page and a 404 page (D-221), text slots, consent on forms with personal data, accessibility rules, work plan, test map, not-built list, assumptions |
 | `content_schema.py` | The business details form, derived from the Component Needs List (`components/component_needs.json`, D-201) and the needs of each custom part |
-| `checks.py` | The 16 plan checks; each problem is one plain sentence for the fix round and the error log |
+| `checks.py` | The 18 plan checks (17: a search title and description on every page, 18: one H1 per page, D-221); each problem is one plain sentence for the fix round and the error log |
 | `texts.py` | The pitch rules for website text (D-205) and the choice of the hero headline |
-| `nodes.py`, `graph.py` | The subgraph: 3 model calls (site, data and API, text), at most 2 fix rounds and 1 text rewrite, the plan-approval pause (one change allowed), and freeze |
+| `nodes.py`, `graph.py` | The subgraph: 3 model calls (site, data and API, text), at most 2 fix rounds and 1 text rewrite, the plan-approval pause (one change allowed), and freeze. Fix rounds and the user's change return a patch of only what changes (`schemas.PlanPatch`, merged by `assemble.apply_patch`, D-220); after a change only the changed sections get new text, and a change that breaks the plan or its text is undone |
 
 The plan's types live in `state.py` (`BuildPlan`, `PlanningState`, D-202). Tests: `tests/test_planning.py` (fake model),
 `tests/test_clarification_flow.py` (the whole run through plan approval).
