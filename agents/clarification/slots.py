@@ -47,7 +47,7 @@ def fill_slots_from_items(c: ClarificationState) -> None:
 @dataclass
 class Gap:
     kind: str            # question kind A-E
-    key: str             # slot name, "item:<id>", "custom_limit" or "page_limit"
+    key: str             # slot name, "item:<id>" or "custom_limit"
     missing: str         # plain words for a missing_info failure
     item_id: str | None = None
     extra: dict = field(default_factory=dict)
@@ -67,8 +67,6 @@ def open_gaps(c: ClarificationState, cat: Catalogue, limits: Limits) -> list[Gap
             gaps.append(Gap("C", f"item:{item.item_id}", f"what you meant by '{item.text}'", item.item_id))
     if len(grounding.custom_items(c)) > limits.max_custom_features:
         gaps.append(Gap("E", "custom_limit", "which special features to keep"))
-    if len(grounding.site_pages(c, cat)) > limits.max_pages:
-        gaps.append(Gap("E", "page_limit", "which pages to keep"))
     return gaps
 
 
@@ -113,17 +111,10 @@ def build_question(gap: Gap, c: ClarificationState, cat: Catalogue, limits: Limi
                         options=[QuestionOption(option_id="yes", label="Yes, use that", recommended=True),
                                  QuestionOption(option_id="no", label="No, stop")])
 
-    if gap.key == "custom_limit":
-        return Question(**common, multi_select=True, max_selections=limits.max_custom_features,
-                        text=f"We can build up to {limits.max_custom_features} special features on one site. Which should we keep?",
-                        options=[QuestionOption(option_id=i.item_id, label=i.text) for i in grounding.custom_items(c)])
-
-    # page_limit
-    candidates = grounding.page_adding_features(c, cat)
-    keep = max(1, limits.max_pages - (len(grounding.site_pages(c, cat)) - len(candidates)))
-    return Question(**common, multi_select=True, max_selections=keep,
-                    text=f"That is more pages than we can build in one site. Which {keep} should we keep?",
-                    options=[QuestionOption(option_id=f, label=cat.features[f].name) for f in candidates])
+    # custom_limit (there is no page limit, D-212)
+    return Question(**common, multi_select=True, max_selections=limits.max_custom_features,
+                    text=f"We can build up to {limits.max_custom_features} special features on one site. Which should we keep?",
+                    options=[QuestionOption(option_id=i.item_id, label=i.text) for i in grounding.custom_items(c)])
 
 
 def select_next(c: ClarificationState, cat: Catalogue, limits: Limits) -> tuple[str, object]:
@@ -204,15 +195,6 @@ def apply_option_answer(c: ClarificationState, q: Question, option_ids: list[str
         for item in grounding.custom_items(c):
             if item.item_id not in option_ids:
                 item.resolution, item.resolved_to = "unsupported", "limit"
-
-    elif q.slot == "page_limit":
-        for fid in grounding.page_adding_features(c, cat):
-            if fid not in option_ids:
-                c.removed_feature_ids.append(fid)
-                for item in c.requested_items:
-                    if item.resolved_to == fid:
-                        item.resolution, item.resolved_to = "unsupported", "limit"
-                        grounding.remove_item_matches(c, item.item_id)
 
 
 def apply_you_decide(c: ClarificationState, q: Question, cat: Catalogue) -> None:

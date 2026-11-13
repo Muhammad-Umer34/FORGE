@@ -26,7 +26,9 @@ VERBS = {"book", "call", "see", "view", "get", "start", "explore", "browse", "co
          "join", "subscribe", "shop", "visit", "try", "request", "learn", "reserve", "message", "chat", "read",
          "meet", "check", "find", "plan", "schedule", "sign", "claim", "ask", "email", "choose", "submit",
          "confirm", "apply", "enquire", "inquire", "watch", "follow", "talk", "write", "show", "make", "tell",
-         "pick", "grab", "taste", "come", "drop", "let", "share", "download", "go", "hire", "secure", "save"}
+         "pick", "grab", "taste", "come", "drop", "let", "share", "download", "go", "hire", "secure", "save",
+         "accept", "decline", "reject", "allow", "donate", "give", "support", "enroll", "enrol", "register",
+         "buy", "add", "open", "reply", "connect"}
 
 
 @dataclass
@@ -68,7 +70,7 @@ def check_text(slot: TextSlot, text: str, rules: TextRules) -> list[str]:
     if FACT_PATTERN.search(_plain(text)):
         problems.append("a number or price: real facts only as placeholders")
     problems += [f"placeholder {{{p}}} is not allowed" for p in PLACEHOLDER.findall(text) if p not in rules.placeholders]
-    if is_button(slot) and re.sub(r"[^a-z]", "", low.split()[0]) not in VERBS:
+    if is_button(slot) and re.sub(r"[^a-z]", "", re.split(r"['’]", low.split()[0])[0]) not in VERBS:   # "Let's" -> let
         problems.append("a button must start with a verb")
     return problems
 
@@ -90,6 +92,14 @@ def check_all(texts: list[TextSlot], rules: TextRules) -> dict[str, list[str]]:
     if hero.strip() and not words(_plain(hero)) & rules.relevance:
         out.setdefault(HERO + "headline", []).append(
             "the hero does not say what this business offers; use words such as " + ", ".join(sorted(rules.relevance)[:8]))
+    return out
+
+
+def text_problems(plan: BuildPlan, rules: TextRules) -> dict[str, list[str]]:
+    """check_all plus required texts the model left empty, so they reach the rewrite round (KI-03)."""
+    out = check_all(plan.texts, rules)
+    for sid in sorted(required_slots(plan) - {t.slot_id for t in plan.texts if t.text.strip()}):
+        out.setdefault(sid, []).append("required text is missing")
     return out
 
 

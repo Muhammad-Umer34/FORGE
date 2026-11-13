@@ -142,6 +142,7 @@ confirmed brief. Rules:
 - ears uses the form "WHEN <event> THE SYSTEM SHALL <behaviour>"."""
 
 
-def tests_user(brief_view: dict, max_tests: int, issues: list[str] | None = None) -> str:
+def tests_user(brief_view: dict, issues: list[str] | None = None) -> str:
     fix = ("\n\nYOUR PREVIOUS TESTS HAD THESE PROBLEMS, fix them:\n- " + "\n- ".join(issues)) if issues else ""
-    return f"Write at most {max_tests} tests.\n\nBRIEF: {json.dumps(brief_view, ensure_ascii=False)}{fix}"
+    return ("Write the tests the rules require, plus others only where they check something new.\n\n"
+            f"BRIEF: {json.dumps(brief_view, ensure_ascii=False)}{fix}")

@@ -429,11 +429,11 @@ def generate_tests(state: GraphState) -> dict:
             break
         try:
             out, usage = _call(c, GeneratedTests, prompts.TESTS_SYSTEM,
-                               prompts.tests_user(view, limits.max_test_cases, issues))
+                               prompts.tests_user(view, issues))
         except InvalidOutputError as error:
             return {"clarification": _fail(c, "generate_tests", "system", str(error)), "usage": total}
         total = sum_usage(total, usage)
-        tests, issues = acceptance.validate_tests(out.tests, brief, limits)
+        tests, issues = acceptance.validate_tests(out.tests, brief)
         if not issues:
             break
 

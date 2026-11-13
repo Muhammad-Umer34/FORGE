@@ -150,7 +150,7 @@ def check_plan(state: GraphState) -> dict:
     update: dict = {"planning": p}
     if p.before_fix:
         before, p.before_fix = p.before_fix, None
-        if len(p.issues) > len(before["issues"]):    # the fix made it worse (seen live): keep the earlier design
+        if not fix_helped(before["issues"], p.issues):   # worse or a swap (seen live): keep the earlier design
             p.site_design, p.data_design, p.issues = before["site_design"], before["data_design"], before["issues"]
             plan = update["plan"] = BuildPlan.model_validate(before["plan"])
     if not p.issues:
@@ -167,6 +167,12 @@ def check_plan(state: GraphState) -> dict:
         return update
     p.status = "checking"
     return update
+
+
+def fix_helped(before: list[str], after: list[str]) -> bool:
+    """A fix is kept only when it leaves fewer problems and no check fails that passed before (D-214)."""
+    failing = lambda issues: {i.split(":", 1)[0] for i in issues}     # check numbers, e.g. "8"
+    return len(after) < len(before) and failing(after) <= failing(before)
 
 
 def fix_plan(state: GraphState) -> dict:
@@ -229,7 +235,7 @@ def write_texts(state: GraphState) -> dict:
     except InvalidOutputError as error:
         return {"planning": _fail(p, "write_texts", str(error))}
     _apply_texts(plan, out, rules)
-    p.issues = [f"{k}: {'; '.join(v)}" for k, v in texts.check_all(plan.texts, rules).items()]
+    p.issues = [f"{k}: {'; '.join(v)}" for k, v in texts.text_problems(plan, rules).items()]
     return {"planning": p, "plan": plan, "usage": usage}
 
 
@@ -237,7 +243,7 @@ def rewrite_texts(state: GraphState) -> dict:
     """One rewrite round for the texts that broke the pitch rules (plan v2 §6)."""
     p, plan = _p(state), state["plan"].model_copy(deep=True)
     rules = texts.rules_for(state["brief"], plan)
-    problems = texts.check_all(plan.texts, rules)
+    problems = texts.text_problems(plan, rules)
     p.text_rewrites_used += 1
     try:
         out, usage = _call(p, "planning_fix", SiteTexts, prompts.REWRITE_SYSTEM,

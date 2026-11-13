@@ -68,11 +68,16 @@ def _mentions_reference(item: RequestedItem, url: str) -> bool:
 
 def _phrase_capability(text: str, cat: Catalogue) -> str | None:
     """Safety net only, used when the model found no catalogue feature (D-113)."""
-    lowered = text.lower()
     for cap in cat.capabilities.values():
-        if any(p.lower() in lowered for p in cap.phrases):
+        if any(_phrase_in(p, text) for p in cap.phrases):
             return cap.capability_id
     return None
+
+
+def _phrase_in(phrase: str, text: str) -> bool:
+    """Whole words only ("Striped" is not Stripe); short all-caps names (POS, UPS) only in capitals (KI-01)."""
+    acronym = phrase.isupper() and len(phrase) <= 4
+    return re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", text, 0 if acronym else re.IGNORECASE) is not None
 
 
 def add_match(c: ClarificationState, cat: Catalogue, feature_id: str, source: str,
@@ -207,14 +212,6 @@ def site_pages(c: ClarificationState, cat: Catalogue) -> list[str]:
             pages.add(main)
     order = ["home"] + [p for p in cat.page_kinds if p != "home"]
     return [p for p in order if p in pages]
-
-
-def page_adding_features(c: ClarificationState, cat: Catalogue) -> list[str]:
-    """Features that add a page of their own (candidates to drop when the site is too big)."""
-    baseline = _baseline(cat, choose_baseline(c, cat))
-    fixed = {"home"} | set(baseline.default_pages if baseline else ())
-    return [fid for fid, _ in site_feature_ids(c, cat)
-            if (cat.features[fid].main_page or "home") not in fixed]
 
 
 def propose_extras(c: ClarificationState, cat: Catalogue, limits: Limits) -> None:

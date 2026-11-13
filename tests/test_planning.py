@@ -505,3 +505,60 @@ def test_planning_stops_when_the_brief_is_not_confirmed(monkeypatch):
     fake = FakeModel()
     _, _, result = run_graph(brief, fake, monkeypatch)
     assert result["planning"].status == "failed" and fake.calls == []
+
+
+# ---------------------------------------------------------------- Phase 0 fixes (2026-11-13)
+@pytest.mark.parametrize("text", ["Let's talk", "Accept", "Decline", "Donate now", "Enroll today", "Register"])
+def test_ordinary_buttons_pass_the_verb_rule(text):                    # KI-16
+    slot = TextSlot(slot_id="s.ctaText", section_id="s", prop="ctaText", max_length=40)
+    assert texts.check_text(slot, text, texts.TextRules(relevance=set(), placeholders=set())) == []
+
+
+def test_generic_lists_get_one_form_field_per_component():            # KI-02
+    from agents.planning.content_schema import derive_content_schema
+    from agents.state import PlannedComponent
+    ids = ("testimonials", "faq-accordion", "before-after-slider", "booking-form", "services-price-list")
+    comps = [PlannedComponent(section_id=f"home.{cid}", page="home", feature_id=cid, component_id=cid, role="feature")
+             for cid in ids]
+    keys = {f.key: f.needed_by for f in derive_content_schema(comps, {})}
+    assert {"testimonials_items", "faq_accordion_items"} <= set(keys) and "items" not in keys
+    assert keys["services"] == ["home.booking-form", "home.services-price-list"]     # same list, shared
+    assert sum(v == ["home.before-after-slider"] for k, v in keys.items() if k.startswith("photos")) == 2
+
+
+def test_code_lower_cases_every_page_reference():                     # KI-14
+    site = salon_site()
+    site.pages[1].page_id = "Booking"
+    site.sections[2].page_id, site.footer_links = "Booking", ["Home", "Contact"]
+    site.custom_specs[0].page_id = "HOME"
+    tidy = assemble.tidy(site)
+    assert tidy.sections[2].page_id == "booking" and tidy.custom_specs[0].page_id == "home"
+    assert tidy.footer_links[:2] == ["home", "contact"]
+
+
+def test_data_links_are_kept_all_the_way_down():                      # KI-11
+    data = salon_data()
+    data.entities[0].links = ["time_slots"]
+    data.entities[1].links = ["trainers"]
+    data.entities += [DataEntity(name="trainers", fields=[DataField(name="name", type="text")], links=["studios"]),
+                      DataEntity(name="studios", fields=[DataField(name="name", type="text")])]
+    _, plan = built_plan(data=data)
+    assert {"booking_requests", "time_slots", "trainers", "studios"} <= {e.name for e in plan.data_entities}
+
+
+def test_a_missing_required_text_goes_to_the_rewrite_round():         # KI-03
+    brief, plan = built_plan()
+    required = sorted(texts.required_slots(plan))
+    next(t for t in plan.texts if t.slot_id == required[0]).text = ""
+    problems = texts.text_problems(plan, texts.rules_for(brief, plan))
+    assert problems[required[0]] == ["required text is missing"]
+
+
+@pytest.mark.parametrize("before, after, kept", [
+    (["8: a", "8: b"], ["8: a"], True),             # fewer problems, same checks
+    (["8: a", "8: b"], ["1: c"], False),            # swapped one failure for another (KI-19)
+    (["8: a"], ["8: a"], False),                    # no better
+    (["8: a"], ["8: a", "3: b"], False),            # worse
+])
+def test_a_fix_is_kept_only_when_it_strictly_helps(before, after, kept):
+    assert nodes.fix_helped(before, after) is kept

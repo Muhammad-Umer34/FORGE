@@ -29,6 +29,9 @@ def tidy(site: SiteDesign) -> SiteDesign:
         p.page_id, p.route = p.page_id.strip().lower(), "/" + p.route.strip().strip("/").lower()
         if p.page_id == "home":
             p.route = "/"                     # the model sometimes writes "/home" and does not fix it when told
+    for item in (*site.sections, *site.custom_specs):
+        item.page_id = item.page_id.strip().lower()           # page ids are lower-cased, so references must be (KI-14)
+    site.footer_links = [f.strip().lower() for f in site.footer_links]
     site.pages.sort(key=lambda p: p.page_id != "home")
     for order, p in enumerate(p for p in site.pages if p.in_menu):
         p.menu_order = order
@@ -211,7 +214,8 @@ def complete_data(plan: BuildPlan) -> None:
 
     plan.api_routes = [r for r in plan.api_routes if r.used_by]
     used = {r.entity for r in plan.api_routes}
-    used |= {link for e in plan.data_entities if e.name in used for link in e.links}
+    while extra := {link for e in plan.data_entities if e.name in used for link in e.links} - used:
+        used |= extra                                         # booking -> class -> trainer keeps all three (KI-11)
     plan.data_entities = [e for e in plan.data_entities if e.name in used]
     plan.form_rules = [r for r in plan.form_rules if r.route_id in {x.route_id for x in plan.api_routes}]
     kept = {e.name for e in plan.data_entities}

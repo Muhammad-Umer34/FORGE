@@ -148,7 +148,7 @@ class Question(BaseModel):
     question_id: str
     number: int                                # 1-based position among the questions of this request
     kind: Literal["A", "B", "C", "D", "E"]
-    slot: str                                  # slot name, or "item:<item_id>", "custom_limit", "page_limit"
+    slot: str                                  # slot name, or "item:<item_id>", "custom_limit"
     text: str
     options: list[QuestionOption] = Field(default_factory=list)
     multi_select: bool = False
@@ -591,10 +591,8 @@ class Limits(BaseModel):
     max_repairs: int = 1                       # design choice
     call_hard_cap: int = 10                    # PLACEHOLDER; one call is always reserved for test generation
     max_confirmation_edits: int = 2            # PLACEHOLDER, set from config
-    max_custom_features: int = 5               # PLACEHOLDER, "medium" size limit (D-135)
-    max_pages: int = 10                        # PLACEHOLDER, "medium" size limit (D-135)
+    max_custom_features: int = 5               # PLACEHOLDER, "medium" size limit (D-135); no page or test cap (D-212)
     max_extras_shown: int = 3                  # PLACEHOLDER (D-131)
-    max_test_cases: int = 15                   # PLACEHOLDER (D-119)
     max_agent_retries: int = 2                 # PLACEHOLDER, set from config
     max_correction_attempts: int = 3           # PLACEHOLDER, set from config
     max_plan_fix_rounds: int = 2               # plan v2: model fix rounds after the code checks
@@ -900,3 +898,8 @@ def msgpack_allowlist() -> list[tuple[str, str]]:
 #    and the business details form only its part of the plan.
 # 4. Limits: max_plan_fix_rounds, max_plan_edits, max_text_rewrites, max_data_entities, max_api_routes.
 # 5. STATE_VERSION 2: runs saved with the old plan format are not resumed.
+
+
+# ---------------------------------------------------------------- Phase 0 fixes (2026-11-13)
+# 1. Limits: max_pages and max_test_cases removed; every in-scope page and test is built (D-212).
+#    Saved runs still load: pydantic ignores the two old fields.

@@ -6,6 +6,37 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-13 · Phase 0: stop losing valid runs
+
+**What** Phase 0 of the roadmap in `D:/FYP/reports/FORGE architecture lessons from peers.md`: the bugs that end
+good runs or quietly spoil plans, plus two scope changes the team made while approving it.
+- **No page limit, no test cap** → **D-212**. Removed `max_pages` and `max_test_cases` with every use (page-limit
+  question and answer, brief check, planning check 1, prompts, test trimming). Fixes KI-04 and KI-05.
+- **Precise capability matching** (KI-01): the safety net matches whole words, and short all-caps names (POS, UPS,
+  TCS) only in capitals. "Open job positions", "Daily soups special" and "Striped kurta range" stay custom features.
+- **Custom feature ids** (KI-06): from the name when it gives one, otherwise from the item id; a repeat gets the
+  item id added. Urdu and emoji names no longer collide on `custom-item`.
+- **Button verbs** (KI-16): "Let's talk" reads as *let*; accept, decline, donate, enroll, register and a few more
+  are allowed.
+- **Owner lists per component** (KI-02) → **D-213**.
+- **Plan code fixes** (KI-03, KI-11, KI-14): `tidy` lower-cases every page reference; `complete_data` keeps linked
+  stored types all the way down; required texts the model leaves empty go to the rewrite round; the data prompt
+  asks for `feature_ids`. Done inside the existing `tidy`, `complete_data` and `texts` instead of a new
+  `normalise_plan` node, which is less code for the same effect.
+- **Strict fix guard** (KI-19) → **D-214**.
+
+**Why** Each item ended a run the user had already invested in, or gave builders a wrong plan. The research found
+that deterministic gates must be precise, because a wrong rule fires the same way every time and no retry saves it.
+
+**Checked** 17 new tests (one or more per item): 352 pass; the 61 database tests were not run (test database down).
+
+**Open**
+- Re-run the bakery and salon requests live.
+- Not changed: custom-feature limit (5), API routes (10), stored types (6), one plan change.
+- Next: Phase 1 (tracing, cost per run, evaluation set).
+
+---
+
 ## 2026-11-08 · Live planning tests, data-contract fixes, project audit, this documentation
 
 **What**

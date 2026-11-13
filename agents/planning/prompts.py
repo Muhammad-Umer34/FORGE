@@ -19,7 +19,7 @@ You design the website on paper before any code is written: its pages, the secti
 which component builds each section, the component settings, and a spec for each part the catalogue cannot build.
 
 How to design:
-- Start from the brief's pages. Add or merge pages only when it makes the site clearer; at most {{max_pages}} pages,
+- Start from the brief's pages. Add or merge pages only when it makes the site clearer; exactly
   one page with route "/" and page_id "home". Routes are lower-case, e.g. "/booking".
 - Header, footer, the hero banner on Home, page headers on inner pages and site-wide parts are placed by code.
   Do not return them. Return only the feature sections, top to bottom on each page.
@@ -45,7 +45,7 @@ same time.
 How to design:
 - Start from the standard designs you are given and adapt them to this business (a gym booking may add a class
   and a trainer). Keep them small: at most {{max_entities}} stored types and {{max_routes}} routes.
-- entities: snake_case plural names; fields with an allowed type; personal=true for names, emails, phones and
+- entities: snake_case plural names; feature_ids: the brief's feature ids the entity serves; fields with an allowed type; personal=true for names, emails, phones and
   any detail about a person. links name other entities.
 - routes: route_id is "METHOD /api/path". Each route uses one entity, lists request_fields from that entity,
   the response_fields, plain validation rules, and used_by: the section ids that call it.
@@ -120,11 +120,11 @@ def site_user(brief: dict, fixed: dict, options: dict, needs: dict, limits) -> s
     return (f"Brief:\n{_dump(brief)}\n\nPlaced by code (do not return these):\n{_dump(fixed)}\n\n"
             f"Found components per feature (choose from these):\n{_dump(options)}\n\n"
             f"Inputs of each found component (kinds and allowed settings):\n{_dump(needs)}\n\n"
-            f"Limits: at most {limits.max_pages} pages and {limits.max_custom_features} custom parts.")
+            f"Limit: at most {limits.max_custom_features} custom parts.")
 
 
 def site_system(cat: Catalogue, limits) -> str:
-    return SITE_SYSTEM.format(max_pages=limits.max_pages, max_custom=limits.max_custom_features,
+    return SITE_SYSTEM.format(max_custom=limits.max_custom_features,
                               content_keys=", ".join(cat.content_keys))
 
 

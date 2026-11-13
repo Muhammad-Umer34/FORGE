@@ -8,7 +8,7 @@ import re
 from agents.catalogue import Catalogue
 from agents.planning import fixed, texts
 from agents.planning.assemble import form_sections, live_sections
-from agents.planning.content_schema import content_key, needs_of
+from agents.planning.content_schema import needs_of, section_keys
 from agents.state import BuildPlan, ClarifiedBrief, Limits, RetrievalResult
 
 _FORBIDDEN = ("login", "password", "payment", "checkout", "card_number", "auth", "account")
@@ -20,7 +20,7 @@ def _structure(plan: BuildPlan, brief: ClarifiedBrief, retrieval: RetrievalResul
     out = []
     pages = {p.page_id: p for p in plan.pages}
     routes = [p.route for p in plan.pages]
-    # 1. Home, unique URLs, reachable, size
+    # 1. Home, unique URLs, reachable (no page cap, D-212)
     if not any(p.page_id == "home" and p.route == "/" for p in plan.pages):
         out.append("1: there is no Home page with route '/'")
     out += [f"1: route {r} is used by two pages" for r in sorted({r for r in routes if routes.count(r) > 1})]
@@ -29,8 +29,6 @@ def _structure(plan: BuildPlan, brief: ClarifiedBrief, retrieval: RetrievalResul
     reachable = {p.page_id for p in plan.pages if p.in_menu} | set(plan.footer_links)
     out += [f"1: page '{p.page_id}' is in neither the menu nor the footer" for p in plan.pages
             if p.page_id not in reachable and "[" not in p.route]
-    if len(plan.pages) > limits.max_pages:
-        out.append(f"1: {len(plan.pages)} pages, at most {limits.max_pages}")
     # 2. one header, one footer, hero first on Home
     for sid, cid, _ in fixed.LAYOUT:
         if sum(c.component_id == cid for c in plan.components) != 1:
@@ -82,6 +80,7 @@ def _completeness(plan: BuildPlan, with_texts: bool, rules: texts.TextRules | No
     pages_in_menu = [p for p in plan.pages if p.in_menu]
     # 6. no empty component
     for c in plan.components:
+        keys = {n["name"]: k for n, k in section_keys(c, specs)}
         for n in needs_of(c, specs):
             if not n.get("required", True):
                 continue
@@ -89,7 +88,7 @@ def _completeness(plan: BuildPlan, with_texts: bool, rules: texts.TextRules | No
             if kind == "copy" and (f"{c.section_id}.{n['name']}" not in slots or
                                    (with_texts and not slots[f"{c.section_id}.{n['name']}"].text.strip())):
                 out.append(f"6: {where} has no text")
-            elif kind in ("fact", "list", "image") and content_key(n) not in fields:
+            elif kind in ("fact", "list", "image") and keys.get(n["name"]) not in fields:
                 out.append(f"6: {where} is not in the business details form")
             elif kind == "live" and c.section_id not in served:
                 out.append(f"6: {where} needs live data, but no API route serves this section")

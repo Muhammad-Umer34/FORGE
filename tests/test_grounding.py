@@ -123,3 +123,13 @@ def test_extras_fit_the_business_and_are_capped():
     assert 0 < len(c.proposed_extras) <= 3
     assert all(e.status == "pending" for e in c.proposed_extras)
     assert all(CAT.features[e.feature_id].inclusion == "suggest" for e in c.proposed_extras)
+
+
+def test_safety_net_matches_whole_words_and_capitalised_short_names():   # KI-01
+    texts = {"i1": "Open job positions", "i2": "Daily soups special", "i3": "Striped kurta range",
+             "i4": "warm-ups for beginners", "i5": "pay with stripe", "i6": "a POS system"}
+    c = state(requested_items=[item(k, v) for k, v in texts.items()])
+    grounding.ground_items(c, CAT)
+    got = {i.item_id: i.resolution for i in c.requested_items}
+    assert [got[k] for k in ("i1", "i2", "i3", "i4")] == ["custom"] * 4
+    assert got["i5"] == got["i6"] == "unsupported"

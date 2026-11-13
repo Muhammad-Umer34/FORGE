@@ -78,3 +78,24 @@ def test_confirmation_screen():
     c.theme_source_tries = {"logo": 3, "screenshot": 3, "website": 3}                 # every source used up (D-169)
     after = briefs.confirmation_payload(b, c, LIMITS, edit_allowed=False)
     assert after["actions"] == ["confirm", "cancel"] and not any(after["theme_sources_left"].values())
+
+
+def test_custom_ids_never_collide_for_urdu_or_emoji_names():          # KI-06
+    c = bakery()
+    c.requested_items += [RequestedItem(item_id="i7", text="آن لائن کیک ڈیزائن", resolution="custom"),
+                          RequestedItem(item_id="i8", text="🎂🎉", resolution="custom"),
+                          RequestedItem(item_id="i9", text="Cake builder", resolution="custom"),
+                          RequestedItem(item_id="i10", text="cake builder!", resolution="custom")]
+    custom = [f.id for f in briefs.draft_brief(c, CAT).features if f.tier == "custom"]
+    assert custom == ["custom-i7", "custom-i8", "custom-cake-builder", "custom-cake-builder-i10"]
+
+
+def test_a_large_site_has_no_page_limit():                            # KI-05, D-212
+    c = bakery()
+    for fid in ("faq", "legal-pages", "blog", "events", "gallery", "testimonials", "booking", "team"):
+        if fid in CAT.features:
+            grounding.add_match(c, CAT, fid, "user_stated")
+    b = briefs.draft_brief(c, CAT)
+    assert len(b.pages) > 10
+    assert not [i for i in briefs.code_checks(b, c, CAT, LIMITS) if "page" in i]
+    assert not [g for g in slots.open_gaps(c, CAT, LIMITS) if g.key == "page_limit"]

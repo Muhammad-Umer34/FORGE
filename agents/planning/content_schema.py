@@ -13,6 +13,9 @@ from agents.state import ContentField, CustomComponentSpec, Need, PlannedCompone
 
 NEEDS_FILE = COMPONENTS_DIR / "component_needs.json"
 OWNER_KINDS = ("fact", "list", "image")
+# Generic list names mean different things in different components (testimonials, FAQ and menu all have "items"),
+# so they get one form field per component. Specific names ("services") stay shared across sections (KI-02).
+GENERIC_LISTS = {"items", "categories", "features", "stats"}
 _TYPE_FOR_KEY = {"phone": "phone", "whatsapp": "phone", "email": "email", "logo": "image", "photos": "image",
                  "map_embed_url": "url", "video_url": "url", "about_text": "long_text", "hours": "long_text"}
 
@@ -35,10 +38,28 @@ def needs_of(section: PlannedComponent, specs: dict[str, CustomComponentSpec]) -
     return entry["needs"] if entry else []
 
 
-def content_key(need: dict[str, Any]) -> str:
+def content_key(need: dict[str, Any], owner: str = "") -> str:
     """Where the owner's answer is stored. Lists without one catalogue key are named after the input, so two
-    components that list the same things ("services") share one form field."""
-    return need.get("content_key") or snake(need["name"])
+    components that list the same things ("services") share one form field; generic names are per component."""
+    if need.get("content_key"):
+        return need["content_key"]
+    name = snake(need["name"])
+    return f"{owner.replace('-', '_')}_{name}" if owner and name in GENERIC_LISTS else name
+
+
+def section_keys(section: PlannedComponent, specs: dict[str, CustomComponentSpec]) -> list[tuple[dict[str, Any], str]]:
+    """(need, form key) for every owner input of one section. Two inputs of one section never share a key
+    (the before and after images both default to "photos")."""
+    out, used = [], set()
+    for need in needs_of(section, specs):
+        if need["kind"] not in OWNER_KINDS:
+            continue
+        key = content_key(need, section.component_id or section.custom_spec_id or "")
+        if key in used:
+            key = f"{key}_{snake(need['name'])}"
+        used.add(key)
+        out.append((need, key))
+    return out
 
 
 def _field_type(need: dict[str, Any], key: str) -> str:
@@ -65,10 +86,7 @@ def derive_content_schema(sections: list[PlannedComponent],
                           specs: dict[str, CustomComponentSpec]) -> list[ContentField]:
     fields: dict[str, ContentField] = {}
     for s in sections:
-        for need in needs_of(s, specs):
-            if need["kind"] not in OWNER_KINDS:
-                continue
-            key = content_key(need)
+        for need, key in section_keys(s, specs):
             f = fields.get(key)
             if f is None:
                 f = fields[key] = ContentField(

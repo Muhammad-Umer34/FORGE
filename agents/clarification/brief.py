@@ -27,7 +27,13 @@ _LIMIT_REASON = "More than one website of this size can include."
 
 
 def _slug(text: str) -> str:
-    return "custom-" + (re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:40] or "item")
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:40]
+
+
+def _custom_id(item, taken: set[str]) -> str:
+    """From the name when it gives one; else from the item id, so Urdu or emoji names never collide (KI-06)."""
+    fid = "custom-" + (_slug(item.text) or _slug(item.item_id))
+    return fid if fid not in taken else f"{fid}-{_slug(item.item_id)}"
 
 
 def _article(word: str) -> str:
@@ -47,7 +53,7 @@ def draft_brief(c: ClarificationState, cat: Catalogue, version: int = 1) -> Clar
         ))
     for item in grounding.custom_items(c):
         features.append(BriefFeature(
-            id=_slug(item.text), name=item.text, description="Custom feature: needs generated code",
+            id=_custom_id(item, {f.id for f in features}), name=item.text, description="Custom feature: needs generated code",
             priority="must", source="user_stated", tier="custom", requested_item_id=item.item_id,
         ))
 
@@ -162,8 +168,6 @@ def code_checks(brief: ClarifiedBrief, c: ClarificationState, cat: Catalogue, li
         issues.append(f"unknown content keys: {sorted(unknown_keys)}")
     if sum(1 for f in brief.features if f.tier == "custom") > limits.max_custom_features:
         issues.append("too many custom features")
-    if len(brief.pages) > limits.max_pages:
-        issues.append("too many pages")
     for u in brief.unsupported:
         if not (u.alternative_text or u.reason):
             issues.append(f"unsupported item without a note: {u.asked}")
