@@ -95,6 +95,19 @@ class AuthToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class GeneratedFile(Base):
+    """One file of a generated site (D-234): kept here, not in the run's saved state. Written with an upsert by
+    (request, path), so a builder step repeated after a crash leaves one row (P13)."""
+    __tablename__ = "generated_files"
+
+    request_id: Mapped[str] = mapped_column(String(32), ForeignKey("requests.id", ondelete="CASCADE"), primary_key=True)
+    path: Mapped[str] = mapped_column(String(300), primary_key=True)
+    sha256: Mapped[str] = mapped_column(String(64))
+    content: Mapped[str] = mapped_column(Text)
+    written_by: Mapped[str] = mapped_column(String(10))           # "code" or "model"
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class RateLimit(Base):
     """A counter per key per fixed time window (D-189). Written with SQL in backend/services/limits.py."""
     __tablename__ = "rate_limits"

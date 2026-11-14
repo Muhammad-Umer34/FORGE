@@ -29,13 +29,20 @@ Retr = Context Retrieval.
 | KI-14 | Code-fixable plan faults waste fix rounds: section/footer/spec page ids not lower-cased; code-added `/blog/[slug]` counts toward the page cap; data prompt never asks for `feature_ids` | Plan | Medium | Fixed, see below |
 | KI-15 | Retrieval offers page layouts and site-wide parts as sections ("Live chat" → WhatsApp button); weak plural handling; one generic word is enough to match (`ranker.py:25-32, 46-50`) | Retr | Medium | Open |
 | KI-16 | Copy rules misfire on buttons: "Let's talk", cookie "Accept"/"Decline", "Donate", "Enroll" fail the verb check (`texts.py`) | Plan | Medium-Low | Fixed, see below |
-| KI-17 | `LocationMap` and `VideoSection` embed any host (no allowlist, no sandbox) | Components | Low-Medium (security) | Open |
+| KI-17 | `LocationMap` and `VideoSection` embed any host (no allowlist, no sandbox) | Components | Low-Medium (security) | Fixed, see below |
 | KI-18 | Small tidy-ups: `ConfirmationState.decision` lacks `theme_source`; `repairs_used` not reset after edit; unused custom specs count toward the limit; routes keep spaces; `SettingOut.value` only accepts strings; dead `VectorSearcher` | Several | Low | Open |
 | KI-19 | The worse-fix guard (D-211) compares only the number of problems, so a fix that swaps one failure for a different one is accepted; it should require strict improvement and no newly failing check | Plan | Medium | Fixed, see below |
 | KI-20 | The hero relevance rule fails good headlines: no stemming ("classes" is cut to "clas"), and vague briefs give few business words; all 5 Gemini baseline failures (vague-02 x3, scope-03, personal-03) | Plan | High | Fixed, see below |
 | KI-21 | Any text input whose name contains "cta" is treated as a button, so a paragraph such as `cta_body` fails "a button must start with a verb" (`texts.is_button`) | Plan | Medium | Fixed, see below |
 | KI-22 | Data links written as `service_id -> services` (MiMo) are not reduced to the entity name, so check 9 fails every fix round; code could normalise them | Plan | Medium | Fixed, see below |
 | KI-23 | No limit on output tokens: one OpenRouter reply ran to 131,072 tokens and failed; set a maximum per task in the gateway | Gateway | Medium | Fixed, see below |
+
+| KI-24 | Next.js 16 uses Turbopack by default, which does not run on WebContainers' WebAssembly bindings: the preview must use `next dev --webpack`, and webpack is deprecated in Next.js 16 (D-232). Spike 2026-11-14: `--webpack` works in Chrome | Preview | Medium | Open |
+| KI-25 | WebContainers needs a commercial licence for for-profit production use (price on request); free for prototyping and the FYP (D-232) | Preview | Low now, High at launch | Open |
+
+| KI-26 | FORGE's own studio (`frontend/`) runs Next.js 16.4.0, which Next.js reports as having a known security vulnerability (fixed in 16.4.6; the site template already uses 16.4.6) | Studio | High | Open |
+| KI-27 | Installing packages inside WebContainers never finished in the Claude app's built-in browser (Chrome works): previews must be tested in a normal browser | Preview (dev only) | Low | Open |
+| KI-28 | Migration 0008 (`generated_files`) was not applied to the app database; the build step needs it before plan approval works in the studio | Build | High until applied | Fixed (applied 2026-11-14) |
 
 ## Scope limits
 
@@ -85,3 +92,4 @@ Retr = Context Retrieval.
 | SL-04 | Recoverable situations end as FAILED (ambiguity after 4 questions, ambiguous edits) | D-219 | Fixed (Phase 2, 2026-11-13) |
 | SL-06 | Language, content wishes and style notes never reach Planning; no language or RTL field in brief or plan | D-222 (audience and notes; sites are English only, no language field) | Fixed (Phase 2, 2026-11-13) |
 | SL-07 | Build Plan has no SEO head, 404 page, menu labels, missing-photo rule or accessibility requirement | D-221 | Fixed (Phase 2, 2026-11-13) |
+| KI-17 | `LocationMap` and `VideoSection` embed any host (no allowlist, no sandbox) | Allow-lists: video embeds only from YouTube and Vimeo players, maps only from Google Maps embeds; anything else shows the empty state | Fixed (Phase 3 Group 1, 2026-11-14) |

@@ -5,6 +5,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from agents import file_store
 from agents.orchestrator import build_forge_graph
 from backend.core.body_limit import BodySizeLimit
 from backend.core.config import settings
@@ -12,6 +13,7 @@ from backend.db.checkpoints import open_checkpointer
 from backend.db.session import app_sessionmaker
 from backend.routes import auth_router, health_router, projects_router, requests_router
 from backend.routes.requests import repair_statuses
+from backend.services.generated_files import PostgresFileStore
 
 
 @asynccontextmanager
@@ -19,11 +21,16 @@ async def lifespan(app: FastAPI):
     """Open the checkpointer once, so runs survive restarts and redeploys (D-123, persistence plan)."""
     if not settings.SUPABASE_DB_URL:
         raise RuntimeError("SUPABASE_DB_URL is not set in FORGE-1/.env; runs are saved in the database.")
-    async with open_checkpointer(settings.SUPABASE_DB_URL) as saver:
-        app.state.forge_graph = build_forge_graph().compile(checkpointer=saver)
-        async with app_sessionmaker()() as session:   # requests left on "processing" by a crash
-            await repair_statuses(app.state.forge_graph, session)
-        yield
+    store = PostgresFileStore(settings.SUPABASE_DB_URL)          # generated sites' files (D-234)
+    file_store.use_store(store)
+    try:
+        async with open_checkpointer(settings.SUPABASE_DB_URL) as saver:
+            app.state.forge_graph = build_forge_graph().compile(checkpointer=saver)
+            async with app_sessionmaker()() as session:   # requests left on "processing" by a crash
+                await repair_statuses(app.state.forge_graph, session, app)
+            yield
+    finally:
+        store.close()
 
 
 app = FastAPI(

@@ -15,6 +15,19 @@ One website request is one LangGraph run (`orchestrator/graph.py`), saved step b
 Every model call goes through `gateway.py`; agents never write to the database (D-133). `LLM_PROVIDER` picks
 Vertex AI (default), AI Studio or OpenRouter (D-218); the models per task are set in `.env`.
 
+## Building sites (Phase 3, in progress)
+
+- **Site template** (`site_template/`, D-235): the Next.js project every generated site starts from; the catalogue
+  components are copied in at build time. Install its packages once: `npm install` in `site_template/`.
+- **Build worker** (`build_worker.py`, D-231): builds a site in its own folder under `builds/`, type check then
+  `next build`, and returns file, line and message for every error.
+- **File store** (`file_store.py`, D-234, D-236): builder steps keep files here, never in the state; the API sets the
+  PostgreSQL store, tests use the memory store.
+- **Build step** (`orchestrator/graph.py: build_site`, D-233): runs after the plan is approved, in the background,
+  with progress events; until the builders exist it saves the approved plan as `forge/plan.json`.
+- **Code from the model** (`gateway.call_files`, `call_files_parallel`, D-228): whole files as `<file path>` blocks,
+  at most 3 calls at once within the run's budget.
+
 ## Watching and measuring runs (Phase 1)
 
 - **Tracing** (`tracing.py`, D-215): when `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set in `.env`

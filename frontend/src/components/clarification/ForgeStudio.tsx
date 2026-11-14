@@ -7,6 +7,7 @@ import { ApiError } from "@/services/client";
 import { listRequests } from "@/services/projects";
 import {
   answerQuestion, cancelRequest, confirmBrief, createRequest, decidePlan, getRequest, readImageColours, resumeRequest,
+  followRun,
 } from "@/services/requests";
 import { RequestSummary } from "@/types/auth";
 import { ConfirmationDecision, PlanDecision, ReplyData, RequestEnvelope, UserAnswer } from "@/types/request";
@@ -88,6 +89,7 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
   const [reply, setReply] = useState<ComposerReply | null>(null);
   const [composerKey, setComposerKey] = useState(0);
   const [confirmingStartOver, setConfirmingStartOver] = useState(false);
+  const [buildLines, setBuildLines] = useState<string[]>([]);
   const openedCurrent = useRef(false);
 
   const run = async (kind: Busy, call: () => Promise<RequestEnvelope>, said?: string) => {
@@ -195,7 +197,20 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
   };
 
   const decidePlanStep = (d: PlanDecision) => {
-    if (envelope) run(d.decision === "approve" ? "approve" : "plan", () => decidePlan(projectId, envelope.request_id, d));
+    if (!envelope) return;
+    const id = envelope.request_id;
+    if (d.decision !== "approve") {
+      run("plan", () => decidePlan(projectId, id, d));
+      return;
+    }
+    // Approving starts the build in the background (D-233): follow its progress, then show where it ended.
+    run("approve", async () => {
+      const started = await decidePlan(projectId, id, d);
+      if (started.status !== "processing") return started;
+      setBuildLines([]);
+      await followRun(projectId, id, (line) => setBuildLines((lines) => [...lines, line]));
+      return getRequest(projectId, id);
+    });
   };
 
   const resume = () => {
@@ -222,6 +237,15 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
 
       <main id="main" className="relative z-[1] mx-auto w-full max-w-3xl flex-1 px-5 pt-12 pb-16 sm:px-8 sm:pt-16">
         {busy && <ProgressNote key={busy} busy={busy} />}
+        {busy === "approve" && buildLines.length > 0 && (
+          <ol aria-label="Build progress" className="-mt-5 mb-8 space-y-1 text-[14px] text-ink-muted">
+            {buildLines.map((line, i) => (
+              <li key={i} className="animate-rise">
+                {line}
+              </li>
+            ))}
+          </ol>
+        )}
 
         <div aria-busy={busy !== null} className={busy ? "pointer-events-none opacity-50 transition-opacity duration-300" : "transition-opacity duration-300"}>
           {!envelope && (

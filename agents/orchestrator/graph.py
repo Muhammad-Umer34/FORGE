@@ -1,9 +1,11 @@
+from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
 from agents.clarification import build_clarification_graph
 from agents.planning import build_planning_graph
 from agents.retrieval.ranker import rank_and_retrieve_components
-from agents.state import GraphState, Stage
+from agents.file_store import active_store
+from agents.state import AgentArtifacts, GraphState, Stage
 
 # Clarification status -> Orchestrator stage. The Orchestrator is the only writer of `control`.
 _STAGE_AFTER_CLARIFICATION = {
@@ -47,6 +49,22 @@ def after_planning(state: GraphState) -> dict:
                       p.failure.message if p.failure else "The site could not be planned.")
 
 
+def build_site(state: GraphState) -> dict:
+    """The builder step (Phase 3). Until the builders exist (Group 3) it saves the approved plan as the site's first
+    file, which is the builders' input; the progress events, the file store and the background run are the real
+    machinery the builders will use (D-233, D-234). Repeat-safe: an unchanged file is not written again (P13)."""
+    progress = get_stream_writer()
+    progress({"stage": "build", "message": "Saving your approved plan"})
+    refs = active_store().put(state["request"].request_id,
+                                    {"forge/plan.json": state["plan"].model_dump_json(indent=2)}, "code", kind="other")
+    progress({"stage": "build", "message": "Plan saved. Building the site is the next part of FORGE"})
+    return {"artifacts": {"frontend": AgentArtifacts(agent="frontend", status="pending", files=refs)}}
+
+
+def _route_after_planning(state: GraphState) -> str:
+    return "build_site" if state["control"].stage == Stage.GENERATING else END
+
+
 def _route_after_clarification(state: GraphState) -> str:
     return "retrieval" if state["control"].stage == Stage.RETRIEVING else END
 
@@ -54,8 +72,8 @@ def _route_after_clarification(state: GraphState) -> str:
 def build_forge_graph():
     """
     Constructs the master LangGraph workflow for the FORGE autonomous builder.
-    Clarification -> Context Retrieval -> Planning are wired; the run stops at GENERATING until the
-    builder agents exist. Compile it with a checkpointer (pauses need one).
+    Clarification -> Context Retrieval -> Planning -> build step. The build step stays at GENERATING until the
+    builder agents exist (Phase 3 Group 3). Compile it with a checkpointer (pauses need one).
     """
     builder = StateGraph(GraphState)
     builder.add_node("clarification", build_clarification_graph())
@@ -63,10 +81,12 @@ def build_forge_graph():
     builder.add_node("retrieval", retrieval)
     builder.add_node("planning", build_planning_graph())
     builder.add_node("after_planning", after_planning)
+    builder.add_node("build_site", build_site)
     builder.add_edge(START, "clarification")
     builder.add_edge("clarification", "after_clarification")
     builder.add_conditional_edges("after_clarification", _route_after_clarification)
     builder.add_edge("retrieval", "planning")
     builder.add_edge("planning", "after_planning")
-    builder.add_edge("after_planning", END)
+    builder.add_conditional_edges("after_planning", _route_after_planning)
+    builder.add_edge("build_site", END)
     return builder

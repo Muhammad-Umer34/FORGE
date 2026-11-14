@@ -20,12 +20,24 @@ export interface VideoSectionProps {
   className?: string
 }
 
+// Only these players may be embedded (KI-17): any other link shows the "unavailable" state, never a foreign page.
+const VIDEO_HOSTS = ["www.youtube.com", "youtube.com", "www.youtube-nocookie.com", "player.vimeo.com"]
+
+function allowedEmbed(url: string): boolean {
+  try {
+    const u = new URL(url)
+    return u.protocol === "https:" && VIDEO_HOSTS.includes(u.hostname)
+  } catch {
+    return false
+  }
+}
+
 function parseVideoEmbedUrl(url?: string): string {
   if (!url) return ""
   const trimmed = url.trim()
 
   // Already an embed URL
-  if (trimmed.includes("/embed/")) {
+  if (trimmed.includes("/embed/") && allowedEmbed(trimmed)) {
     const separator = trimmed.includes("?") ? "&" : "?"
     return `${trimmed}${separator}autoplay=1`
   }
@@ -42,7 +54,7 @@ function parseVideoEmbedUrl(url?: string): string {
     return `https://player.vimeo.com/video/${vimeoMatch[2]}?autoplay=1`
   }
 
-  return trimmed
+  return allowedEmbed(trimmed) ? trimmed : ""
 }
 
 export function VideoSection({
@@ -57,7 +69,9 @@ export function VideoSection({
 }: VideoSectionProps) {
   const [isPlaying, setIsPlaying] = useState(false)
 
-  if (!videoUrl) {
+  const embedSrc = parseVideoEmbedUrl(videoUrl)
+
+  if (!embedSrc) {
     return (
       <section className={cn("w-full py-16 bg-background border-b border-border/40 text-center", className)}>
         <div className="max-w-md mx-auto px-4 text-muted-foreground">
@@ -67,8 +81,6 @@ export function VideoSection({
       </section>
     )
   }
-
-  const embedSrc = parseVideoEmbedUrl(videoUrl)
 
   return (
     <section id="video" className={cn("w-full py-16 sm:py-24 bg-background border-b border-border/40", className)}>

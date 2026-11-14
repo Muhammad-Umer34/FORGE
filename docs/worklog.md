@@ -6,6 +6,80 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-14 · Phase 3 Group 1: groundwork
+
+**What** Group 1 of `D:/FYP/reports/FORGE Phase 3 builder plan.md`, approved the same day.
+- **1.1 Spike.** Server: the site template with all 49 catalogue components type-checks in 7.5 s and builds with
+  Turbopack in 40 s (about 48 s together, under the 60 s target). Browser: WebContainers never finished installing
+  Next.js in the app's built-in browser; in Chrome it booted in 10 s, installed in 74 s, served the page at 90 s and
+  rendered correctly with `next dev --webpack`. An exported package snapshot is 290 MB (64 MB compressed) and must be
+  made inside a WebContainer. → D-232 stands.
+- **1.2 Site template** (`site_template/`) → **D-235**: Next.js 16.4.6, Tailwind 4 through PostCSS, the 9 shadcn
+  parts the catalogue imports, `lib/utils.ts`, `lib/store.ts` skeleton, default theme tokens, a sample page.
+- **1.3 Package cache**: the template's `node_modules` installed once (a fresh install took 2 minutes); every build
+  links it.
+- **1.4 Build worker** (`agents/build_worker.py`) → D-231: folder per build, catalogue copied in, shared packages
+  linked, protected template and catalogue files, no secrets in the environment, time limit with process-tree kill,
+  tool errors parsed into file, line and message, a queue (2 at once, one per user).
+- **1.5 File store** → D-234, **D-236**: table `generated_files` (migration 0008), memory and PostgreSQL stores,
+  manifest in `FileRef` (new `written_by`).
+- **1.6 Background builds** → D-233: graph step `build_site` (saves the approved plan as `forge/plan.json` and sends
+  progress until the builders exist); approving the plan starts the run in the background; `GET .../events` streams
+  progress; the studio shows the lines; a build cut off by a restart starts again at start-up.
+- **1.7 Gateway for code** → D-228: `call_files` (`<file path>` blocks, one corrective retry) and
+  `call_files_parallel` (at most 3, the budget counts calls still running).
+- **1.8 Embeds** → KI-17 fixed: allow-lists in `VideoSection` and `LocationMap`.
+- **1.9** Stack decision logged (D-235); AWS reminder set for 2026-12-01.
+
+**Why** The builders (Group 3) need a template, a place to build, a place to keep files and a way to run long jobs.
+
+**Checked** 424 tests pass (new: build worker 9 incl. a real full build, file store, events, gateway file mode and
+parallel budget, full run through the build step); database tests not run (test database down). Frontend type check
+and lint pass. Spike measured in Chrome.
+
+**Open**
+- Migration 0008 applied to the app database (2026-11-14); try plan approval live in the studio.
+- Upgrade FORGE's studio to Next.js 16.4.6 (KI-26).
+- Measure preview start-up from the package snapshot (Group 3, item 3.7).
+- Group 2 (plan upgrades) next.
+
+---
+
+## 2026-11-14 · Phase 3 plan (builders), research only
+
+**What** A full Phase 3 plan in `D:/FYP/reports/FORGE Phase 3 builder plan.md`: 15 problems, each with the evidence, the options and the choice; work order
+(Group 1 groundwork, Group 2 plan upgrades, Group 3 builders
+later). Decisions **D-224 to D-234** logged as Proposed. Progress log added (`docs/progress.md`, a97f31c).
+
+**Why** The team asked for the problems, the possible solutions and the chosen ones before any builder is written,
+and raised a concern that building by code makes sites look alike.
+
+**Found by the research**
+- Next.js 16 builds with Turbopack by default, and Turbopack does not run on WebAssembly, so the WebContainers preview
+  must use `--webpack` (KI-24); WebContainers needs a commercial licence for for-profit production (KI-25).
+- Only 13 of the 49 components have any layout setting; 2026 studies find model-made UIs converge, so variety must be
+  designed in (D-224).
+
+**Changed in review with the team (same day)**
+- Per-site key: the generated site's backend calls FORGE with a secret key kept on its server; FORGE stores only the
+  hash, accepts submissions only for that project, rate-limits per site; the preview has no key (D-227).
+- Custom parts written in parallel, at most 3 at a time, instead of one after another: style consistency comes from
+  the shared design direction and tokens (D-228).
+- Up to 4 fix rounds instead of 2; code applies the compiler's single suggested fix first; a part that still fails
+  falls back to a catalogue section (D-230).
+- Preview: one package snapshot served as a static file, prefetched in the background when the user confirms the
+  brief (not at login; skipped in data-saving mode) (D-232).
+- Parked for later research: a tool-using (MCP-style) fix agent, once the build gate works.
+
+- Work order regrouped into three groups (Group 1 groundwork, Group 2 plan upgrades, Group 3 builders); every
+  problem P1–P15 and decision D-224 – D-234 is mapped to an item, with a list of what is not in Phase 3.
+
+Plan saved as Markdown and PDF: `D:/FYP/reports/FORGE Phase 3 builder plan.md` / `.pdf`.
+
+**Open** Approval of D-224 – D-234; then Group 1 item 1.1, the spike that decides whether WebContainers can run the preview.
+
+---
+
 ## 2026-11-13 · Phase 2: raise brief and plan quality
 
 **What** Phase 2 of the roadmap in `D:/FYP/reports/FORGE architecture lessons from peers.md`, plus the four issues the

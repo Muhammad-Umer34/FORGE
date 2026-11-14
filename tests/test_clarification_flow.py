@@ -16,6 +16,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langgraph.types import Command
 
+from agents import file_store
 from agents.clarification import nodes
 from agents.clarification.schemas import (
     AnswerInterpretation, BriefReview, GeneratedTest, GeneratedTests, IntakeItem, IntakeOutput,
@@ -105,10 +106,19 @@ def test_vague_request_asks_then_confirms_then_freezes(graph, monkeypatch):
     assert state["control"].stage == Stage.PLANNING
     assert {c.feature_id for c in state["retrieval"].candidates} >= {"menu-catalog", "order-request"}
 
-    result = graph.invoke(Command(resume={"decision": "approve"}), config)
+    store = file_store.MemoryFileStore()
+    monkeypatch.setattr(file_store, "_active", store)
+    events = [chunk for mode, chunk in graph.stream(Command(resume={"decision": "approve"}), config,
+                                                    stream_mode=["custom"])]
+    result = graph.get_state(config).values
     assert pending(result) is None and result["plan"].status == "approved"
     assert result["control"].stage == Stage.GENERATING and not result["control"].failed
     assert result["usage"].calls == 2 + 3                                      # intake + tests, then 3 planning calls
+    # the build step (D-233, D-234): progress events, the plan saved as a file, only its manifest in the state
+    assert [e["message"] for e in events][0] == "Saving your approved plan"
+    rid = result["request"].request_id
+    assert '"status": "approved"' in store.read(rid)["forge/plan.json"]
+    assert [f.path for f in result["artifacts"]["frontend"].files] == ["forge/plan.json"]
 
 
 def test_a_planning_failure_ends_the_run(graph, monkeypatch):

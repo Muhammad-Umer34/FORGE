@@ -92,6 +92,28 @@ export function refreshSession(): Promise<TokenResponse | null> {
   return refreshing;
 }
 
+/** Follow a server-sent event stream (signed in; EventSource cannot send the token header). Resolves at "end". */
+export async function apiEvents(path: string, onData: (data: Record<string, unknown>) => void): Promise<void> {
+  let response = await send(path, {}, true);
+  if (response.status === 401 && (await refreshSession())) response = await send(path, {}, true);
+  if (!response.ok || !response.body) throw await readError(response);
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) return;
+    buffer += value;
+    let cut;
+    while ((cut = buffer.indexOf("\n\n")) >= 0) {
+      const block = buffer.slice(0, cut);
+      buffer = buffer.slice(cut + 2);
+      if (block.startsWith("event: end")) return;
+      const line = block.split("\n").find((l) => l.startsWith("data: "));
+      if (line) onData(JSON.parse(line.slice(6)));
+    }
+  }
+}
+
 /** A call to the backend. Signed-in calls retry once after renewing an expired access token. */
 export async function apiFetch<T>(path: string, init: RequestInit = {}, { auth = true } = {}): Promise<T> {
   let response = await send(path, init, auth);

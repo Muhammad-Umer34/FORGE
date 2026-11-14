@@ -23,6 +23,18 @@ export interface LocationMapProps {
   className?: string
 }
 
+// Only a Google Maps embed may be shown (KI-17); any other address shows the address card alone.
+function isGoogleMapsEmbed(url?: string): boolean {
+  if (!url) return false
+  try {
+    const u = new URL(url.trim())
+    return u.protocol === "https:" && ["www.google.com", "maps.google.com"].includes(u.hostname) &&
+      u.pathname.startsWith("/maps/embed")
+  } catch {
+    return false
+  }
+}
+
 export function LocationMap({
   badgeText = "Find Us",
   title = "Visit Our Location",
@@ -41,7 +53,7 @@ export function LocationMap({
     directionsUrl ||
     (fullAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}` : "#")
 
-  const hasMap = Boolean(mapEmbedUrl && mapEmbedUrl.trim().length > 0)
+  const hasMap = isGoogleMapsEmbed(mapEmbedUrl)
 
   return (
     <section id="location" className={cn("w-full py-16 sm:py-24 bg-background border-b border-border/40", className)}>

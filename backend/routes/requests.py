@@ -12,12 +12,15 @@ records each request and its latest status in the database; agents never do (D-1
 Persistence: every step is saved before the next starts. A run that stops mid-way (crash, model outage) is
 "paused" and continues from its last saved step through /resume; only the step that was cut off runs again.
 """
+import asyncio
+import json
 import logging
 import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import StreamingResponse
 from langgraph.types import Command
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,7 +34,7 @@ from agents.planning.nodes import plan_view
 from agents.state import STATE_VERSION, Question, RequestInfo, RunConfig, initial_state
 from backend.core.config import settings
 from backend.core.deps import get_verified_user_id
-from backend.db.session import get_session
+from backend.db.session import app_sessionmaker, get_session
 from backend.models.requests import (
     ConfirmationDecision, CreateRequest, PlanDecision, RequestEnvelope, RequestSummary, UserAnswer,
 )
@@ -109,11 +112,15 @@ def _message(request_id: str, status_: str, message: str) -> RequestEnvelope:
     return RequestEnvelope(request_id=request_id, status=status_, data=data)
 
 
-async def _run(http: Request, request_id: str, graph_input) -> RequestEnvelope:
+async def _run(app, request_id: str, graph_input) -> RequestEnvelope:
     """Run the graph until it waits for the user or ends. Callers hold `one_step_at_a_time`."""
-    graph = http.app.state.forge_graph
+    graph = app.state.forge_graph
+    events = progress.setdefault(request_id, [])
     try:   # "sync": each step is saved before the next one starts, so a crash loses at most the current step
-        await graph.ainvoke(graph_input, tracing.run_config(request_id, ("studio",)), durability="sync")
+        async for event in graph.astream(graph_input, tracing.run_config(request_id, ("studio",)), durability="sync",
+                                         stream_mode="custom"):
+            events.append(event)                     # progress lines from the build step (D-233)
+            del events[:-_MAX_EVENTS]
     except Exception as error:   # a bug or an outage, never the user's fault
         logger.exception("Run %s stopped", request_id)
         state, _ = await service.run_state(graph, request_id, count_running=False)
@@ -139,10 +146,18 @@ async def _current(graph, session: AsyncSession, request_id: str, count_running:
     return _envelope(request_id, snapshot.values, snapshot.interrupts)
 
 
-async def repair_statuses(graph, session: AsyncSession) -> None:
-    """At start-up: requests left on "processing" by a crash get their real state (usually paused)."""
+async def repair_statuses(graph, session: AsyncSession, app=None) -> None:
+    """At start-up: requests left on "processing" by a crash get their real state (usually paused); a build that was
+    cut off is started again in the background (pass `app` for that)."""
     for request_id in await service.processing_request_ids(session):
         envelope = await _current(graph, session, request_id, count_running=False)
+        snapshot = await graph.aget_state(_config(request_id))
+        if envelope.status == "paused" and app is not None and "build_site" in snapshot.next:
+            held = service.one_step_at_a_time(request_id)        # a build cut off by a restart goes on (D-233)
+            await held.__aenter__()
+            start_in_background(app, request_id, None, held)
+            logger.info("Request %s: build resumed after a restart", request_id)
+            continue
         await service.sync_status(session, request_id, envelope.status)
         logger.info("Request %s was left processing; now %s", request_id, envelope.status)
 
@@ -157,9 +172,9 @@ async def _owned_request(project_id: uuid.UUID, request_id: str, user_id: uuid.U
     return request_id
 
 
-async def _record(http: Request, session: AsyncSession, envelope: RequestEnvelope) -> RequestEnvelope:
+async def _record(app, session: AsyncSession, envelope: RequestEnvelope) -> RequestEnvelope:
     """Save the outcome. A greeting or question about FORGE (status 'reply') is not kept at all."""
-    checkpointer = http.app.state.forge_graph.checkpointer
+    checkpointer = app.state.forge_graph.checkpointer
     if envelope.status == "reply":
         await service.forget_request(session, envelope.request_id)
         await service.delete_runs(checkpointer, [envelope.request_id])
@@ -176,6 +191,33 @@ def _limited(error: limits.RateLimited, message: str) -> HTTPException:
 
 
 _STILL_WORKING = "FORGE is still working on your last step. Please wait for it to finish."
+_BUILDING = "FORGE is building your site."
+
+# Progress lines of each request's latest run, read by GET .../events (D-233). In memory: a run belongs to this one
+# server process (see services.requests.one_step_at_a_time); a restarted build starts a fresh list.
+progress: dict[str, list[dict]] = {}
+_MAX_EVENTS = 200
+_background: set[asyncio.Task] = set()      # keeps running build tasks referenced until they end
+
+
+def start_in_background(app, request_id: str, graph_input, held) -> None:
+    """Run the rest of the graph without the HTTP request waiting (the build can outlast the proxy's 180 s, D-181).
+    `held` is the request's one-step lock, already taken by the caller and released when the run ends."""
+    progress[request_id] = []
+
+    async def go() -> None:
+        try:
+            envelope = await _run(app, request_id, graph_input)
+            async with app_sessionmaker()() as session:
+                await _record(app, session, envelope)
+        except Exception:   # _run already turned outages into "paused"; anything else is logged, the run stays saved
+            logger.exception("Background run %s stopped", request_id)
+        finally:
+            await held.__aexit__(None, None, None)
+
+    task = asyncio.create_task(go())
+    _background.add(task)
+    task.add_done_callback(_background.discard)
 
 
 async def _pending(http: Request, request_id: str, expected: str) -> dict:
@@ -226,12 +268,12 @@ async def create_request(project_id: uuid.UUID, body: CreateRequest, http: Reque
     )
     try:
         async with service.one_step_at_a_time(request_id):   # so a GET meanwhile says "working"
-            envelope = await _run(http, request_id, state)
+            envelope = await _run(http.app, request_id, state)
     except HTTPException:  # nothing could be saved: not left at "processing", not counted
         await service.record_status(session, request_id, "failed")
         await limits.give_back(session, *rules)
         raise
-    return await _record(http, session, envelope)
+    return await _record(http.app, session, envelope)
 
 
 @router.get("/{request_id}", response_model=RequestEnvelope)
@@ -255,12 +297,12 @@ async def resume_request(http: Request, request_id: str = Depends(_owned_request
                 raise HTTPException(status.HTTP_409_CONFLICT,
                                     f"This request cannot be continued: it is {state.replace('_', ' ')}.")
             if getattr(snapshot.values.get("run_config"), "state_version", STATE_VERSION) != STATE_VERSION:
-                return await _record(http, session, _message(request_id, "failed", _UPDATED))
+                return await _record(http.app, session, _message(request_id, "failed", _UPDATED))
             try:   # free (same request), but limited so a request that keeps failing is not retried forever
                 await limits.take(session, (f"resume:{request_id}", settings.LIMIT_RESUMES_PER_REQUEST_HOUR, limits.HOUR))
             except limits.RateLimited as error:
                 raise _limited(error, "This request was continued many times in the last hour.")
-            return await _record(http, session, await _run(http, request_id, None))
+            return await _record(http.app, session, await _run(http.app, request_id, None))
     except service.RunInProgress:
         raise HTTPException(status.HTTP_409_CONFLICT, _STILL_WORKING)
 
@@ -280,7 +322,7 @@ async def cancel_request(http: Request, request_id: str = Depends(_owned_request
                 raise HTTPException(status.HTTP_409_CONFLICT,
                                     f"There is nothing to cancel: this request is {state.replace('_', ' ')}.")
             await service.delete_runs(graph.checkpointer, [request_id])
-            return await _record(http, session, RequestEnvelope(request_id=request_id, status="cancelled"))
+            return await _record(http.app, session, RequestEnvelope(request_id=request_id, status="cancelled"))
     except service.RunInProgress:
         raise HTTPException(status.HTTP_409_CONFLICT, _STILL_WORKING)
 
@@ -295,7 +337,7 @@ async def answer_question(body: UserAnswer, http: Request, request_id: str = Dep
             error = slots.validate_answer(question, body)
             if error:
                 raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, error)
-            return await _record(http, session, await _run(http, request_id, Command(resume=body.model_dump())))
+            return await _record(http.app, session, await _run(http.app, request_id, Command(resume=body.model_dump())))
     except service.RunInProgress:
         raise HTTPException(status.HTTP_409_CONFLICT, _STILL_WORKING)
 
@@ -330,24 +372,54 @@ async def _confirm(body: ConfirmationDecision, http: Request, request_id: str, u
                 await limits.take(session, (f"website-reads:user:{user_id}", settings.LIMIT_WEBSITE_READS_PER_USER_DAY, limits.DAY))
             except limits.RateLimited as error:
                 raise _limited(error, "You have reached today's limit for reading websites.")
-    return await _record(http, session, await _run(http, request_id, Command(resume=body.model_dump())))
+    return await _record(http.app, session, await _run(http.app, request_id, Command(resume=body.model_dump())))
 
 
 @router.post("/{request_id}/plan", response_model=RequestEnvelope)
 async def decide_plan(body: PlanDecision, http: Request, request_id: str = Depends(_owned_request),
                       session: AsyncSession = Depends(get_session)):
     """Approve the plan, ask for one change, or cancel (plan v2 step 8, D-204)."""
+    held = service.one_step_at_a_time(request_id)
     try:
-        async with service.one_step_at_a_time(request_id):
-            payload = await _pending(http, request_id, "plan_approval")
-            if body.decision == "change":
-                if not (body.change_text or "").strip():
-                    raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "change_text is required for a change")
-                if not payload["changes_left"]:
-                    raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "No more changes can be made to this plan")
-            return await _record(http, session, await _run(http, request_id, Command(resume=body.model_dump())))
+        await held.__aenter__()
     except service.RunInProgress:
         raise HTTPException(status.HTTP_409_CONFLICT, _STILL_WORKING)
+    try:
+        payload = await _pending(http, request_id, "plan_approval")
+        if body.decision == "change":
+            if not (body.change_text or "").strip():
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "change_text is required for a change")
+            if not payload["changes_left"]:
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "No more changes can be made to this plan")
+        if body.decision == "approve":            # the build runs on; the studio follows it on .../events (D-233)
+            start_in_background(http.app, request_id, Command(resume=body.model_dump()), held)
+            held = None
+            return await _record(http.app, session, _message(request_id, "processing", _BUILDING))
+        return await _record(http.app, session, await _run(http.app, request_id, Command(resume=body.model_dump())))
+    finally:
+        if held is not None:
+            await held.__aexit__(None, None, None)
+
+
+@router.get("/{request_id}/events")
+async def events(http: Request, request_id: str = Depends(_owned_request)):
+    """Server-sent events: the progress lines of the request's run while it works, then "end" (D-233)."""
+    async def stream():
+        sent = 0
+        while True:
+            lines = progress.get(request_id, [])
+            for event in lines[sent:]:
+                yield f"data: {json.dumps(event)}\n\n"
+            sent = len(lines)
+            if request_id not in service.running_ids():
+                yield 'event: end\ndata: {}\n\n'
+                return
+            await asyncio.sleep(0.5)
+            if await http.is_disconnected():
+                return
+
+    return StreamingResponse(stream(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
 
 @router.post("/{request_id}/image")

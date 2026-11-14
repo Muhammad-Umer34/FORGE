@@ -136,6 +136,10 @@ class RunInProgress(Exception):
 _running: set[str] = set()
 
 
+def running_ids() -> frozenset[str]:
+    return frozenset(_running)
+
+
 @asynccontextmanager
 async def one_step_at_a_time(request_id: str):
     """Refuse a second answer or confirmation while the first is still running, so a double click or

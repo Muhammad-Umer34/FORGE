@@ -15,8 +15,10 @@ call_structured(), so agents contain no provider code. The gateway:
 The per-call LLM_CALL database record is written later by the API layer (D-133).
 """
 import os
+import re
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TypeVar
@@ -188,10 +190,16 @@ def _google_client(model: str):
     )
 
 
-def _invoke_once(model: str, schema: type[T], messages: list, usage: CallUsage) -> dict:
+def _invoke_once(model: str, schema: type[T] | None, messages: list, usage: CallUsage) -> dict:
+    """One call. With a schema: structured output; without (file-output mode): the reply as plain text in "raw"."""
     started = time.perf_counter()
     try:
-        result = _llm(model).with_structured_output(schema, include_raw=True).invoke(messages)
+        llm = _llm(model)
+        if schema:
+            result = llm.with_structured_output(schema, include_raw=True).invoke(messages)
+        else:
+            raw = llm.invoke(messages)
+            result = {"raw": raw, "parsed": raw.text}
     finally:
         usage.calls += 1
         usage.latency_ms += int((time.perf_counter() - started) * 1000)
@@ -207,7 +215,7 @@ def _invoke_once(model: str, schema: type[T], messages: list, usage: CallUsage) 
     return result
 
 
-def _invoke_with_retries(schema: type[T], messages: list, task: str, usage: CallUsage) -> dict:
+def _invoke_with_retries(schema: type[T] | None, messages: list, task: str, usage: CallUsage) -> dict:
     """Primary model: up to 3 attempts while errors are transient. Then the fallback model once."""
     primary = model_for(task)
     last_error: Exception | None = None
@@ -256,3 +264,72 @@ def call_structured(task: str, schema: type[T], system: str, user: str,
             raise InvalidOutputError(f"invalid structured output: {str(result.get('parsing_error'))[:300]}")
 
     return result["parsed"], usage
+
+
+# ---------------------------------------------------------------- file-output mode (Phase 3, D-228)
+_FILE_BLOCK = re.compile(r'<file path="(?P<path>[^"]+)">\n?(?P<body>.*?)\n?</file>', re.DOTALL)
+FILE_FORMAT = ('Answer with the files only, each as <file path="relative/path.tsx">...the whole file...</file>. '
+               "No other text and no Markdown code fences.")
+
+
+def parse_files(text: str) -> dict[str, str]:
+    """`<file path="...">` blocks -> {path: content}. Paths must be relative and stay inside the site."""
+    files = {}
+    for m in _FILE_BLOCK.finditer(text):
+        path = m["path"].strip().replace("\\", "/")
+        if path.startswith("/") or ".." in path.split("/") or not path:
+            raise ValueError(f"file path not allowed: {path!r}")
+        body = re.sub(r"^```\w*\n|\n```\s*$", "", m["body"])    # a fence the model added anyway
+        files[path] = body if body.endswith("\n") else body + "\n"
+    if not files:
+        raise ValueError('no <file path="..."> block found')
+    return files
+
+
+def call_files(task: str, system: str, user: str, budget_usd: float | None = None) -> tuple[dict[str, str], CallUsage]:
+    """Ask for whole files as `<file path="...">` blocks (code is written more reliably as plain text than inside
+    JSON; Bolt and Lovable use the same pattern). One corrective retry when no valid block comes back."""
+    if budget_usd is not None and budget_usd <= 0:
+        raise BudgetExceededError(SPENDING_LIMIT)
+    usage = CallUsage()
+    messages = [SystemMessage(content=f"{system}\n\n{FILE_FORMAT}"), HumanMessage(content=user)]
+    text = _invoke_with_retries(None, messages, task, usage)["parsed"]
+    try:
+        return parse_files(text), usage
+    except ValueError as error:
+        retry = messages + [HumanMessage(content=f"Your answer could not be read: {error}. {FILE_FORMAT}")]
+        text = _invoke_with_retries(None, retry, task, usage)["parsed"]
+        try:
+            return parse_files(text), usage
+        except ValueError as again:
+            raise InvalidOutputError(f"no usable files: {again}") from again
+
+
+RESERVE_PER_CALL_USD = 0.05          # PLACEHOLDER: held back for each call still running (a custom part on Pro ~ $0.04)
+MAX_PARALLEL_CALLS = 3               # D-228
+
+
+def call_files_parallel(jobs: list[tuple[str, str, str]], budget_usd: float,
+                        max_parallel: int = MAX_PARALLEL_CALLS) -> list[tuple[dict[str, str] | Exception, CallUsage]]:
+    """Several file calls (task, system, user) at once, at most `max_parallel`. The spending cap counts the calls
+    still running: each call holds RESERVE_PER_CALL_USD until it ends and then pays its real cost, so parallel
+    calls cannot overshoot the budget (D-216, D-228). Results keep the jobs' order; a failed job gives its error."""
+    lock, left = threading.Lock(), [budget_usd]
+
+    def one(job):
+        with lock:
+            if left[0] - RESERVE_PER_CALL_USD < 0:
+                return BudgetExceededError(SPENDING_LIMIT), CallUsage()
+            left[0] -= RESERVE_PER_CALL_USD
+        usage = CallUsage()
+        try:
+            files, usage = call_files(*job)
+            return files, usage
+        except Exception as error:      # one part failing must not stop the others (fallback section, D-230)
+            return error, usage
+        finally:
+            with lock:
+                left[0] += RESERVE_PER_CALL_USD - usage.cost_usd
+
+    with ThreadPoolExecutor(max_workers=max_parallel) as pool:
+        return list(pool.map(one, jobs))

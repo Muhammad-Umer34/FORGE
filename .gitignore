@@ -36,3 +36,10 @@ logs/
 
 # Local runs of scripts/run_forge_once.py (full LangGraph state)
 scripts/runs/
+
+# Phase 3 build worker (D-231): the site template's installed packages and per-build folders
+site_template/node_modules/
+site_template/.next/
+site_template/next-env.d.ts
+site_template/tsconfig.tsbuildinfo
+builds/

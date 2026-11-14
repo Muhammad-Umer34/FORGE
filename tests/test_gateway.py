@@ -153,3 +153,54 @@ def test_every_client_has_an_output_token_cap(env):                      # KI-23
     env.setenv("OPENROUTER_API_KEY", "or-key")
     env.setenv("LLM_PROVIDER", "openrouter")
     assert gateway._llm("xiaomi/mimo-v2.6-pro").max_tokens == gateway.MAX_OUTPUT_TOKENS
+
+
+# ---------------------------------------------------------------- file-output mode and parallel calls (D-228)
+def test_file_blocks_are_read_and_unsafe_paths_refused():
+    text = ('Here you go\n<file path="components/custom/stamp/stamp.tsx">\n```tsx\nexport const A = 1\n```\n</file>\n'
+            '<file path="components/custom/stamp/util.ts">export const b = 2</file>')
+    files = gateway.parse_files(text)
+    assert files == {"components/custom/stamp/stamp.tsx": "export const A = 1\n",
+                     "components/custom/stamp/util.ts": "export const b = 2\n"}
+    for bad in ('<file path="../x.ts">x</file>', '<file path="/etc/x">x</file>', "no blocks at all"):
+        with pytest.raises(ValueError):
+            gateway.parse_files(bad)
+
+
+class _TextLLM:
+    def __init__(self, replies):
+        self.replies = list(replies)
+
+    def invoke(self, messages):
+        from langchain_core.messages import AIMessage
+        return AIMessage(content=self.replies.pop(0), usage_metadata={"input_tokens": 1000, "output_tokens": 2000,
+                                                                      "total_tokens": 3000})
+
+
+def test_a_reply_without_files_gets_one_corrective_retry(monkeypatch):
+    llm = _TextLLM(["sorry, here is some prose", '<file path="a.tsx">ok</file>'])
+    monkeypatch.setattr(gateway, "_llm", lambda model: llm)
+    files, usage = gateway.call_files("planning", "s", "u")
+    assert files == {"a.tsx": "ok\n"} and usage.calls == 2 and usage.cost_usd > 0
+
+
+def test_parallel_calls_count_running_calls_against_the_budget(monkeypatch):
+    import threading
+    running, peak, lock = [0], [0], threading.Lock()
+
+    def fake(task, system, user, budget_usd=None):
+        with lock:
+            running[0] += 1
+            peak[0] = max(peak[0], running[0])
+        import time
+        time.sleep(0.05)
+        with lock:
+            running[0] -= 1
+        return {f"{user}.tsx": "x\n"}, gateway.CallUsage(calls=1, cost_usd=0.01)
+
+    monkeypatch.setattr(gateway, "call_files", fake)
+    jobs = [("planning", "s", f"part{i}") for i in range(5)]
+    results = gateway.call_files_parallel(jobs, budget_usd=1.0)
+    assert [list(r[0]) for r in results] == [[f"part{i}.tsx"] for i in range(5)] and peak[0] <= 3
+    tight = gateway.call_files_parallel(jobs, budget_usd=gateway.RESERVE_PER_CALL_USD * 2)   # room for two at a time
+    assert sum(isinstance(r[0], gateway.BudgetExceededError) for r in tight) >= 1

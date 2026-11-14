@@ -2,7 +2,7 @@
 // Website-request API (backend/routes/requests.py). Every request belongs to a project (D-179).
 
 import { ConfirmationDecision, ImageColours, PlanDecision, RequestEnvelope, UserAnswer } from "@/types/request";
-import { apiFetch } from "./client";
+import { apiEvents, apiFetch } from "./client";
 
 const base = (projectId: string) => `/api/projects/${encodeURIComponent(projectId)}/requests`;
 const one = (projectId: string, requestId: string) => `${base(projectId)}/${encodeURIComponent(requestId)}`;
@@ -43,4 +43,11 @@ export function readImageColours(projectId: string, requestId: string, kind: "lo
   const form = new FormData();
   form.append("file", file);
   return apiFetch(`${one(projectId, requestId)}/image?kind=${kind}`, { method: "POST", body: form });
+}
+
+/** Follow a running step's progress lines (the build, D-233) until it ends. */
+export function followRun(projectId: string, requestId: string, onLine: (message: string) => void): Promise<void> {
+  return apiEvents(`${one(projectId, requestId)}/events`, (data) => {
+    if (typeof data.message === "string") onLine(data.message);
+  });
 }

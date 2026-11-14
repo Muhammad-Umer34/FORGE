@@ -541,9 +541,11 @@ class ContentRef(BaseModel):
 
 # ---------------------------------------------------------------- artifacts
 class FileRef(BaseModel):
-    path: str                                  # location in storage
+    """One entry of the manifest: the file itself is in the file store, never in the state (D-234)."""
+    path: str                                  # path inside the site, e.g. "app/page.tsx"
     sha256: str
     kind: Literal["frontend", "backend", "database", "scaffold", "other"]
+    written_by: Literal["code", "model"] = "code"
 
 
 class AgentArtifacts(BaseModel):
