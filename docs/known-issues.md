@@ -40,7 +40,7 @@ Retr = Context Retrieval.
 | KI-24 | Next.js 16 uses Turbopack by default, which does not run on WebContainers' WebAssembly bindings: the preview must use `next dev --webpack`, and webpack is deprecated in Next.js 16 (D-232). Spike 2026-11-14: `--webpack` works in Chrome | Preview | Medium | Open |
 | KI-25 | WebContainers needs a commercial licence for for-profit production use (price on request); free for prototyping and the FYP (D-232) | Preview | Low now, High at launch | Open |
 
-| KI-26 | FORGE's own studio (`frontend/`) runs Next.js 16.4.0, which Next.js reports as having a known security vulnerability (fixed in 16.4.6; the site template already uses 16.4.6) | Studio | High | Open |
+| KI-26 | FORGE's own studio (`frontend/`) runs Next.js 16.4.0, which Next.js reports as having a known security vulnerability (fixed in 16.4.6; the site template already uses 16.4.6) | Studio | High | Fixed, see below |
 | KI-27 | Installing packages inside WebContainers never finished in the Claude app's built-in browser (Chrome works): previews must be tested in a normal browser | Preview (dev only) | Low | Open |
 | KI-28 | Migration 0008 (`generated_files`) was not applied to the app database; the build step needs it before plan approval works in the studio | Build | High until applied | Fixed (applied 2026-11-14) |
 
@@ -93,3 +93,4 @@ Retr = Context Retrieval.
 | SL-06 | Language, content wishes and style notes never reach Planning; no language or RTL field in brief or plan | D-222 (audience and notes; sites are English only, no language field) | Fixed (Phase 2, 2026-11-13) |
 | SL-07 | Build Plan has no SEO head, 404 page, menu labels, missing-photo rule or accessibility requirement | D-221 | Fixed (Phase 2, 2026-11-13) |
 | KI-17 | `LocationMap` and `VideoSection` embed any host (no allowlist, no sandbox) | Allow-lists: video embeds only from YouTube and Vimeo players, maps only from Google Maps embeds; anything else shows the empty state | Fixed (Phase 3 Group 1, 2026-11-14) |
+| KI-26 | FORGE's own studio (`frontend/`) runs Next.js 16.4.0, which Next.js reports as having a known security vulnerability (fixed in 16.4.6; the site template already uses 16.4.6) | Studio upgraded to Next.js 16.4.6 with eslint-config-next 16.4.6; type check and lint pass, studio checked in the browser | Fixed (2026-11-14) |

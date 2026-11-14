@@ -39,7 +39,7 @@ and lint pass. Spike measured in Chrome.
 
 **Open**
 - Migration 0008 applied to the app database (2026-11-14); try plan approval live in the studio.
-- Upgrade FORGE's studio to Next.js 16.4.6 (KI-26).
+- FORGE's studio upgraded to Next.js 16.4.6 the same day (KI-26 fixed).
 - Measure preview start-up from the package snapshot (Group 3, item 3.7).
 - Group 2 (plan upgrades) next.
 

@@ -32,7 +32,7 @@ Newest first. **Found by**: how the issue showed up. Each fix links to its decis
 
 | # | Date | Issue | Found by | Cause | Fix | Decision |
 |---|---|---|---|---|---|---|
-| 23 | 2026-11-14 | Next.js warned that 16.4.0 has a known security vulnerability | Spike, in the preview's dev server output | Version pinned in October | Site template moved to 16.4.6; FORGE's own studio still on 16.4.0 (KI-26) | D-235 |
+| 23 | 2026-11-14 | Next.js warned that 16.4.0 has a known security vulnerability | Spike, in the preview's dev server output | Version pinned in October | Site template and FORGE's own studio moved to 16.4.6 (KI-26) | D-235 |
 | 22 | 2026-11-14 | The full-run tests broke when the build step was async | Phase 3 tests | Tests run the graph synchronously; an async step needs the async API | The file store and the build step are synchronous (the server runs steps in threads anyway) | D-236 |
 | 21 | 2026-11-14 | Installing Next.js inside WebContainers never finished (10+ minutes, three tries) | Spike in the app's built-in browser | The built-in browser, not WebContainers: the same test in Chrome installed in 74 s and served the page at 90 s | Preview stays in WebContainers; tested in Chrome; package snapshot made inside a WebContainer (64 MB compressed) | D-232 (KI-27) |
 | 20 | 2026-11-14 | Node crashed at start in the build folder ("CSPRNG assertion failed") | Spike | The worker's no-secrets environment dropped Windows' `SYSTEMROOT` (environment names are upper-case on Windows) | The worker keeps the system variables Node needs and nothing else | D-231 |
