@@ -29,6 +29,8 @@ export interface ContactFormProps {
   submitButtonText?: string
   onSubmit?: (data: ContactFormData) => Promise<void> | void
   successMessage?: string
+  /** Layout chosen by the plan (D-224): details beside the form on either side, or stacked in one column. */
+  variant?: "details-first" | "form-first" | "stacked"
   className?: string
 }
 
@@ -42,6 +44,7 @@ export function ContactForm({
   submitButtonText = "Send Message",
   onSubmit,
   successMessage = "Thank you! Your message has been sent successfully. We'll be in touch soon.",
+  variant = "details-first",
   className,
 }: ContactFormProps) {
   const [formData, setFormData] = useState<ContactFormData>({
@@ -91,9 +94,9 @@ export function ContactForm({
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+        <div className={cn("grid grid-cols-1 gap-12 items-start", variant === "stacked" ? "max-w-3xl mx-auto" : "lg:grid-cols-12")}>
           {/* Left Column: Contact Details & Context */}
-          <div className="lg:col-span-5 space-y-6">
+          <div className={cn("space-y-6", variant !== "stacked" && "lg:col-span-5", variant === "form-first" && "lg:order-last")}>
             {badgeText && (
               <Badge variant="outline" className="text-primary border-primary/30">
                 {badgeText}
@@ -155,7 +158,7 @@ export function ContactForm({
           </div>
 
           {/* Right Column: Contact Form Card */}
-          <div className="lg:col-span-7">
+          <div className={cn(variant !== "stacked" && "lg:col-span-7")}>
             <Card className="border-border shadow-md">
               <CardHeader>
                 <CardTitle className="text-xl">Send us a Message</CardTitle>

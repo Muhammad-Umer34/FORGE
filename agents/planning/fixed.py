@@ -11,6 +11,29 @@ LAYOUT = (("all.navbar", "navbar", "navigation"), ("all.footer", "footer", "foot
           ("all.not-found", "not-found-page", "not-found"))          # the 404 page (D-221)
 HERO = ("home.hero", "hero-banner", "hero-header")
 PAGE_HEADER = ("page-header", "page-header")                  # (component, feature) on every inner page
+# Layout family of every component variant (D-224); the first variant listed is the component's default. Two
+# neighbouring sections should not share a family, so the page does not repeat itself.
+VARIANT_FAMILY: dict[str, dict[str, str]] = {
+    "about-us": {"image-right": "beside", "image-left": "beside", "stacked": "centred"},
+    "contact-form": {"details-first": "beside", "form-first": "beside", "stacked": "centred"},
+    "testimonials": {"cards": "grid", "spotlight": "centred", "list": "list"},
+    "cta-banner": {"panel": "centred", "band": "band", "split": "beside"},
+    "services-price-list": {"list": "list", "grid": "grid", "wide": "list"},
+    "features-grid": {"cards": "grid", "rows": "list", "icons": "centred"},
+    "image-gallery": {"grid": "grid", "mosaic": "mosaic", "wide": "grid"},
+    "team-grid": {"cards": "grid", "compact": "grid"},
+    "pricing-table": {"cards": "grid", "stacked": "list"},
+    "faq-accordion": {"boxed": "list", "open": "list", "two-column": "beside"},
+}
+
+
+def layout_family(component_id: str | None, settings: dict) -> str | None:
+    variants = VARIANT_FAMILY.get(component_id or "")
+    if not variants:
+        return None
+    return variants.get(settings.get("variant"), next(iter(variants.values())))
+
+
 # Search-engine head of every page (D-221): not a visible section, so it is not in the page's section list.
 SEO = ("seo", "seo-head", "seo")                              # (section suffix, component, feature)
 SEO_TEXT = {"title": 60, "description": 160}                  # the head texts written, with their search-result limits

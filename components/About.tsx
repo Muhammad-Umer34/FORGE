@@ -27,6 +27,8 @@ export interface AboutProps {
   features?: AboutFeature[]
   imageUrl?: string
   imageAlt?: string
+  /** Layout chosen by the plan (D-224): story beside the picture on either side, or stacked above it. */
+  variant?: "image-right" | "image-left" | "stacked"
   className?: string
 }
 
@@ -57,8 +59,10 @@ export function About({
   ],
   imageUrl,
   imageAlt = "About our story and values",
+  variant = "image-right",
   className,
 }: AboutProps) {
+  const stacked = variant === "stacked"
   return (
     <section
       id="about"
@@ -68,9 +72,9 @@ export function About({
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Left Column: Narrative & Stats */}
-          <div className="space-y-6">
+        <div className={cn("grid grid-cols-1 gap-12 lg:gap-16 items-center", !stacked && "lg:grid-cols-2")}>
+          {/* Narrative & Stats */}
+          <div className={cn("space-y-6", stacked && "max-w-3xl mx-auto text-center")}>
             {badgeText && (
               <Badge variant="outline" className="text-primary border-primary/30">
                 {badgeText}
@@ -108,8 +112,8 @@ export function About({
             )}
           </div>
 
-          {/* Right Column: Features List or Showcase Image */}
-          <div className="space-y-4">
+          {/* Features List or Showcase Image */}
+          <div className={cn("space-y-4", variant === "image-left" && "lg:order-first", stacked && "max-w-5xl mx-auto w-full")}>
             {imageUrl ? (
               <div className="relative rounded-2xl overflow-hidden border border-border shadow-lg aspect-4/3">
                 <img

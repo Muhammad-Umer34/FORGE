@@ -490,8 +490,8 @@
         "required": false
       },
       {
-        "name": "align",
-        "type": "\"center\" | \"left\"",
+        "name": "variant",
+        "type": "\"centred\" | \"split\" | \"full-bleed\" | \"editorial\"",
         "kind": "setting",
         "required": false
       },
@@ -597,6 +597,12 @@
         "required": false
       },
       {
+        "name": "variant",
+        "type": "\"image-right\" | \"image-left\" | \"stacked\"",
+        "kind": "setting",
+        "required": false
+      },
+      {
         "name": "className",
         "type": "string",
         "kind": "code",
@@ -699,6 +705,12 @@
         "required": false
       },
       {
+        "name": "variant",
+        "type": "\"details-first\" | \"form-first\" | \"stacked\"",
+        "kind": "setting",
+        "required": false
+      },
+      {
         "name": "className",
         "type": "string",
         "kind": "code",
@@ -780,6 +792,12 @@
             "required": false
           }
         ]
+      },
+      {
+        "name": "variant",
+        "type": "\"grid\" | \"mosaic\" | \"wide\"",
+        "kind": "setting",
+        "required": false
       },
       {
         "name": "className",
@@ -895,6 +913,12 @@
         ]
       },
       {
+        "name": "variant",
+        "type": "\"cards\" | \"stacked\"",
+        "kind": "setting",
+        "required": false
+      },
+      {
         "name": "className",
         "type": "string",
         "kind": "code",
@@ -977,6 +1001,12 @@
         ]
       },
       {
+        "name": "variant",
+        "type": "\"cards\" | \"spotlight\" | \"list\"",
+        "kind": "setting",
+        "required": false
+      },
+      {
         "name": "className",
         "type": "string",
         "kind": "code",
@@ -1043,6 +1073,12 @@
         "type": "string",
         "kind": "setting",
         "role": "link",
+        "required": false
+      },
+      {
+        "name": "variant",
+        "type": "\"boxed\" | \"open\" | \"two-column\"",
+        "kind": "setting",
         "required": false
       },
       {
@@ -1169,6 +1205,12 @@
         "required": false
       },
       {
+        "name": "variant",
+        "type": "\"columns\" | \"centred\"",
+        "kind": "setting",
+        "required": false
+      },
+      {
         "name": "className",
         "type": "string",
         "kind": "code",
@@ -1252,6 +1294,12 @@
         "required": false
       },
       {
+        "name": "variant",
+        "type": "\"cards\" | \"rows\" | \"icons\"",
+        "kind": "setting",
+        "required": false
+      },
+      {
         "name": "className",
         "type": "string",
         "kind": "code",
@@ -1318,6 +1366,12 @@
         "type": "string[]",
         "kind": "list",
         "item_type": "string",
+        "required": false
+      },
+      {
+        "name": "variant",
+        "type": "\"panel\" | \"band\" | \"split\"",
+        "kind": "setting",
         "required": false
       },
       {
@@ -1413,6 +1467,12 @@
             "required": false
           }
         ]
+      },
+      {
+        "name": "variant",
+        "type": "\"cards\" | \"compact\"",
+        "kind": "setting",
+        "required": false
       },
       {
         "name": "className",
@@ -2752,6 +2812,12 @@
         "type": "string",
         "kind": "setting",
         "role": "link",
+        "required": false
+      },
+      {
+        "name": "variant",
+        "type": "\"list\" | \"grid\" | \"wide\"",
+        "kind": "setting",
         "required": false
       },
       {

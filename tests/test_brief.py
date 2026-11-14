@@ -110,3 +110,13 @@ def test_audience_and_the_users_notes_reach_the_brief():                  # D-21
     b = briefs.draft_brief(c, CAT)
     assert b.audience == "office workers in Gulberg" and "For: office workers in Gulberg." in b.clarified_text
     assert b.content_notes == ["show our prices"] and b.style_notes == ["soft pastel look"]
+
+
+def test_a_style_reference_reaches_the_brief_without_the_page_itself():        # D-237
+    c = bakery()
+    assert briefs.draft_brief(c, CAT).style_reference is None
+    c.reference_style = {"url": "https://www.example.com/shop/item?x=1", "host": "example.com", "radius": "1rem",
+                         "personality": "playful", "is_dark": False, "heading_font_source": "Poppins", "notes": []}
+    ref = briefs.draft_brief(c, CAT).style_reference
+    assert ref == {"from": ["website"], "site": "example.com", "corner_radius": "1rem", "feel": "playful",
+                   "dark": False, "heading_font": "Poppins"}

@@ -7,7 +7,9 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from agents.state import ApiRoute, DashboardView, DataEntity, FieldType, FormRule, NeedKind, PlannedPage
+from agents.state import (
+    ApiRoute, DashboardView, DataEntity, DesignDirection, FieldType, FormRule, NeedKind, PlannedPage,
+)
 
 
 class SettingOut(BaseModel):
@@ -23,6 +25,7 @@ class SectionOut(BaseModel):
     custom_spec_id: Optional[str] = None       # set when the section is a custom part
     settings: list[SettingOut] = Field(default_factory=list)
     rationale: str = ""
+    showcase: Optional[str] = None             # a reason to write this section fresh for this site (D-224), or null
 
 
 class ItemFieldOut(BaseModel):
@@ -52,6 +55,7 @@ class CustomSpecOut(BaseModel):
     behaviour: list[str] = Field(default_factory=list)
     needs: list[NeedOut] = Field(default_factory=list)
     ui_notes: str = ""
+    sends: list[str] = Field(default_factory=list)   # fields it sends to the site's backend, if it is a form
 
 
 class SiteDesign(BaseModel):
@@ -60,6 +64,7 @@ class SiteDesign(BaseModel):
     sections: list[SectionOut]                 # top to bottom on each page
     footer_links: list[str] = Field(default_factory=list)   # page ids
     custom_specs: list[CustomSpecOut] = Field(default_factory=list)
+    direction: Optional[DesignDirection] = None              # the site's shape (D-224); set chosen=true
     unsure: list[str] = Field(default_factory=list)         # choices made without enough information
 
 

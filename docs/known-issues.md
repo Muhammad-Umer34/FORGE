@@ -19,7 +19,7 @@ Retr = Context Retrieval.
 | KI-04 | Detailed briefs need more tests than the fixed cap of 15 (one per must feature plus one per form); the run fails or a required test is trimmed (`acceptance.py:29-44`) | Clar | High | Fixed, see below |
 | KI-05 | Ticking a page-adding extra (FAQ, legal) at the 10-page cap fails the run after confirmation (`grounding.py:220-240`, `clarification/nodes.py:407-414`) | Clar | High | Fixed, see below |
 | KI-06 | Urdu, Arabic or emoji custom features all get the id `custom-item`; the second is dropped, then confirm fails (`brief.py:29-30`) | Clar | High | Fixed, see below |
-| KI-07 | Custom parts can never get a data model or API: only catalogue `onSubmit` components count as forms (`assemble.py` `form_sections`) | Plan | High | Open |
+| KI-07 | Custom parts can never get a data model or API: only catalogue `onSubmit` components count as forms (`assemble.py` `form_sections`) | Plan | High | Fixed, see below |
 | KI-08 | Refusal path drops what it promises: `partial` tier never loaded; non-core refusals promise a link button that never enters the brief; a capability beats a valid feature (`catalogue.py`, `slots.py:189-195`, `grounding.py:111-117`) | Clar | Medium | Open |
 | KI-09 | `brief.audience` is never filled, yet Planning uses it for copy and the hero relevance rule | Clar→Plan | Medium | Fixed, see below |
 | KI-10 | Emails and bare domains in the prompt (`info@x.pk`, "Daraz.pk store") become style references read by Playwright (`reference_style.py:34`) | Clar | Medium | Open |
@@ -43,6 +43,8 @@ Retr = Context Retrieval.
 | KI-26 | FORGE's own studio (`frontend/`) runs Next.js 16.4.0, which Next.js reports as having a known security vulnerability (fixed in 16.4.6; the site template already uses 16.4.6) | Studio | High | Fixed, see below |
 | KI-27 | Installing packages inside WebContainers never finished in the Claude app's built-in browser (Chrome works): previews must be tested in a normal browser | Preview (dev only) | Low | Open |
 | KI-28 | Migration 0008 (`generated_files`) was not applied to the app database; the build step needs it before plan approval works in the studio | Build | High until applied | Fixed (applied 2026-11-14) |
+
+| KI-29 | The model picks nearly the same design direction for every site (Group 2 evaluation, 65 plans: airy 89%, round corners 95%, alternating sections 98%, split hero 82%, columns footer 100%); two different businesses match on 83% of the direction | Plan | High (variety) | Decided (D-237): with a style reference the direction follows it; without one, similar directions are accepted |
 
 ## Scope limits
 
@@ -94,3 +96,4 @@ Retr = Context Retrieval.
 | SL-07 | Build Plan has no SEO head, 404 page, menu labels, missing-photo rule or accessibility requirement | D-221 | Fixed (Phase 2, 2026-11-13) |
 | KI-17 | `LocationMap` and `VideoSection` embed any host (no allowlist, no sandbox) | Allow-lists: video embeds only from YouTube and Vimeo players, maps only from Google Maps embeds; anything else shows the empty state | Fixed (Phase 3 Group 1, 2026-11-14) |
 | KI-26 | FORGE's own studio (`frontend/`) runs Next.js 16.4.0, which Next.js reports as having a known security vulnerability (fixed in 16.4.6; the site template already uses 16.4.6) | Studio upgraded to Next.js 16.4.6 with eslint-config-next 16.4.6; type check and lint pass, studio checked in the browser | Fixed (2026-11-14) |
+| KI-07 | Custom parts can never get a data model or API: only catalogue `onSubmit` components count as forms (`assemble.py` `form_sections`) | A custom spec lists the fields it `sends`; it is then a form like a catalogue one (data call, POST route, form rule) | Fixed (Phase 3 Group 2, 2026-11-14) |

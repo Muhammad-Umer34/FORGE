@@ -1,6 +1,6 @@
 # D:\FYP\FORGE-1\agents\planning\checks.py
 """
-The 18 checks every Build Plan must pass (plan v2 §8). Each problem is one plain sentence, so the same list
+The 19 checks every Build Plan must pass (plan v2 §8). Each problem is one plain sentence, so the same list
 is shown to the model in a fix round and written to the error log when planning stops.
 """
 import re
@@ -225,9 +225,21 @@ def _seo_and_access(plan: BuildPlan, with_texts: bool) -> list[str]:
     return out
 
 
+def _variety(plan: BuildPlan, limits: Limits) -> list[str]:
+    """19: the design direction was chosen for this site, and at most a few sections are written fresh (D-224)."""
+    out = []
+    if not plan.direction.chosen:
+        out.append("19: no design direction was chosen for this site (density, corners, type, surfaces, rhythm, images, "
+                   "headings, hero and footer layout)")
+    showcase = [c.section_id for c in plan.components if c.showcase]
+    if len(showcase) > limits.max_showcase_sections:
+        out.append(f"19: {len(showcase)} sections are marked to be written fresh, at most {limits.max_showcase_sections}")
+    return out
+
+
 def run_checks(plan: BuildPlan, brief: ClarifiedBrief, retrieval: RetrievalResult, cat: Catalogue, limits: Limits,
                with_texts: bool = False) -> list[str]:
     """All problems, each prefixed with its check number. Check 7 (text) runs once the text is written."""
     rules = texts.rules_for(brief, plan) if with_texts else None
     return (_structure(plan, brief, retrieval, cat, limits) + _completeness(plan, with_texts, rules)
-            + _data(plan, limits) + _safety(plan, brief) + _seo_and_access(plan, with_texts))
+            + _data(plan, limits) + _safety(plan, brief) + _seo_and_access(plan, with_texts) + _variety(plan, limits))

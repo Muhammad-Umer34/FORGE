@@ -98,3 +98,35 @@ def derive_content_schema(sections: list[PlannedComponent],
             known = {i.name for i in f.item_fields}
             f.item_fields += [i for i in _item_fields(need) if i.name not in known]
     return list(fields.values())
+
+
+# ---------------------------------------------------------------- sample content (D-225)
+# A clearly marked sample for every field, until the owner fills the business details form. Never a real-looking
+# fact (no invented prices, awards or addresses that could be mistaken for the owner's): obvious placeholders only.
+_SAMPLE_BY_TYPE = {
+    "text": "Sample {label}", "long_text": "Sample text: {business} details go here. Replace it with your own words.",
+    "number": 1, "money": "Rs. 0", "date": "2026-01-01", "time": "10:00", "datetime": "2026-01-01T10:00",
+    "email": "hello@example.com", "phone": "0300 0000000", "url": "", "boolean": False, "choice": "",
+    "image": "/sample-image.svg",
+}
+SAMPLE_LIST_LENGTH = 3
+
+
+def _sample(field_type: str, label: str, business: str):
+    value = _SAMPLE_BY_TYPE.get(field_type, "Sample {label}")
+    return value.format(label=label.lower(), business=business) if isinstance(value, str) else value
+
+
+def sample_content(fields: list[ContentField], business_type: str | None) -> dict[str, Any]:
+    """{content key: sample value}. The site shows a "sample content" banner while these are in use."""
+    business = (business_type or "business").strip()
+    out: dict[str, Any] = {}
+    for f in fields:
+        if f.key == "business_name":
+            out[f.key] = f"Your {business.title()}"
+        elif f.kind == "list":
+            out[f.key] = [{i.name: _sample(i.type, f"{i.name.replace('_', ' ')} {n}", business) for i in f.item_fields}
+                          for n in range(1, SAMPLE_LIST_LENGTH + 1)]
+        else:
+            out[f.key] = _sample("image" if f.kind == "image" else f.type, f.label, business)
+    return out

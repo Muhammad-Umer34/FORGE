@@ -28,6 +28,8 @@ export interface PricingTableProps {
   enableAnnualToggle?: boolean
   annualDiscountBadge?: string
   plans?: PricingPlan[]
+  /** Layout chosen by the plan (D-224): plans side by side, or stacked in one column. */
+  variant?: "cards" | "stacked"
   className?: string
 }
 
@@ -84,6 +86,7 @@ export function PricingTable({
       ctaHref: "#enterprise",
     },
   ],
+  variant = "cards",
   className,
 }: PricingTableProps) {
   const [isYearly, setIsYearly] = useState(false)
@@ -161,7 +164,7 @@ export function PricingTable({
         </div>
 
         {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch pt-4">
+        <div className={cn("grid grid-cols-1 gap-8 items-stretch pt-4", variant === "stacked" ? "max-w-2xl mx-auto" : "md:grid-cols-3")}>
           {plans.map((plan, idx) => {
             const displayPrice = isYearly && plan.yearlyPrice ? plan.yearlyPrice : plan.price
 

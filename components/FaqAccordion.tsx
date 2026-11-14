@@ -26,6 +26,8 @@ export interface FaqAccordionProps {
   items?: FaqItem[]
   contactText?: string
   contactHref?: string
+  /** Layout chosen by the plan (D-224): questions in a box, open without a box, or the heading beside the questions. */
+  variant?: "boxed" | "open" | "two-column"
   className?: string
 }
 
@@ -62,6 +64,7 @@ export function FaqAccordion({
   ],
   contactText = "Still have questions? Reach out to our engineering team",
   contactHref = "#contact",
+  variant = "boxed",
   className,
 }: FaqAccordionProps) {
   return (
@@ -72,9 +75,14 @@ export function FaqAccordion({
         className
       )}
     >
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div
+        className={cn(
+          "mx-auto px-4 sm:px-6 lg:px-8",
+          variant === "two-column" ? "max-w-6xl lg:grid lg:grid-cols-[1fr_2fr] lg:gap-12 lg:items-start" : "max-w-4xl"
+        )}
+      >
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto space-y-3 mb-10">
+        <div className={cn("space-y-3 mb-10", variant === "two-column" ? "lg:sticky lg:top-24" : "text-center max-w-2xl mx-auto")}>
           {badgeText && (
             <Badge variant="outline" className="text-primary border-primary/30">
               {badgeText}
@@ -91,7 +99,7 @@ export function FaqAccordion({
         </div>
 
         {/* Collapsible Accordion Box */}
-        <div className="bg-card rounded-2xl border border-border p-4 sm:p-8 shadow-sm">
+        <div className={cn(variant === "boxed" && "bg-card rounded-2xl border border-border p-4 sm:p-8 shadow-sm")}>
           <Accordion type="single" collapsible className="w-full">
             {items.map((item, idx) => (
               <AccordionItem key={idx} value={`item-${idx}`} className="border-border">

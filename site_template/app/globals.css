@@ -1,6 +1,7 @@
 /* Default theme of the site template. The frontend compiler (D-226) replaces the token values with the site's
    theme (D-155) and design direction (D-224); the token names stay the same, because every component uses them. */
 @import "tailwindcss";
+@import "./direction.css";
 
 @source "../components";
 

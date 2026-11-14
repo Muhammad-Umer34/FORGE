@@ -12,7 +12,7 @@ export default function Home() {
     <>
       <Navbar {...{ "brandName": "Sample Bakery" }} />
       <Hero {...{ "headline": "Fresh cakes, baked every morning", "subheadline": "Order a custom cake for any day.",
-                  "primaryCtaText": "Order a cake", "primaryCtaHref": "#contact", "align": "left" }} />
+                  "primaryCtaText": "Order a cake", "primaryCtaHref": "#contact", "variant": "editorial" }} />
       <ServicesPriceList />
       <FaqAccordion />
       <ContactForm />

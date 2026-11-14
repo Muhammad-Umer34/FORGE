@@ -29,12 +29,26 @@ How to design:
   fits this business and say why in "rationale".
 - A custom feature becomes a custom part: give it a custom_spec_id, and a spec with its page, purpose, behaviour
   and needs. A custom part may use a found component instead, if that component really does the job.
+- A custom part that sends something to the business (a quote request, a sign-up) lists the fields it sends in
+  "sends" (snake_case); it then gets a stored type and a route like any form. Otherwise leave "sends" empty.
 - Needs of a custom part use these kinds: copy (text the AI writes), fact (one owner detail), list (owner items,
   with item_fields), image (owner photo), setting (a layout choice), live (data the site's backend supplies).
   Use a catalogue content key ({{content_keys}}) when one fits. At most {{max_custom}} custom parts.
 - settings: only inputs of kind "setting" that the component has, with a value it allows.
 - in_menu true for pages visitors should find from the header; keep the menu to about 7 pages.
 - footer_links lists the page ids shown in the footer; every page must be in the menu or the footer.
+- direction: the shape of this site. If the brief has a style_reference (a website or screenshot the user likes)
+  or style_notes, design the direction from them first: follow their corner radius, light or dark feel, density
+  and character, and use the business type only for what they do not show. Otherwise choose it for this business
+  and its visitors so that two businesses of the same kind still look different. density airy (calm, premium: spa, architect) to compact (busy menus, many items);
+  corners sharp (firm, professional) to round (friendly); type_scale expressive (bold, confident) or calm; surfaces
+  flat, cards or outlined; rhythm alternating (tinted bands) or continuous; images rounded or square; headings plain,
+  eyebrow (small label above) or underline; hero_variant centred, split (text beside a photo), full-bleed (text on a
+  photo) or editorial (large left headline); footer_variant columns or centred. Set chosen to true.
+- settings may include "variant" where a component has one: pick the layout that fits the content, and do not give
+  two neighbouring sections on a page the same kind of layout.
+- showcase: for at most 2 sections where this business needs something no catalogue layout gives (usually not
+  needed), give one sentence on what to write fresh; otherwise null. The chosen component stays as the fallback.
 - unsure: list any choice you made without enough information, in one plain sentence each.
 {_RULES_SHARED}"""
 

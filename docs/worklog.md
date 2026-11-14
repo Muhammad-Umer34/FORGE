@@ -6,6 +6,36 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-14 · Phase 3 Group 2: plan upgrades
+
+**What** Group 2 of `D:/FYP/reports/FORGE Phase 3 builder plan.md`.
+- **2.1 Variants** (D-224): `variant` on 12 components (Hero 4, About, Testimonials, CTA, Services, Features,
+  Gallery, Contact, FAQ 3 each; Team, Pricing, Footer 2 each); all 49 components type-check; Needs List regenerated.
+- **2.2 Design direction** (D-224): `DesignDirection` in the plan, chosen in the site-design call; mapped to CSS in
+  `site_template/app/direction.css` by data attributes on `<body>` (spacing, corners and type are Tailwind 4
+  variables, so no component code); hero and footer variants come from it. Checked in the browser with two
+  directions (computed styles: spacing, radius, type size, surfaces, alternating bands, heading accents, layouts).
+- **2.3–2.4 Showcase sections and variety** (D-224): `showcase` reason on a section (at most 2); code switches the
+  variant of a section that would repeat its neighbour's layout family; check 19 flags an unchosen direction or too
+  many showcases.
+- **2.5–2.6 Custom parts** (KI-07 fixed, D-228): a custom spec lists the fields it `sends` and becomes a form; its
+  file path and export name are fixed by code (`components/custom/<id>/<id>.tsx`).
+- **2.7 Sample content** (D-225): an obvious sample for every business-details field in the plan.
+- **2.8 Sameness score** in `run_eval.py` and evaluation run 6.
+
+**Why** Plans must carry the creative choices and the full contract the builders will execute.
+
+**Checked** 435 tests pass (database tests not run); evaluation run 6: 98.6% correct; one failure fixed after the
+run (search descriptions now required text). Variants cut section sameness by about a quarter.
+
+**Open**
+- **KI-29** (the model picks nearly the same design direction for every site, 83% match between different
+  businesses) decided the same day → **D-237**: the brief carries the user's style reference (website or
+  screenshot), and the site-design call designs the direction from it first.
+- forms-03 still plans a contact form where lead capture was expected.
+
+---
+
 ## 2026-11-14 · Phase 3 Group 1: groundwork
 
 **What** Group 1 of `D:/FYP/reports/FORGE Phase 3 builder plan.md`, approved the same day.

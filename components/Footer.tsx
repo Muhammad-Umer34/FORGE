@@ -21,6 +21,8 @@ export interface FooterProps {
   newsletterSubtitle?: string
   onNewsletterSubmit?: (email: string) => Promise<void> | void
   copyright?: string
+  /** Layout chosen in the site's design direction (D-224): brand and link columns, or everything centred. */
+  variant?: "columns" | "centred"
   className?: string
 }
 
@@ -60,6 +62,7 @@ export function Footer({
   newsletterSubtitle = "Get the latest component additions, prompt recipes, and engine upgrades directly to your inbox.",
   onNewsletterSubmit,
   copyright = `© ${new Date().getFullYear()} FORGE Technologies Inc. All rights reserved.`,
+  variant = "columns",
   className,
 }: FooterProps) {
   const [email, setEmail] = useState("")
@@ -94,9 +97,16 @@ export function Footer({
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8 pb-12 border-b border-border">
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-10 pb-12 border-b border-border",
+            variant === "centred"
+              ? "text-center justify-items-center [&_p]:mx-auto [&_ul]:items-center"
+              : "md:grid-cols-2 lg:grid-cols-12 lg:gap-8"
+          )}
+        >
           {/* Brand Col (4 cols) */}
-          <div className="lg:col-span-4 space-y-4">
+          <div className={cn("space-y-4", variant === "columns" && "lg:col-span-4")}>
             <div className="flex items-center gap-2 font-bold text-xl text-foreground">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-black text-sm">
                 {brandName.charAt(0)}
@@ -147,7 +157,7 @@ export function Footer({
           </div>
 
           {/* Navigation Columns (5 cols) */}
-          <div className="lg:col-span-5 grid grid-cols-2 sm:grid-cols-3 gap-8">
+          <div className={cn("grid grid-cols-2 sm:grid-cols-3 gap-8", variant === "columns" && "lg:col-span-5")}>
             {columns.map((col, idx) => (
               <div key={idx} className="space-y-3">
                 <h4 className="font-semibold text-xs text-foreground uppercase tracking-wider">
@@ -170,7 +180,7 @@ export function Footer({
           </div>
 
           {/* Newsletter Column (3 cols) */}
-          <div className="lg:col-span-3 space-y-3">
+          <div className={cn("space-y-3", variant === "columns" && "lg:col-span-3")}>
             <h4 className="font-semibold text-xs text-foreground uppercase tracking-wider">
               {newsletterTitle}
             </h4>

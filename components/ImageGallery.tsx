@@ -22,6 +22,8 @@ export interface ImageGalleryProps {
   subtitle?: string
   categories?: string[]
   items?: GalleryItem[]
+  /** Layout chosen by the plan (D-224): an even grid, a mosaic with the first picture large, or two wide columns. */
+  variant?: "grid" | "mosaic" | "wide"
   className?: string
 }
 
@@ -74,6 +76,7 @@ export function ImageGallery({
       caption: "Atmospheric cloud layers hovering above evergreen valleys.",
     },
   ],
+  variant = "grid",
   className,
 }: ImageGalleryProps) {
   const [activeCategory, setActiveCategory] = useState("All")
@@ -132,7 +135,13 @@ export function ImageGallery({
         )}
 
         {/* Gallery Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div
+          className={cn(
+            "grid grid-cols-1 sm:grid-cols-2 gap-6",
+            variant === "wide" ? "" : "md:grid-cols-3",
+            variant === "mosaic" && "[&>*:first-child]:sm:col-span-2 [&>*:first-child]:sm:row-span-2"
+          )}
+        >
           {filteredItems.map((item, idx) => (
             <div
               key={idx}

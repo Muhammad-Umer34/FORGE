@@ -17,6 +17,8 @@ export interface CtaBannerProps {
   primaryCtaLink?: string
   secondaryCtaLink?: string
   highlights?: string[]
+  /** Layout chosen by the plan (D-224): a boxed panel, a full-width colour band, or text and buttons side by side. */
+  variant?: "panel" | "band" | "split"
   className?: string
 }
 
@@ -33,18 +35,30 @@ export function CtaBanner({
     "Instant Confirmation",
     "Free Initial Evaluation",
   ],
+  variant = "panel",
   className,
 }: CtaBannerProps) {
+  const band = variant === "band"
+  const split = variant === "split"
   return (
     <section
       id="cta"
       className={cn(
-        "w-full py-16 sm:py-20 relative overflow-hidden bg-background border-b border-border/40",
+        "w-full py-16 sm:py-20 relative overflow-hidden border-b border-border/40",
+        band ? "bg-primary" : "bg-background",
         className
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary/10 via-card/80 to-card/40 border border-primary/20 p-8 sm:p-12 lg:p-16 text-center shadow-xl backdrop-blur">
+        <div
+          className={cn(
+            "relative overflow-hidden",
+            band
+              ? "text-center [&_h2]:text-primary-foreground [&_p]:text-primary-foreground/85"
+              : "rounded-3xl bg-gradient-to-br from-primary/10 via-card/80 to-card/40 border border-primary/20 p-8 sm:p-12 lg:p-16 shadow-xl backdrop-blur",
+            split ? "text-left lg:flex lg:items-center lg:justify-between lg:gap-12" : !band && "text-center"
+          )}
+        >
           {/* Subtle Ambient Radial Glow */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/20 rounded-full blur-3xl -z-10 pointer-events-none" />
 
@@ -59,7 +73,7 @@ export function CtaBanner({
           )}
 
           {/* Headline & Subheadline */}
-          <div className="max-w-3xl mx-auto space-y-4 mb-8 sm:mb-10">
+          <div className={cn("max-w-3xl space-y-4 mb-8 sm:mb-10", split ? "lg:mb-0" : "mx-auto")}>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground leading-tight">
               {headline}
             </h2>
@@ -69,7 +83,7 @@ export function CtaBanner({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
+          <div className={cn("flex flex-col sm:flex-row items-center gap-4", split ? "lg:shrink-0" : "justify-center max-w-md mx-auto")}>
             {primaryCtaText && (
               <Button
                 asChild

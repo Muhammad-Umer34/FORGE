@@ -7,7 +7,11 @@ export const metadata: Metadata = { title: "FORGE site", description: "A website
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen antialiased">{children}</body>
+      {/* the design direction (D-224, app/direction.css); the compiler writes each site's own choices */}
+      <body className="min-h-screen antialiased" data-density="balanced" data-corners="soft" data-type="calm"
+            data-surfaces="cards" data-rhythm="continuous" data-images="rounded" data-headings="eyebrow">
+        <main>{children}</main>
+      </body>
     </html>
   )
 }

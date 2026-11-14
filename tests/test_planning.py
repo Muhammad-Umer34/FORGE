@@ -14,14 +14,15 @@ from agents.catalogue import load_catalogue
 from agents.gateway import CallUsage
 from agents.planning import assemble, build_planning_graph, checks, nodes, texts
 from agents.planning.schemas import (
-    CustomSpecOut, DataDesign, NeedOut, PlanPatch, SectionKey, SectionOut, SiteDesign, SiteTexts, TextOut,
+    CustomSpecOut, DataDesign, NeedOut, PlanPatch, SectionKey, SectionOut, SettingOut, SiteDesign, SiteTexts, TextOut,
 )
 from agents.retrieval.ranker import rank_and_retrieve_components
 from agents.state import (
-    AcceptanceTest, ApiRoute, BriefFeature, ClarifiedBrief, DashboardView, DataEntity, DataField, FormRule, GraphState,
+    AcceptanceTest, DesignDirection, ApiRoute, BriefFeature, ClarifiedBrief, DashboardView, DataEntity, DataField, FormRule, GraphState,
     Limits, PlannedPage, RequestInfo, TextSlot, UnsupportedItem, initial_state,
 )
 
+CHOSEN = DesignDirection(chosen=True, hero_variant="split", density="airy")   # what a real design call returns
 THEME = {"theme_id": "t-1", "params": {"personality": "elegant"}, "tokens": {"light": {"primary": "#b0522b"}}}
 
 
@@ -74,6 +75,7 @@ def salon_site(drop=()) -> SiteDesign:
                 SectionOut(page_id="gallery", feature_id="gallery", component_id="gallery-carousel"),
                 SectionOut(page_id="contact", feature_id="location-map", component_id="location-map")]
     return SiteDesign(
+        direction=CHOSEN,
         pages=[page("home", "/", "Home"), page("booking", "/booking", "Book"), page("gallery", "/gallery", "Gallery"),
                page("contact", "/contact", "Contact")],
         sections=[s for s in sections if s.feature_id not in drop], footer_links=["home", "contact"],
@@ -147,6 +149,7 @@ def any_brief_planner(heroes: tuple[str, ...]) -> FakeModel:
         pages = [page("home", "/", "Home")] + [page(p["name"], f"/{p['name']}", p["name"].title())
                                                for p in brief["pages"] if p["name"] != "home"]
         return SiteDesign(
+        direction=CHOSEN,
             pages=pages,
             sections=[SectionOut(page_id="home", feature_id=f, component_id=ids[0] if ids else None,
                                  custom_spec_id=None if ids else f) for f, ids in opts.items()],
@@ -243,7 +246,7 @@ def test_salon_plan_end_to_end_through_approval(monkeypatch):
 
 
 def test_a_site_that_stores_nothing_skips_the_data_call_and_the_backend(monkeypatch):
-    site = SiteDesign(pages=[page("home", "/", "Home"), page("about", "/about", "About")],
+    site = SiteDesign(direction=CHOSEN, pages=[page("home", "/", "Home"), page("about", "/about", "About")],
                       sections=[SectionOut(page_id="home", feature_id="services-overview", component_id="features-grid"),
                                 SectionOut(page_id="about", feature_id="about-story", component_id="about-us"),
                                 SectionOut(page_id="home", feature_id="contact-info", component_id="contact-info-block")])
@@ -356,7 +359,7 @@ def test_the_live_bakery_design_passes_without_a_fix_round():
                                    ("about-story", "should"), ("contact-info", "should")],
                         ["home", "about", "contact", "menu", "order"],
                         ["menu-catalog", "order-request", "location-map", "order-request", "about-story", "contact-info"])
-    site = SiteDesign(pages=[page("home", "/", "Home"), page("menu", "/menu", "Menu"), page("order", "/order", "Order"),
+    site = SiteDesign(direction=CHOSEN, pages=[page("home", "/", "Home"), page("menu", "/menu", "Menu"), page("order", "/order", "Order"),
                              page("about", "/about", "About"), page("contact", "/contact", "Contact")],
                       sections=_sections(("menu", "menu-catalog", "menu-catalog-grid"),
                                          ("order", "order-request", "order-request-form"), ("about", "about-story", "about-us"),
@@ -385,7 +388,7 @@ def test_the_live_salon_design_passes_without_a_fix_round():
                                        ("services-overview", "should"), ("contact-info", "should")],
                         ["home", "booking", "contact", "services"],
                         ["booking", "services-price-list", "booking", "services-overview", "contact-info"])
-    site = SiteDesign(pages=[page("home", "/", "Home"), page("services", "/services", "Services"),
+    site = SiteDesign(direction=CHOSEN, pages=[page("home", "/", "Home"), page("services", "/services", "Services"),
                              page("booking", "/booking", "Book"), page("contact", "/contact", "Contact")],
                       sections=_sections(("home", "services-overview", "features-grid"),
                                          ("services", "services-price-list", "services-price-list"),
@@ -421,7 +424,7 @@ def test_a_must_feature_without_a_section_and_data_on_an_info_site_are_caught():
     brief, plan = built_plan(site=salon_site(drop=("booking",)))
     assert any(i.startswith("3:") for i in _issues(brief, plan))
     brief = info_brief()
-    site = SiteDesign(pages=[page("home", "/", "Home")],
+    site = SiteDesign(direction=CHOSEN, pages=[page("home", "/", "Home")],
                       sections=[SectionOut(page_id="home", feature_id="services-overview", component_id="features-grid")])
     data = salon_data()
     data.routes[1].used_by = ["home.services-overview"]    # a real section, but one that sends and shows nothing
@@ -728,3 +731,64 @@ def test_links_written_with_arrows_or_ids_are_read_as_entity_names():    # KI-22
     _, plan = built_plan(data=data)
     links = {e.name: e.links for e in plan.data_entities}
     assert links["booking_requests"] == ["time_slots"] and links["time_slots"] == ["booking_requests"]
+
+
+# ---------------------------------------------------------------- Phase 3 Group 2: variety (D-224)
+def test_the_direction_sets_the_hero_and_footer_layouts():
+    _, plan = built_plan()
+    assert plan.direction.hero_variant == "split" and plan.direction.chosen
+    assert next(c for c in plan.components if c.component_id == "hero-banner").settings["variant"] == "split"
+    assert next(c for c in plan.components if c.component_id == "footer").settings["variant"] == "columns"
+
+
+def test_neighbouring_sections_never_share_a_layout_family():
+    from agents.planning.fixed import layout_family
+    site = salon_site()
+    site.pages[0].page_id = "home"
+    site.sections = [SectionOut(page_id="home", feature_id="services-price-list", component_id="services-price-list",
+                                settings=[SettingOut(name="variant", value="grid")]),
+                     SectionOut(page_id="home", feature_id="gallery", component_id="image-gallery",
+                                settings=[SettingOut(name="variant", value="grid")])] + site.sections[1:]
+    _, plan = built_plan(site=site)
+    home = next(p for p in plan.pages if p.page_id == "home")
+    by_id = {c.section_id: c for c in plan.components}
+    families = [layout_family(by_id[s].component_id, by_id[s].settings) for s in home.section_ids]
+    pairs = [(a, b) for a, b in zip(families, families[1:]) if a is not None]
+    assert all(a != b for a, b in pairs), families
+
+
+def test_a_plan_without_a_chosen_direction_or_with_too_many_showcases_is_flagged():
+    brief, plan = built_plan()
+    plan.direction.chosen = False
+    for c in plan.components[:3]:
+        c.showcase = "something special"
+    issues = [i for i in _issues(brief, plan) if i.startswith("19:")]
+    assert len(issues) == 2
+
+
+def test_a_custom_part_that_sends_fields_is_a_form_with_a_fixed_contract():      # KI-07, D-228
+    site = salon_site()
+    site.custom_specs[0].sends = ["full_name", "phone", "stamps_wanted"]
+    _, plan = built_plan(site=site)
+    spec = plan.custom_specs[0]
+    sid = next(c.section_id for c in plan.components if c.custom_spec_id == spec.spec_id)
+    assert sid in assemble.form_sections(plan)
+    row = next(d for d in assemble.data_sections(plan) if d["section_id"] == sid)
+    assert row["is_form"] and row["sends"] == ["full_name", "phone", "stamps_wanted"]
+    assert (spec.file, spec.export_name) == ("components/custom/custom-loyalty-stamp-card/custom-loyalty-stamp-card.tsx",
+                                             "CustomLoyaltyStampCard")
+    assert assemble.custom_file("2-for-1 deals!") == ("components/custom/2-for-1-deals/2-for-1-deals.tsx", "Part2For1Deals")
+
+
+def test_every_form_field_gets_an_obvious_sample():                             # D-225
+    brief, plan = built_plan()
+    assert set(plan.sample_content) == {f.key for f in plan.content_schema}
+    assert plan.sample_content["business_name"] == "Your Hair Salon"
+    services = plan.sample_content["services"]
+    assert len(services) == 3 and all(isinstance(item, dict) and item for item in services)
+
+
+def test_search_descriptions_count_as_required_text():                         # check 17, Group 2 evaluation
+    _, plan = built_plan()
+    required = texts.required_slots(plan)
+    assert all(f"{p.page_id}.seo.{prop}" in required for p in plan.pages for prop in ("title", "description"))

@@ -109,6 +109,7 @@ def measure(brief: dict, values: dict, seconds: float, error: str | None) -> dic
         "pages": len(plan.pages) if plan and result == "planned" else 0,
         "sections": len(plan.components) if plan and result == "planned" else 0,
         "tests": len(frozen.test_cases) if frozen else 0,
+        "shape": shape(plan) if plan and result == "planned" else None,
         "prompt_tokens": usage.prompt_tokens if usage else 0, "completion_tokens": usage.completion_tokens if usage else 0,
         "cost_usd": round(usage.estimated_cost_usd, 4) if usage else 0.0,
         "seconds": round(seconds, 1),
@@ -145,6 +146,41 @@ async def run_one(graph, brief: dict, n: int) -> dict:
     return row
 
 
+def shape(plan) -> dict:
+    """What a plan looks like (D-224): its sections as component + variant, and its design direction."""
+    sections = sorted(f"{c.component_id}:{c.settings.get('variant', '-')}" for c in plan.components
+                      if c.role == "feature" or c.component_id == "hero-banner")
+    return {"sections": sections, "direction": plan.direction.model_dump(exclude={"chosen"})}
+
+
+def _jaccard(a: list, b: list) -> float:
+    a, b = set(a), set(b)
+    return len(a & b) / len(a | b) if a | b else 1.0
+
+
+def sameness(a: dict, b: dict, with_variants: bool = True) -> float:
+    """0 = nothing alike, 1 = identical. Without variants: which components are used only (what sites were before
+    variants and the design direction existed)."""
+    if not with_variants:
+        return _jaccard([s.split(":")[0] for s in a["sections"]], [s.split(":")[0] for s in b["sections"]])
+    direction = sum(a["direction"][k] == b["direction"][k] for k in a["direction"]) / len(a["direction"])
+    return round((_jaccard(a["sections"], b["sections"]) + direction) / 2, 3)
+
+
+def sameness_report(rows: list[dict]) -> dict:
+    """Average sameness of plans for different briefs in the same group (two booking sites...), and of the same
+    brief planned twice, with and without variants (P15)."""
+    planned = [r for r in rows if r.get("shape")]
+    pairs = {"same_group": [], "same_brief": []}
+    for i, a in enumerate(planned):
+        for b in planned[i + 1:]:
+            if a["group"] == b["group"]:
+                pairs["same_brief" if a["brief_id"] == b["brief_id"] else "same_group"].append((a["shape"], b["shape"]))
+    avg = lambda xs: round(sum(xs) / len(xs), 3) if xs else None
+    return {k: {"pairs": len(v), "components_only": avg([sameness(a, b, False) for a, b in v]),
+                "with_variants_and_direction": avg([sameness(a, b) for a, b in v])} for k, v in pairs.items()}
+
+
 def summary(rows: list[dict]) -> dict:
     def stats(group: list[dict]) -> dict:
         n = len(group)
@@ -169,7 +205,7 @@ def summary(rows: list[dict]) -> dict:
     failed_nodes = Counter(r["failure"]["node"] for r in rows if r["failure"])
     return {"overall": stats(rows), "groups": {g: stats(rs) for g, rs in by_group.items()},
             "failed_checks": dict(failed_checks), "failed_nodes": dict(failed_nodes),
-            "total_cost_usd": round(sum(r["cost_usd"] for r in rows), 4)}
+            "total_cost_usd": round(sum(r["cost_usd"] for r in rows), 4), "sameness": sameness_report(rows)}
 
 
 async def main() -> None:

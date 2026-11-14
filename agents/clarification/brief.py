@@ -90,6 +90,7 @@ def draft_brief(c: ClarificationState, cat: Catalogue, version: int = 1) -> Clar
         audience=c.audience or "",
         content_notes=[i.text for i in c.requested_items if i.resolution == "noted" and i.resolved_to == "content"],
         style_notes=[i.text for i in c.requested_items if i.resolution == "noted" and i.resolved_to == "style"],
+        style_reference=style_reference(c),
         features=features,
         pages=pages,
         content_needs=sorted({k for fid in feature_ids for k in cat.features[fid].content_needs}),
@@ -100,6 +101,22 @@ def draft_brief(c: ClarificationState, cat: Catalogue, version: int = 1) -> Clar
     )
     brief.clarified_text = clarified_text(brief, c)
     return brief
+
+
+def style_reference(c: ClarificationState) -> dict | None:
+    """The look of what the user showed us (D-237): a website they like (D-166) and/or a screenshot (D-164). Planning
+    designs the site's direction from it, preferring it over its own taste; without it Planning works from the
+    business type. Only the shape-relevant facts, no URL path or page content."""
+    ref, shot = c.reference_style or {}, c.screenshot_style or {}
+    if not (ref or shot):
+        return None
+    out = {"from": [k for k, v in (("website", ref), ("screenshot", shot)) if v]}
+    if ref:
+        out |= {"site": ref.get("host"), "corner_radius": ref.get("radius"), "feel": ref.get("personality"),
+                "dark": ref.get("is_dark"), "heading_font": ref.get("heading_font_source")}
+    if shot and "dark" not in out:
+        out["dark"] = shot.get("is_dark")
+    return {k: v for k, v in out.items() if v not in (None, "", [])}
 
 
 def theme_candidates(c: ClarificationState) -> list[dict]:

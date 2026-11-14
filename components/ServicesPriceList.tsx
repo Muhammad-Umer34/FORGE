@@ -29,6 +29,8 @@ export interface ServicesPriceListProps {
   footnote?: string
   bookingCtaText?: string
   bookingCtaHref?: string
+  /** Layout chosen by the plan (D-224): rows in one card, a grid of tiles, or wide open rows without a card. */
+  variant?: "list" | "grid" | "wide"
   className?: string
 }
 
@@ -80,6 +82,7 @@ export function ServicesPriceList({
   footnote = "All prices include standard equipment and materials. Custom corporate packages available upon request.",
   bookingCtaText = "Book a Consultation",
   bookingCtaHref = "#contact",
+  variant = "list",
   className,
 }: ServicesPriceListProps) {
   const [activeCategory, setActiveCategory] = useState<string>("All")
@@ -107,7 +110,7 @@ export function ServicesPriceList({
 
   return (
     <section id="services-pricing" className={cn("w-full py-16 sm:py-24 bg-background border-b border-border/40", className)}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className={cn("mx-auto px-4 sm:px-6 lg:px-8", variant === "list" ? "max-w-4xl" : "max-w-6xl")}>
         {/* Header */}
         <div className="text-center space-y-3 mb-12">
           {badgeText && (
@@ -141,8 +144,13 @@ export function ServicesPriceList({
         )}
 
         {/* Services Price Card */}
-        <Card className="border-border bg-card shadow-sm overflow-hidden">
-          <CardContent className="p-0 divide-y divide-border/60">
+        <Card className={cn("overflow-hidden", variant === "wide" ? "border-0 bg-transparent shadow-none" : "border-border bg-card shadow-sm")}>
+          <CardContent
+            className={cn(
+              "p-0",
+              variant === "grid" ? "grid sm:grid-cols-2 gap-px bg-border/60 [&>div]:bg-card" : "divide-y divide-border/60"
+            )}
+          >
             {filteredServices.map((service) => (
               <div
                 key={service.id}

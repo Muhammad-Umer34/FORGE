@@ -303,6 +303,7 @@ class ClarifiedBrief(BaseModel):
     audience: str = ""                         # filled from the intake call since D-222 (was always empty, KI-09)
     content_notes: list[str] = Field(default_factory=list)   # the user's wishes about content, e.g. "show prices" (D-222)
     style_notes: list[str] = Field(default_factory=list)     # look-and-feel words the user used (D-222)
+    style_reference: Optional[dict[str, Any]] = None         # what the user's reference site or screenshot looks like (D-237)
     features: list[BriefFeature] = Field(default_factory=list)
     pages: list[dict[str, Any]] = Field(default_factory=list)   # {name, sections: [feature ids]}
     content_needs: list[str] = Field(default_factory=list)      # keys only; advisory, the plan's content_schema is final
@@ -358,6 +359,7 @@ class PlannedComponent(BaseModel):
     settings: dict[str, Any] = Field(default_factory=dict)   # layout choices the component allows
     satisfies: list[str] = Field(default_factory=list)       # AcceptanceTest.test_id
     rationale: str = ""                        # why this component, one line
+    showcase: Optional[str] = None             # written fresh by the model for this reason; the component is the fallback (D-224)
 
 
 class Need(BaseModel):
@@ -385,6 +387,11 @@ class CustomComponentSpec(BaseModel):
     ui_notes: str = ""                         # layout hints; theme tokens only, never colours
     limitation: Optional[str] = None           # copied from BriefFeature.limitation
     satisfies: list[str] = Field(default_factory=list)
+    sends: list[str] = Field(default_factory=list)           # fields it sends to the site's backend: it is a form (KI-07)
+    # The contract, fixed by code before any code is written (D-228): the page imports `export_name` from `file`
+    # before the file exists; the writer may add files only inside the part's own folder.
+    file: str = ""                             # e.g. "components/custom/custom-loyalty-card/custom-loyalty-card.tsx"
+    export_name: str = ""                      # e.g. "CustomLoyaltyCard"
 
 
 class ContentField(BaseModel):
@@ -481,6 +488,22 @@ class NotBuilt(BaseModel):
     alternative: str = ""
 
 
+class DesignDirection(BaseModel):
+    """The shape of the site (D-224), chosen by the planner from fixed menus; site_template/app/direction.css maps
+    every choice to CSS, so nothing here can ask for something code does not know. The theme gives the colours and
+    fonts; this gives spacing, corners, type, surfaces, rhythm, images, headings, and the hero and footer layouts."""
+    density: Literal["airy", "balanced", "compact"] = "balanced"
+    corners: Literal["sharp", "soft", "round"] = "soft"
+    type_scale: Literal["calm", "expressive"] = "calm"
+    surfaces: Literal["flat", "cards", "outlined"] = "cards"
+    rhythm: Literal["alternating", "continuous"] = "continuous"
+    images: Literal["rounded", "square"] = "rounded"
+    headings: Literal["plain", "eyebrow", "underline"] = "eyebrow"
+    hero_variant: Literal["centred", "split", "full-bleed", "editorial"] = "centred"
+    footer_variant: Literal["columns", "centred"] = "columns"
+    chosen: bool = False                       # False: the defaults above, not a choice (the variety check flags it)
+
+
 class BuildPlan(BaseModel):
     version: int = 1
     status: Literal["draft", "approved"] = "draft"
@@ -488,6 +511,8 @@ class BuildPlan(BaseModel):
     built_by: Literal["model", "code"] = "model"             # "code": no model call was needed, or the fallback
     pages: list[PlannedPage] = Field(default_factory=list)
     footer_links: list[str] = Field(default_factory=list)   # page ids
+    direction: DesignDirection = Field(default_factory=DesignDirection)   # the site's shape (D-224)
+    sample_content: dict[str, Any] = Field(default_factory=dict)   # placeholders until the owner's details (D-225)
     accessibility: list[str] = Field(default_factory=list)   # rules every builder follows (D-221)
     components: list[PlannedComponent] = Field(default_factory=list)
     custom_specs: list[CustomComponentSpec] = Field(default_factory=list)
@@ -599,6 +624,7 @@ class Limits(BaseModel):
     call_hard_cap: int = 10                    # PLACEHOLDER; one call is always reserved for test generation
     max_confirmation_edits: int = 2            # PLACEHOLDER, set from config
     max_custom_features: int = 5               # PLACEHOLDER, "medium" size limit (D-135); no page or test cap (D-212)
+    max_showcase_sections: int = 2             # sections the model may write fresh for creative reasons (D-224)
     max_extras_shown: int = 3                  # PLACEHOLDER (D-131)
     max_agent_retries: int = 2                 # PLACEHOLDER, set from config
     max_correction_attempts: int = 3           # PLACEHOLDER, set from config

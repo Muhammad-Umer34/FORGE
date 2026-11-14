@@ -8,10 +8,10 @@ import re
 
 from agents.catalogue import Catalogue
 from agents.planning import fixed
-from agents.planning.content_schema import derive_content_schema, load_needs, needs_of
+from agents.planning.content_schema import derive_content_schema, load_needs, needs_of, sample_content
 from agents.planning.schemas import DataDesign, PlanPatch, SiteDesign
 from agents.state import (
-    Assumption, BuildPlan, ClarifiedBrief, CustomComponentSpec, DashboardView, FormRule, Need, NotBuilt,
+    Assumption, BuildPlan, DesignDirection, ClarifiedBrief, CustomComponentSpec, DashboardView, FormRule, Need, NotBuilt,
     PlannedComponent, PlannedPage, PlanTestLink, RetrievalResult, TextSlot, WorkTask,
 )
 
@@ -84,10 +84,12 @@ def apply_patch(site: dict, data: dict | None, patch: PlanPatch) -> tuple[SiteDe
 
 
 def form_sections(plan: BuildPlan) -> list[str]:
-    """Sections that send something to the site's backend: catalogue forms, and custom parts given a form rule."""
+    """Sections that send something to the site's backend: catalogue forms, and custom parts that send fields (KI-07)
+    or were given a form rule."""
     specs = {s.spec_id: s for s in plan.custom_specs}
     out = [c.section_id for c in plan.components
-           if any(n["name"] == "onSubmit" for n in needs_of(c, specs)) and not c.custom]
+           if (c.custom and specs.get(c.custom_spec_id) and specs[c.custom_spec_id].sends)
+           or (not c.custom and any(n["name"] == "onSubmit" for n in needs_of(c, specs)))]
     custom = {c.section_id for c in plan.components if c.custom}
     return out + [r.section_id for r in plan.form_rules if r.section_id in custom and r.section_id not in out]
 
@@ -103,21 +105,31 @@ def data_sections(plan: BuildPlan) -> list[dict]:
     out = []
     for c in plan.components:
         needs = needs_of(c, specs)
-        sends = [f["name"] for n in needs for f in n.get("submit_fields") or []]
+        spec = specs.get(c.custom_spec_id) if c.custom else None
+        sends = spec.sends if spec else [f["name"] for n in needs for f in n.get("submit_fields") or []]
         live = [n["name"] for n in needs if n["kind"] == "live"]
-        is_form = any(n["name"] == "onSubmit" for n in needs)
+        is_form = bool(spec and spec.sends) or any(n["name"] == "onSubmit" for n in needs)
         if sends or live or is_form:
             out.append({"section_id": c.section_id, "feature_id": c.feature_id, "component_id": c.component_id,
                         "is_form": is_form, "sends": sends, "shows_live": live})
     return out
 
 
+def custom_file(part_id: str) -> tuple[str, str]:
+    """(file, export name) of a model-written part (D-228): its own folder, a PascalCase name from its id."""
+    slug = re.sub(r"[^a-z0-9-]+", "-", part_id.lower()).strip("-") or "part"
+    name = "".join(w.capitalize() for w in slug.split("-") if w)
+    return f"components/custom/{slug}/{slug}.tsx", (name if name[:1].isalpha() else f"Part{name}")
+
+
 def _spec(spec, page_ids: set[str]) -> CustomComponentSpec:
     needs = [Need(**{**n.model_dump(exclude={"item_fields"}),
                      "item_fields": [Need(**f.model_dump()) for f in n.item_fields]}) for n in spec.needs]
+    file, export_name = custom_file(spec.spec_id)
     return CustomComponentSpec(spec_id=spec.spec_id, feature_id=spec.feature_id, name=spec.name,
                                page=spec.page_id if spec.page_id in page_ids else "home", purpose=spec.purpose,
-                               behaviour=spec.behaviour, needs=needs, ui_notes=spec.ui_notes)
+                               behaviour=spec.behaviour, needs=needs, ui_notes=spec.ui_notes,
+                               sends=[f.strip() for f in spec.sends if f.strip()], file=file, export_name=export_name)
 
 
 def _components(site: SiteDesign, brief: ClarifiedBrief, cat: Catalogue,
@@ -141,7 +153,8 @@ def _components(site: SiteDesign, brief: ClarifiedBrief, cat: Catalogue,
                 role="custom" if custom else "feature", feature_id=s.feature_id,
                 component_id=None if custom else s.component_id, custom=custom,
                 custom_spec_id=s.custom_spec_id if custom else None,
-                settings={x.name: x.value for x in s.settings}, rationale=s.rationale))
+                settings={x.name: x.value for x in s.settings}, rationale=s.rationale,
+                showcase=(s.showcase or "").strip() or None if not custom else None))
     return out
 
 
@@ -278,6 +291,23 @@ def complete_data(plan: BuildPlan) -> None:
         for e in plan.data_entities if e.name not in viewed and any(f.personal for f in e.fields)]
 
 
+def _vary_neighbours(plan: BuildPlan) -> None:
+    """Code fix (D-224): when two neighbouring sections on a page share a layout family, the second one switches to a
+    variant of another family, so pages do not repeat themselves. No model call is spent on it."""
+    by_id = {c.section_id: c for c in plan.components}
+    for page in plan.pages:
+        sections = [by_id[s] for s in page.section_ids if s in by_id]
+        for before, c in zip(sections, sections[1:]):
+            family = fixed.layout_family(c.component_id, c.settings)
+            if family is None or family != fixed.layout_family(before.component_id, before.settings):
+                continue
+            nxt = next((c for c in sections[sections.index(c) + 1:2 + sections.index(c)]), None)
+            avoid = {family, fixed.layout_family(nxt.component_id, nxt.settings) if nxt else None}
+            other = next((v for v, f in fixed.VARIANT_FAMILY[c.component_id].items() if f not in avoid), None)
+            if other:
+                c.settings["variant"] = other
+
+
 def build_plan(brief: ClarifiedBrief, retrieval: RetrievalResult, site: SiteDesign, data: DataDesign | None,
                cat: Catalogue, old_texts: list[TextSlot] | None = None) -> BuildPlan:
     pages = [p.model_copy(deep=True) for p in site.pages]
@@ -295,10 +325,18 @@ def build_plan(brief: ClarifiedBrief, retrieval: RetrievalResult, site: SiteDesi
         data_entities=data.entities, api_routes=data.routes, dashboard_views=data.dashboard_views,
         form_rules=[r.model_copy(deep=True) for r in data.form_rules],
         not_built=[NotBuilt(asked=u.asked, reason=u.reason, alternative=u.alternative_text) for u in brief.unsupported],
+        direction=site.direction or DesignDirection(),
         assumptions=list(brief.assumptions)            # what was decided for the user before planning (D-219)
         + [Assumption(text=u, reason="Chosen while planning the site") for u in site.unsure],
         accessibility=list(fixed.ACCESSIBILITY_RULES),
     )
+    _vary_neighbours(plan)
+    plan.sample_content = sample_content(plan.content_schema, brief.business_type)
+    for c in plan.components:                            # code-placed parts take their layout from the direction
+        if c.component_id == fixed.HERO[1]:
+            c.settings["variant"] = plan.direction.hero_variant
+        elif c.component_id == "footer":
+            c.settings["variant"] = plan.direction.footer_variant
     complete_data(plan)
     entities = {e.name: e for e in plan.data_entities}
     routes = {r.route_id: r for r in plan.api_routes}

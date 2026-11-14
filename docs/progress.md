@@ -21,6 +21,11 @@ Run with `scripts/run_eval.py`; results in `scripts/runs/` (gitignored, so the n
 | 3 | 2026-11-13 | 6e82e0a (baseline) | Gemini 3.8 Flash / 2.5 Pro | 72 | **93.1%** | 92.4% | 92.0% | 0 | $0.027 | 47 s | **Baseline.** All 5 failures: the hero relevance rule (vague-02 ×3, scope-03, personal-03) |
 | 4 | 2026-11-13 | 6e82e0a | OpenRouter: GPT-6 Luna / MiMo v2.6 Pro | 72 | 93.1% | 92.4% | 89.9% | 0.28 | $0.009 | 134 s | Provider comparison (D-218). Same correct rate, weaker plans (dropped sections, bad data links), 2.8× slower, 3× cheaper. Gemini kept |
 | 5 | 2026-11-13 | 0e8a97f (Phase 2) | Gemini 3.8 Flash / 2.5 Pro | 72 | **100%** | **100%** | **97.8%** | 0 | $0.030 | 51 s | The hero relevance fix (D-223) turned the 5 failed runs into plans; coverage rose because those runs now count. Cost up: search titles and descriptions on every page (D-221). Only miss: forms-03 plans a contact form where lead capture was expected (3 of 3 runs) |
+| 6 | 2026-11-14 | Group 2 (uncommitted) | Gemini 3.8 Flash / 2.5 Pro | 72 | 98.6% | 98.5% | 95.7% | 0 | $0.031 | 47 s | Group 2 (variants, design direction, sample content). One failure: a search description left out (check 17), fixed after the run. **Sameness** between plans for different businesses in a group: sections 0.487 (components only) → 0.365 (component + variant); design direction 83% the same (KI-29) |
+
+**Sameness** (from run 6): plans for two different briefs in the same group (two booking sites...) compared by
+their sections (component + variant, Jaccard) and their design direction (share of equal choices); 0 = nothing alike,
+1 = identical.
 
 **Reading the trend.** Run 3 → 5: every gain came from fixing one over-strict code rule, not from a better model or
 more model calls (calls per run stayed at 7.8). The other Phase 2 changes (patch-only fixes, defaults when questions
@@ -32,6 +37,8 @@ Newest first. **Found by**: how the issue showed up. Each fix links to its decis
 
 | # | Date | Issue | Found by | Cause | Fix | Decision |
 |---|---|---|---|---|---|---|
+| 25 | 2026-11-14 | The model chose nearly the same design direction for every site | Group 2 evaluation, sameness score | Left to choose, the model has one favourite style (the convergence the research predicted) | Team decision: the direction follows the user's style reference when given (website or screenshot); otherwise the model's choice is kept | D-237 |
+| 24 | 2026-11-14 | A home page ended without a search description (content-01) | Group 2 evaluation | The description counted as optional text, so one that broke a rule was blanked and check 17 failed | Search titles and descriptions count as required text, so they go to the rewrite round | D-221 |
 | 23 | 2026-11-14 | Next.js warned that 16.4.0 has a known security vulnerability | Spike, in the preview's dev server output | Version pinned in October | Site template and FORGE's own studio moved to 16.4.6 (KI-26) | D-235 |
 | 22 | 2026-11-14 | The full-run tests broke when the build step was async | Phase 3 tests | Tests run the graph synchronously; an async step needs the async API | The file store and the build step are synchronous (the server runs steps in threads anyway) | D-236 |
 | 21 | 2026-11-14 | Installing Next.js inside WebContainers never finished (10+ minutes, three tries) | Spike in the app's built-in browser | The built-in browser, not WebContainers: the same test in Chrome installed in 74 s and served the page at 90 s | Preview stays in WebContainers; tested in Chrome; package snapshot made inside a WebContainer (64 MB compressed) | D-232 (KI-27) |

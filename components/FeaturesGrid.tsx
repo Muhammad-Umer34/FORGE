@@ -31,6 +31,8 @@ export interface FeaturesGridProps {
   subtitle?: string
   features?: FeatureItem[]
   columns?: 2 | 3 | 4
+  /** Layout chosen by the plan (D-224): cards in a grid, one column of rows, or plain icons with text. */
+  variant?: "cards" | "rows" | "icons"
   className?: string
 }
 
@@ -93,6 +95,7 @@ export function FeaturesGrid({
     },
   ],
   columns = 3,
+  variant = "cards",
   className,
 }: FeaturesGridProps) {
   const gridColsClass = {
@@ -128,14 +131,19 @@ export function FeaturesGrid({
         </div>
 
         {/* Features Grid */}
-        <div className={cn("grid gap-6 sm:gap-8", gridColsClass)}>
+        <div className={cn("grid gap-6 sm:gap-8", variant === "rows" ? "grid-cols-1 max-w-3xl mx-auto" : gridColsClass)}>
           {features.map((item, idx) => {
             const IconComponent = (item.iconName && ICON_MAP[item.iconName.toLowerCase()]) || CheckCircle2
 
             return (
               <Card
                 key={item.id || idx}
-                className="group relative border-border bg-card/60 backdrop-blur shadow-sm hover:shadow-md hover:border-primary/40 transition-all duration-300 rounded-2xl p-6 sm:p-7 flex flex-col justify-between"
+                className={cn(
+                  "group relative transition-all duration-300 flex flex-col justify-between",
+                  variant === "cards" && "border-border bg-card/60 backdrop-blur shadow-sm hover:shadow-md hover:border-primary/40 rounded-2xl p-6 sm:p-7",
+                  variant === "rows" && "border-0 border-b border-border/60 rounded-none bg-transparent shadow-none py-6 [&>div]:flex [&>div]:gap-5 [&>div]:space-y-0",
+                  variant === "icons" && "border-0 bg-transparent shadow-none items-center text-center p-2 [&_.justify-between]:justify-center"
+                )}
               >
                 <div className="space-y-4">
                   {/* Icon & Badge */}

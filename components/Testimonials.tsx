@@ -22,6 +22,8 @@ export interface TestimonialsProps {
   title?: string
   subtitle?: string
   items?: TestimonialItem[]
+  /** Layout chosen by the plan (D-224): a grid of cards, one large featured quote, or a single column. */
+  variant?: "cards" | "spotlight" | "list"
   className?: string
 }
 
@@ -58,8 +60,11 @@ export function Testimonials({
       rating: 5,
     },
   ],
+  variant = "cards",
   className,
 }: TestimonialsProps) {
+  const featured = variant === "spotlight" && items.length > 0 ? items[0] : null
+  const rest = featured ? items.slice(1) : items
   return (
     <section
       id="testimonials"
@@ -86,9 +91,28 @@ export function Testimonials({
           )}
         </div>
 
+        {featured && (
+          <figure className="max-w-4xl mx-auto text-center mb-12">
+            <Quote className="h-10 w-10 mx-auto text-primary/40" aria-hidden="true" />
+            <blockquote className="mt-4 text-xl sm:text-2xl lg:text-3xl font-medium leading-snug text-foreground">
+              "{featured.quote}"
+            </blockquote>
+            <figcaption className="mt-6 text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">{featured.author}</span>
+              {featured.role && ` · ${featured.role}`}
+              {featured.company && ` · ${featured.company}`}
+            </figcaption>
+          </figure>
+        )}
+
         {/* Testimonials Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
-          {items.map((item, idx) => {
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-6 lg:gap-8 items-stretch",
+            variant === "list" ? "max-w-3xl mx-auto" : featured ? "md:grid-cols-2" : "md:grid-cols-3"
+          )}
+        >
+          {rest.map((item, idx) => {
             const rating = item.rating || 5
 
             return (

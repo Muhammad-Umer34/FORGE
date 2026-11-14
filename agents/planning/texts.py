@@ -8,6 +8,7 @@ import re
 from dataclasses import dataclass
 
 from agents.planning.content_schema import needs_of
+from agents.planning.fixed import SEO, SEO_TEXT
 from agents.retrieval.ranker import words
 from agents.state import BuildPlan, ClarifiedBrief, TextSlot
 
@@ -130,7 +131,8 @@ def pick_hero(candidates: list[str], slot: TextSlot, subheadline: str, rules: Te
 
 
 def required_slots(plan: BuildPlan) -> set[str]:
-    """Text slots whose component input is required."""
+    """Text slots whose component input is required, plus every page's search title and description: check 17 needs
+    both, so a description that breaks a rule must be rewritten, not left out (found in the Group 2 evaluation)."""
     specs = {s.spec_id: s for s in plan.custom_specs}
     return {f"{c.section_id}.{n['name']}" for c in plan.components for n in needs_of(c, specs)
-            if n["kind"] == "copy" and n.get("required", True)}
+            if n["kind"] == "copy" and (n.get("required", True) or (c.component_id == SEO[1] and n["name"] in SEO_TEXT))}

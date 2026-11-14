@@ -24,6 +24,8 @@ export interface TeamGridProps {
   title?: string
   subtitle?: string
   members?: TeamMember[]
+  /** Layout chosen by the plan (D-224): cards with photo headers, or a compact four-column grid without card boxes. */
+  variant?: "cards" | "compact"
   className?: string
 }
 
@@ -60,6 +62,7 @@ export function TeamGrid({
       specialties: ["Preventive Hygiene", "Stain Removal", "Periodontal Therapy"],
     },
   ],
+  variant = "cards",
   className,
 }: TeamGridProps) {
   return (
@@ -89,11 +92,14 @@ export function TeamGrid({
         </div>
 
         {/* Members Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+        <div className={cn("grid grid-cols-1 md:grid-cols-2 items-stretch", variant === "compact" ? "lg:grid-cols-4 gap-6" : "lg:grid-cols-3 gap-8")}>
           {members.map((member, idx) => (
             <Card
               key={member.id || idx}
-              className="overflow-hidden border-border bg-card/60 backdrop-blur shadow-sm hover:shadow-md transition-all duration-300 rounded-2xl flex flex-col justify-between group"
+              className={cn(
+                "overflow-hidden transition-all duration-300 rounded-2xl flex flex-col justify-between group",
+                variant === "compact" ? "border-0 bg-transparent shadow-none" : "border-border bg-card/60 backdrop-blur shadow-sm hover:shadow-md"
+              )}
             >
               <div>
                 {/* Photo Header */}
