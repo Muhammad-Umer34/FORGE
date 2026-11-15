@@ -114,11 +114,14 @@ def test_vague_request_asks_then_confirms_then_freezes(graph, monkeypatch):
     assert pending(result) is None and result["plan"].status == "approved"
     assert result["control"].stage == Stage.GENERATING and not result["control"].failed
     assert result["usage"].calls == 2 + 3                                      # intake + tests, then 3 planning calls
-    # the build step (D-233, D-234): progress events, the plan saved as a file, only its manifest in the state
-    assert [e["message"] for e in events][0] == "Saving your approved plan"
+    # the build step: the frontend agent writes the site (D-240); progress events, files in the store, only the
+    # manifest in the state. Preview and gate are off in tests (RunConfig defaults).
+    assert events[0]["message"].startswith("Frontend agent received the plan") and events[0]["input"]["pages"]
     rid = result["request"].request_id
-    assert '"status": "approved"' in store.read(rid)["forge/plan.json"]
-    assert [f.path for f in result["artifacts"]["frontend"].files] == ["forge/plan.json"]
+    saved = store.read(rid)
+    assert '"status": "approved"' in saved["forge/plan.json"] and "app/layout.tsx" in saved and "app/page.tsx" in saved
+    paths = [f.path for f in result["artifacts"]["frontend"].files]
+    assert "forge/plan.json" in paths and "app/page.tsx" in paths and result["artifacts"]["frontend"].status == "done"
 
 
 def test_a_planning_failure_ends_the_run(graph, monkeypatch):

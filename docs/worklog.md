@@ -6,6 +6,35 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-15 · The frontend agent, with a live preview (D-240)
+
+**What** Phase 3 Group 3, item 3.1 plus a live preview, for the supervisor demo. Backend and database agents wait.
+- `agents/frontend_generator/compiler.py`: an approved plan in, the site's files out, no model call (globals.css from
+  the theme, layout with the direction and site-wide parts, one page per route with props as JSON literals,
+  not-found, sitemap, robots, content/site.json). Props from the plan's texts, sample content shaped to each input's
+  type, settings shaped to their type, links and menu from the pages, breadcrumbs, readable placeholder samples.
+  Custom parts show a call-to-action fallback until the custom-part writer exists. Old stubs deleted.
+- `agents/frontend_generator/photos.py`: photo dealer (stock photos once a key exists; theme-tinted placeholders now).
+- `agents/frontend_generator/agent.py`: the run: input summary event, compile, file store, live preview, gate.
+- `agents/preview.py`: `next dev --webpack` in a worker folder; pages written one by one update the open page.
+- `build_site` calls the agent; `RunConfig.preview/build_gate` from `FORGE_PREVIEW`/`FORGE_BUILD_GATE` (off by
+  default, so tests never start servers). Backend reload watches only code; previews stopped on shutdown;
+  `POST .../preview` restarts a preview from the saved files.
+- Studio: `BuildPanel` (progress, "what the frontend agent received", live preview frame), replay on reopen.
+- `scripts/frontend_demo.py`: the same run outside the studio, the demo backup.
+
+**Why** The demo needs one live run from request to running site; every file made by code can be type-checked.
+
+**Checked** 11 frontend tests (9 compiler unit tests; all 49 components type-check with compiler-made props, settings
+fed as strings like the planner); all non-database tests pass. Real salon plan: type check and production build pass.
+Full run in the studio (Italian restaurant): questions, brief, plan, approval, 11 files, live preview, type check 4 s,
+production build 20 s.
+
+**Open** KI-30 (forms store nothing), KI-31 (photos need an Unsplash key), KI-32 (preview restart not checked end to
+end), KI-33 (home page with only a hero). Journal: issue 31.
+
+---
+
 ## 2026-11-15 · Design variety: code deals the direction (D-239)
 
 **What** Fixed KI-29. Research first (`D:/FYP/reports/Reducing sameness in AI site designs.md`, four subagents):

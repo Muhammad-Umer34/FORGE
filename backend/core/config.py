@@ -20,6 +20,10 @@ class Settings:
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")   # LLM_PROVIDER=openrouter (D-218)
     CLARIFICATION_MODEL: str = os.getenv("CLARIFICATION_MODEL", "gemini-3.8-flash")
     FALLBACK_MODEL: str = os.getenv("FALLBACK_MODEL", "gemini-3.1-flash-lite")
+    # Frontend agent (D-240): the live preview and the build gate after a plan is approved. Off unless set "on",
+    # so tests and evaluation runs never start dev servers or real builds.
+    FORGE_PREVIEW: bool = os.getenv("FORGE_PREVIEW", "off").lower() == "on"
+    FORGE_BUILD_GATE: bool = os.getenv("FORGE_BUILD_GATE", "off").lower() == "on"
 
 
     # PostgreSQL (Supabase). App database and a separate one for the integration tests (D-172).

@@ -5,10 +5,10 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from agents import file_store
+from agents import file_store, preview
 from agents.orchestrator import build_forge_graph
 from backend.core.body_limit import BodySizeLimit
-from backend.core.config import settings
+from backend.core.config import ROOT_DIR, settings
 from backend.db.checkpoints import open_checkpointer
 from backend.db.session import app_sessionmaker
 from backend.routes import auth_router, health_router, projects_router, requests_router
@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI):
                 await repair_statuses(app.state.forge_graph, session, app)
             yield
     finally:
+        preview.stop_all()                                         # live preview dev servers (D-240)
         store.close()
 
 
@@ -60,4 +61,8 @@ app.include_router(requests_router)
 
 if __name__ == "__main__":
     # psycopg (the checkpointer) cannot run on Windows' default ProactorEventLoop
-    uvicorn.run("backend.main:app", host=settings.HOST, port=settings.PORT, reload=True, loop="asyncio:SelectorEventLoop")
+    # Reload watches only the code: builds/ holds preview and gate folders linked to node_modules (D-240), where a
+    # change must never restart the server in the middle of a build.
+    code = [str(ROOT_DIR / "agents"), str(ROOT_DIR / "backend")]
+    uvicorn.run("backend.main:app", host=settings.HOST, port=settings.PORT, reload=True, reload_dirs=code,
+                loop="asyncio:SelectorEventLoop")

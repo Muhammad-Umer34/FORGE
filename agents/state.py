@@ -659,6 +659,8 @@ class RunConfig(BaseModel):
     which limits, which catalogue) and stops any agent from editing its own limits.
     """
     limits: Limits = Field(default_factory=Limits)
+    preview: bool = False                       # start the live preview while the site is built (D-240)
+    build_gate: bool = False                    # type-check and build the site after writing it (D-240)
     state_version: int = STATE_VERSION          # code version that started the run; checked before a resume
     model_per_task: dict[str, str] = Field(default_factory=dict)   # task -> "provider/model"
     catalogue_version: Optional[str] = None     # which feature catalogue and component catalogue were used

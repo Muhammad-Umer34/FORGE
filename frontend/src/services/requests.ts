@@ -46,8 +46,30 @@ export function readImageColours(projectId: string, requestId: string, kind: "lo
 }
 
 /** Follow a running step's progress lines (the build, D-233) until it ends. */
-export function followRun(projectId: string, requestId: string, onLine: (message: string) => void): Promise<void> {
-  return apiEvents(`${one(projectId, requestId)}/events`, (data) => {
-    if (typeof data.message === "string") onLine(data.message);
-  });
+/** One progress event of a running build (D-233, D-240). `input`: what the frontend agent received; `url`: the live
+ * preview; `file`: a page just written. */
+export type BuildEvent = {
+  message?: string;
+  url?: string;
+  file?: string;
+  input?: FrontendInput;
+};
+
+export type FrontendInput = {
+  business_type?: string | null;
+  pages: { title: string; route: string; sections: { section: string; component: string; variant?: string | null }[] }[];
+  site_wide: string[];
+  direction: Record<string, string>;
+  theme: { fonts?: { heading?: string; body?: string } | null; primary?: string | null; mode?: string };
+  texts: number;
+  content_fields: number;
+};
+
+/** Start the live preview of a built site again from its saved files (after a reload or a server restart). */
+export function startPreview(projectId: string, requestId: string): Promise<{ url: string }> {
+  return apiFetch(`${one(projectId, requestId)}/preview`, { method: "POST" });
+}
+
+export function followRun(projectId: string, requestId: string, onEvent: (event: BuildEvent) => void): Promise<void> {
+  return apiEvents(`${one(projectId, requestId)}/events`, (data) => onEvent(data as BuildEvent));
 }

@@ -4,8 +4,8 @@ from langgraph.graph import END, START, StateGraph
 from agents.clarification import build_clarification_graph
 from agents.planning import build_planning_graph
 from agents.retrieval.ranker import rank_and_retrieve_components
-from agents.file_store import active_store
-from agents.state import AgentArtifacts, GraphState, Stage
+from agents.frontend_generator import agent as frontend_agent
+from agents.state import GraphState, Stage
 
 # Clarification status -> Orchestrator stage. The Orchestrator is the only writer of `control`.
 _STAGE_AFTER_CLARIFICATION = {
@@ -50,15 +50,13 @@ def after_planning(state: GraphState) -> dict:
 
 
 def build_site(state: GraphState) -> dict:
-    """The builder step (Phase 3). Until the builders exist (Group 3) it saves the approved plan as the site's first
-    file, which is the builders' input; the progress events, the file store and the background run are the real
-    machinery the builders will use (D-233, D-234). Repeat-safe: an unchanged file is not written again (P13)."""
-    progress = get_stream_writer()
-    progress({"stage": "build", "message": "Saving your approved plan"})
-    refs = active_store().put(state["request"].request_id,
-                                    {"forge/plan.json": state["plan"].model_dump_json(indent=2)}, "code", kind="other")
-    progress({"stage": "build", "message": "Plan saved. Building the site is the next part of FORGE"})
-    return {"artifacts": {"frontend": AgentArtifacts(agent="frontend", status="pending", files=refs)}}
+    """The builder step (Phase 3): the frontend agent writes the site from the approved plan (D-240), with a live
+    preview and the build gate when the run's config turns them on. The backend and database agents come later.
+    Repeat-safe: an unchanged file is not written again (P13)."""
+    brief = state.get("brief")
+    artifacts = frontend_agent.run(state["plan"], brief.business_type if brief else None,
+                                   state["request"].request_id, state["run_config"], get_stream_writer())
+    return {"artifacts": {"frontend": artifacts}}
 
 
 def _route_after_planning(state: GraphState) -> str:

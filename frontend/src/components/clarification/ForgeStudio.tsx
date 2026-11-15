@@ -7,7 +7,7 @@ import { ApiError } from "@/services/client";
 import { listRequests } from "@/services/projects";
 import {
   answerQuestion, cancelRequest, confirmBrief, createRequest, decidePlan, getRequest, readImageColours, resumeRequest,
-  followRun,
+  followRun, BuildEvent, startPreview,
 } from "@/services/requests";
 import { RequestSummary } from "@/types/auth";
 import { ConfirmationDecision, PlanDecision, ReplyData, RequestEnvelope, UserAnswer } from "@/types/request";
@@ -18,6 +18,7 @@ import { QuestionCard } from "./QuestionCard";
 import { ComposerReply, RequestComposer } from "./RequestComposer";
 import { RequestHistory } from "./RequestHistory";
 import { StartOverDialog } from "./StartOverDialog";
+import { BuildPanel } from "./BuildPanel";
 import { Step, StudioHeader } from "./StudioHeader";
 
 type Busy = "start" | "answer" | "confirm" | "restore" | "theme" | "plan" | "approve";
@@ -89,7 +90,8 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
   const [reply, setReply] = useState<ComposerReply | null>(null);
   const [composerKey, setComposerKey] = useState(0);
   const [confirmingStartOver, setConfirmingStartOver] = useState(false);
-  const [buildLines, setBuildLines] = useState<string[]>([]);
+  const [buildEvents, setBuildEvents] = useState<BuildEvent[]>([]);
+  const replayed = useRef<string | null>(null);
   const openedCurrent = useRef(false);
 
   const run = async (kind: Busy, call: () => Promise<RequestEnvelope>, said?: string) => {
@@ -196,6 +198,28 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
     if (envelope) run(kind, () => confirmBrief(projectId, envelope.request_id, d));
   };
 
+  // A built request opened later (or after a reload): replay its stored build events, so the preview comes back.
+  useEffect(() => {
+    if (!envelope || envelope.status !== "complete" || busy || replayed.current === envelope.request_id) return;
+    const id = envelope.request_id;
+    replayed.current = id;
+    setBuildEvents([]);
+    const add = (event: BuildEvent) => setBuildEvents((events) => [...events, event]);
+    let hadPreview = false;
+    followRun(projectId, id, (event) => {
+      hadPreview ||= Boolean(event.url);
+      add(event);
+    })
+      .then(async () => {
+        if (hadPreview) return;
+        // The preview lives in the server's memory: start it again from the site's saved files.
+        add({ message: "Starting the live preview of your site" });
+        const { url } = await startPreview(projectId, id);
+        add({ message: "Live preview is running", url });
+      })
+      .catch((e) => add({ message: e instanceof ApiError ? e.message : "The live preview could not start." }));
+  }, [envelope, busy, projectId]);
+
   const decidePlanStep = (d: PlanDecision) => {
     if (!envelope) return;
     const id = envelope.request_id;
@@ -207,8 +231,9 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
     run("approve", async () => {
       const started = await decidePlan(projectId, id, d);
       if (started.status !== "processing") return started;
-      setBuildLines([]);
-      await followRun(projectId, id, (line) => setBuildLines((lines) => [...lines, line]));
+      setBuildEvents([]);
+      replayed.current = id;
+      await followRun(projectId, id, (event) => setBuildEvents((events) => [...events, event]));
       return getRequest(projectId, id);
     });
   };
@@ -237,15 +262,7 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
 
       <main id="main" className="relative z-[1] mx-auto w-full max-w-3xl flex-1 px-5 pt-12 pb-16 sm:px-8 sm:pt-16">
         {busy && <ProgressNote key={busy} busy={busy} />}
-        {busy === "approve" && buildLines.length > 0 && (
-          <ol aria-label="Build progress" className="-mt-5 mb-8 space-y-1 text-[14px] text-ink-muted">
-            {buildLines.map((line, i) => (
-              <li key={i} className="animate-rise">
-                {line}
-              </li>
-            ))}
-          </ol>
-        )}
+        {buildEvents.length > 0 && <BuildPanel events={buildEvents} running={busy === "approve"} />}
 
         <div aria-busy={busy !== null} className={busy ? "pointer-events-none opacity-50 transition-opacity duration-300" : "transition-opacity duration-300"}>
           {!envelope && (

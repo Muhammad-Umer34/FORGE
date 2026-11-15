@@ -29,6 +29,82 @@ Each entry:
 
 ---
 
+## 31. The frontend agent (building the site from the plan)
+**Symptom** Approving a plan saved `forge/plan.json` and stopped: every builder was an empty stub. The supervisor
+demo (2026-11-16) needs one live run from request to a running site.
+
+**Steps**
+1. Planned the frontend agent alone (backend and database wait), as a code compiler (D-240,
+   `C:/Users/umerc/.claude/plans/greedy-crafting-kurzweil.md`). Read the inputs first: the plan's pages and sections,
+   texts keyed `section.prop`, sample content keyed by `section_keys`, the theme's tokens and fonts (the test plan's
+   theme has no fonts or radius, so the compiler needs defaults), and the need kinds per component: copy 162,
+   setting 50, code 77, list 34, fact 38, live 14, image 8.
+2. Found that forms already show their success message without a handler (so they work with no backend), that
+   components use plain `<img>` (stock photo URLs need no config), and that the template has no `public/` folder.
+3. Chose `next dev` on the server for the live preview (its WebSocket updates the open page as files are written),
+   not WebContainers yet (90 s boot, Chrome only).
+4. Listed every required input of the 49 components and every input with a structured type. The plan's sample
+   content gives plain strings for 11 structured types with no item fields in the Needs List (opening hours, social
+   links, blog posts, events, the slot picker's availability...). Read their shapes from the component files and
+   made a sampler per shape.
+5. Wrote `agents/frontend_generator/compiler.py` and `photos.py`; the old stubs (`generator.py`, `scaffold.py`)
+   were deleted (nothing imported them). The salon test plan compiles to 10 files.
+6. Safety net: `tests/test_frontend_typecheck.py` renders all 49 components on one page with compiler-made props
+   and runs the real type check. First run: 2 of 49 failed.
+   - PricingTable: `onCtaClick` is a function inside each plan item, and the compiler gave it a string. Fix: leave
+     out function fields inside items, like top-level handlers.
+   - ImageTextRows: `actionLink` is a nested `{label, href}` object, but the Needs List flattens it into three
+     sibling fields. Fix: the fields after a `{` field are built inside it.
+7. Second run: crashed, because the sample gave `actionLink` as a string. Fix: a nested value is used only if it
+   is an object.
+8. Third run: ProcessSteps failed, `stepNumber` missing. Step 6's fix had skipped every code field inside items,
+   but `stepNumber` is a required code field that is not a function. Fix: skip only functions. Fourth run: all 49
+   components pass the type check.
+9. Stock photos: collecting photo ids from Unsplash's website pages was not the right way; the proper route is the
+   official Unsplash API with a developer key the owner creates. Until then images are theme-tinted placeholders
+   (`photos.placeholder`), which the dealer already falls back to.
+10. Wrote the run (`agent.py`: input summary, compile, file store, preview, gate), the preview manager (`preview.py`:
+    `next dev --webpack` in a worker folder, output drained in a thread so a full pipe never stops it, one preview
+    at a time) and `scripts/frontend_demo.py`. Preview and gate are switched by the run's config (`RunConfig.preview`,
+    `build_gate`, from `FORGE_PREVIEW` / `FORGE_BUILD_GATE`), off by default so tests never start dev servers.
+    One old test expected the old first message; updated to the new events.
+11. First live run (booking-01, a hair salon): plan, 11 files, preview up, pages written one by one, the page
+    looked right (theme, Playfair Display headings, full-bleed hero from the glossy-studio preset). **New problem:**
+    the gate's type check failed on FeaturesGrid: the planner wrote `columns: "3"` where the type is `2 | 3 | 4`. The
+    dev server does not type-check, so only the gate caught it. The all-components test missed it because it had no
+    planner settings. Fix: every setting is shaped to its type (number and boolean unions, literal unions; a value the
+    type does not allow is dropped). The all-components test now feeds settings as strings, like the planner.
+12. Rebuilt the saved plan: type check passed (9 s), production build passed (42 s). Checked the pages as text:
+    plan texts in place, booking works, no console errors. **Two polish problems:** list samples read like broken
+    data ("Sample name 1", "Sample price 1"), and inner pages showed the component's own demo breadcrumbs. Fixes: a
+    field-name sample table with a noun from the list ("Service 1", "Rs. 0,000", a real icon name), still obvious
+    placeholders (D-225); breadcrumbs made from the page (Home › page).
+13. Before the studio run: the backend's auto-reload watched all of `FORGE-1/`, including `builds/`, where preview
+    and gate folders link to `node_modules`; a `.py` file there could restart the server in the middle of a build.
+    Fix: reload watches only `agents/` and `backend/`. Turned on `FORGE_PREVIEW` and `FORGE_BUILD_GATE` in `.env`.
+14. First full run in the studio (Demo Restaurant, an Italian restaurant): clarification asked 2 questions, the brief
+    and plan were confirmed, and after approval the frontend agent wrote 11 files, started the preview, wrote the
+    pages, and passed the type check (4 s) and production build (20 s). The studio showed the progress, the input
+    panel and the live site in the frame. Small fix: "1 sections" → "1 section".
+15. **New problem:** reloading the page after the run showed no preview. Cause: my edit to `agent.py` made the
+    backend reload, which stops the preview (it lives in memory) and clears the build events. A reload or coming back
+    days later would always lose it. Fix: `POST .../preview` starts the preview again from the site's files saved in
+    the file store, and the studio calls it when a built request has no preview. Written and type-checked; the
+    end-to-end check was interrupted.
+16. Seen in the restaurant plan, not a frontend problem: the home page got only a hero section (planning quality).
+
+**Status** Working in the studio end to end (request → questions → brief → plan → frontend agent → live site).
+Open: the preview-restart path (step 15) is not yet checked end to end; stock photos need an Unsplash key.
+
+## 30. An SEO description over 160 characters ends a valid run
+**Symptom** Run 9, content-01: check 7 failed on `home.seo.description` (over 160 characters), one run of two.
+
+**Steps**
+1. Same class as issue 28 (search title over 60): the rewrite round asks the model to shorten it, and sometimes it
+   does not.
+
+**Status** Open. Likely fix for both: code trims search texts at a word boundary after the rewrite.
+
 ## 29. The evaluation counts network drops as wrong plans
 **Symptom** Run 7: forms-02 failed 3 of 3 with 0 model calls. Run 7b: ref-01 failed 2 of 3, also with 0 calls.
 

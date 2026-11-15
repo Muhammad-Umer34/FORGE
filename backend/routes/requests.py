@@ -24,7 +24,7 @@ from fastapi.responses import StreamingResponse
 from langgraph.types import Command
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from agents import logo_colours, tracing
+from agents import file_store, logo_colours, preview, tracing
 
 from agents.catalogue import load_catalogue
 from agents.clarification import slots
@@ -67,6 +67,8 @@ def _run_config() -> RunConfig:
         unsupported_list_hash=cat.unsupported_list_hash,
         baselines_hash=cat.baselines_hash,
         prompt_versions={f"clarification.{k}": v for k, v in PROMPT_VERSIONS.items()},
+        preview=settings.FORGE_PREVIEW,
+        build_gate=settings.FORGE_BUILD_GATE,
     )
 
 
@@ -442,3 +444,23 @@ async def read_image_colours(http: Request, request_id: str = Depends(_owned_req
         return await run_in_threadpool(extract, data)
     except logo_colours.ImageError as error:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(error))
+
+
+@router.post("/{request_id}/preview")
+async def start_preview(request_id: str = Depends(_owned_request)):
+    """The live preview of a built site, started again from its saved files (D-240): after a page reload or a server
+    restart the preview is gone (it lives in memory), but every file is in the file store."""
+    if not settings.FORGE_PREVIEW:
+        raise HTTPException(status.HTTP_409_CONFLICT, "The live preview is switched off on this server.")
+    running = preview.get(request_id)
+    if running:
+        return {"url": running.url}
+    saved = await run_in_threadpool(file_store.active_store().read, request_id)
+    files = {path: content for path, content in saved.items() if not path.startswith("forge/")}
+    if "app/page.tsx" not in files:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This site has not been built yet.")
+    try:
+        live = await run_in_threadpool(preview.start, request_id, files)
+    except preview.PreviewError as error:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, f"The live preview could not start: {error}")
+    return {"url": live.url}
