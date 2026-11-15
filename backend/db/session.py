@@ -49,7 +49,9 @@ def make_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
 
 @lru_cache(maxsize=1)
 def app_sessionmaker() -> async_sessionmaker[AsyncSession]:
-    return make_sessionmaker(make_engine(settings.SUPABASE_DB_URL))
+    # Supabase's session pooler allows 15 clients per project. This engine (6), the checkpointer (4) and the file
+    # store (2) stay under it with room for a reload or a script; the default (5 + 10 overflow) could take all 15.
+    return make_sessionmaker(make_engine(settings.SUPABASE_DB_URL, pool_size=4, max_overflow=2))
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:

@@ -92,6 +92,42 @@ demo (2026-11-16) needs one live run from request to a running site.
     the file store, and the studio calls it when a built request has no preview. Written and type-checked; the
     end-to-end check was interrupted.
 16. Seen in the restaurant plan, not a frontend problem: the home page got only a hero section (planning quality).
+17. **Reported by Umar:** reopening a built project (Hair Saloon) showed "Step 5 · Plan approved" and no site. The
+    backend log showed the studio never asked for the preview. Cause: a built request's status is `planned`
+    (`_envelope` in `backend/routes/requests.py`), but the reopen code checked for `complete` (only for runs from
+    before planning existed). Fix: check `planned`. Also changed the outdated footer text "Building your site is the
+    next step".
+18. Retest on another built project (the law firm): the old build log came back, and so did a preview frame, but
+    pointing at a dead address (port 55350). One preview runs at a time and later builds had stopped it. Fix: never
+    trust an address from the old log. First version: dropped old addresses and then asked the backend.
+19. The log replay itself then stalled (the events stream stayed open, sending nothing), and the log is lost on any
+    restart anyway. Simpler fix: on reopen, skip the log and ask the backend for the live preview straight away; it
+    returns the running preview or starts one from the saved files.
+20. **New problem while testing:** opening a project took 40–60 s or more. Timing the database showed it is the
+    network, not the code: one of the Supabase pooler's three IPv4 addresses (`13.238.183.126`) times out every time
+    from this network, and the other two take 1.3–4.5 s to connect (0.3 s earlier in the day). Every database step
+    waits on that. Not an IPv4 problem: all three addresses are IPv4.
+
+21. Retry: the reopen fix worked (the studio asked for the preview at once), but the preview route crashed with a
+    raw 500. Two causes in the log: a pooled connection the network had killed ("server closed the connection
+    unexpectedly"), and a 30 s pool timeout during a full internet drop. Fixes: the file store's pool tests each
+    connection before use (`check_connection`), and the route answers 503 "could not reach its database" instead.
+22. **Real root cause of the slowness:** with the network healthy again, every page failed with `EMAXCONNSESSION:
+    max clients reached in session mode - limited to pool_size: 15`. Supabase's session pooler allows 15 clients per
+    project. FORGE's three pools could open 23 (app engine 5 + 10 overflow, checkpointer 5, file store 3). Fix: caps
+    of 6, 4 and 2 (12 in all), and the checkpointer also tests connections before use.
+23. Still full after a clean restart: only 5 connections came from this computer. `pg_stat_activity` showed 15
+    pooler sessions held, 14 idle since 16:18 UTC: leftovers from backend processes that reloaded or lost the network
+    today, which the pooler keeps until its own timeout.
+
+24. With Umar's OK, ended the 15 stuck pooler sessions (`pg_terminate_backend` on idle Supavisor sessions) and
+    restarted the backend under the new caps. Reopening the built law-firm project then showed "Opening the live
+    preview" → "Live preview is running", and the site (green firm-and-calm look, Home / About Us / Contact / FAQ)
+    loaded in the studio from its saved files.
+
+**Status** Fixed and checked end to end: reopening a built project brings its live site back. Lessons: test the
+status values a feature depends on against the real envelope; and with a pooler limit of 15, keep FORGE's pools
+small and test pooled connections, because restarts and network drops leave sessions behind.
 
 **Status** Working in the studio end to end (request → questions → brief → plan → frontend agent → live site).
 Open: the preview-restart path (step 15) is not yet checked end to end; stock photos need an Unsplash key.

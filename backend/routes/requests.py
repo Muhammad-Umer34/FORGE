@@ -18,10 +18,12 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
+import psycopg
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
 from langgraph.types import Command
+from psycopg_pool import PoolTimeout
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents import file_store, logo_colours, preview, tracing
@@ -455,7 +457,11 @@ async def start_preview(request_id: str = Depends(_owned_request)):
     running = preview.get(request_id)
     if running:
         return {"url": running.url}
-    saved = await run_in_threadpool(file_store.active_store().read, request_id)
+    try:
+        saved = await run_in_threadpool(file_store.active_store().read, request_id)
+    except (psycopg.Error, PoolTimeout):
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
+                            "FORGE could not reach its database just now. Please try again in a moment.")
     files = {path: content for path, content in saved.items() if not path.startswith("forge/")}
     if "app/page.tsx" not in files:
         raise HTTPException(status.HTTP_409_CONFLICT, "This site has not been built yet.")

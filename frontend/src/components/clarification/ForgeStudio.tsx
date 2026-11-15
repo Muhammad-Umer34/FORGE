@@ -200,23 +200,17 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
 
   // A built request opened later (or after a reload): replay its stored build events, so the preview comes back.
   useEffect(() => {
-    if (!envelope || envelope.status !== "complete" || busy || replayed.current === envelope.request_id) return;
+    // A built request reports "planned" (plan done, build step run); see _envelope in backend/routes/requests.py.
+    if (!envelope || envelope.status !== "planned" || busy || replayed.current === envelope.request_id) return;
     const id = envelope.request_id;
     replayed.current = id;
     setBuildEvents([]);
     const add = (event: BuildEvent) => setBuildEvents((events) => [...events, event]);
-    let hadPreview = false;
-    followRun(projectId, id, (event) => {
-      hadPreview ||= Boolean(event.url);
-      add(event);
-    })
-      .then(async () => {
-        if (hadPreview) return;
-        // The preview lives in the server's memory: start it again from the site's saved files.
-        add({ message: "Starting the live preview of your site" });
-        const { url } = await startPreview(projectId, id);
-        add({ message: "Live preview is running", url });
-      })
+    // The build log and the preview live in the server's memory, so neither survives a restart. Ask the backend for
+    // the live preview: it returns the running one or starts it again from the site's saved files (D-240).
+    add({ message: "Opening the live preview of your site" });
+    startPreview(projectId, id)
+      .then(({ url }) => add({ message: "Live preview is running", url }))
       .catch((e) => add({ message: e instanceof ApiError ? e.message : "The live preview could not start." }));
   }, [envelope, busy, projectId]);
 

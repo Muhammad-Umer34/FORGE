@@ -169,7 +169,7 @@ export function PlanReview({ plan, approved, busy, error, onDecide, onStartOver 
       <div className="sticky bottom-0 z-10 -mx-5 mt-8 flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-line bg-paper/95 px-5 py-4 backdrop-blur-sm sm:-mx-8 sm:px-8">
         {approved ? (
           <>
-            <p className="text-[13px] text-ink-muted">Building your site is the next step.</p>
+            <p className="text-[13px] text-ink-muted">Your site is built from this plan. Its live preview is above.</p>
             <button type="button" onClick={onStartOver} className={`ml-auto ${linkButton}`}>
               Start over
             </button>

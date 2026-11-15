@@ -27,14 +27,16 @@ def libpq_url(url: str) -> str:
 
 
 @asynccontextmanager
-async def open_checkpointer(url: str, max_connections: int = 5) -> AsyncIterator[AsyncPostgresSaver]:
+async def open_checkpointer(url: str, max_connections: int = 4) -> AsyncIterator[AsyncPostgresSaver]:
     kwargs = {"autocommit": True, "prepare_threshold": None, "row_factory": dict_row}
     try:   # fail fast with the real reason (wrong password, unknown host) instead of a 30-second pool timeout
         await (await AsyncConnection.connect(libpq_url(url), connect_timeout=15)).close()
     except psycopg.OperationalError as error:
         reason = str(error).strip().splitlines()[-1]
         raise RuntimeError(f"Cannot connect to the database in SUPABASE_DB_URL: {reason}") from None
-    async with AsyncConnectionPool(libpq_url(url), kwargs=kwargs, max_size=max_connections, open=False) as pool:
+    # check: a network drop leaves dead pooled connections; test each before use (found 2026-11-15)
+    async with AsyncConnectionPool(libpq_url(url), kwargs=kwargs, max_size=max_connections, open=False,
+                                   check=AsyncConnectionPool.check_connection) as pool:
         saver = AsyncPostgresSaver(pool, serde=JsonPlusSerializer(allowed_msgpack_modules=msgpack_allowlist()))
         await saver.setup()          # creates the checkpoint tables once; safe to repeat
         yield saver

@@ -17,10 +17,12 @@ ON CONFLICT (request_id, path) DO UPDATE
 
 
 class PostgresFileStore:
-    def __init__(self, url: str, max_connections: int = 3) -> None:
-        # prepare_threshold=None: Supabase's transaction pooler cannot keep prepared statements
+    def __init__(self, url: str, max_connections: int = 2) -> None:
+        # prepare_threshold=None: Supabase's transaction pooler cannot keep prepared statements.
+        # check: test a pooled connection before handing it out; a network drop leaves dead ones behind, and using
+        # one fails the request with "server closed the connection unexpectedly" (found 2026-11-15).
         self.pool = ConnectionPool(libpq_url(url), min_size=0, max_size=max_connections, open=True,
-                                   kwargs={"prepare_threshold": None})
+                                   kwargs={"prepare_threshold": None}, check=ConnectionPool.check_connection)
 
     def put(self, request_id: str, files: dict[str, str], written_by: WrittenBy,
             kind: str = "frontend") -> list[FileRef]:

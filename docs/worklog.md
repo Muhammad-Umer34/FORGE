@@ -6,6 +6,22 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-15 · Reopening a built site; database connection limits
+
+**What** Reopening a built project showed no site (reported by Umar). Fixed the studio's reopen (it checked status
+`complete`; a built request is `planned`) so it always asks the backend for a live preview, which restarts it from the
+saved files. While testing, found Supabase's session pooler limit (15 clients, `EMAXCONNSESSION`): FORGE's three
+pools could open 23, and restarts and network drops left stuck sessions. Capped the pools (app engine 6,
+checkpointer 4, file store 2), made the checkpointer and file store test pooled connections before use, and the
+preview route answers 503 instead of crashing when the database is unreachable. Ended the 15 stuck sessions (with
+Umar's OK).
+
+**Checked** Reopened the built law-firm project: the live site came back in the studio. Affected tests pass.
+
+**Open** None from this; journal issue 31, steps 17–24.
+
+---
+
 ## 2026-11-15 · The frontend agent, with a live preview (D-240)
 
 **What** Phase 3 Group 3, item 3.1 plus a live preview, for the supervisor demo. Backend and database agents wait.

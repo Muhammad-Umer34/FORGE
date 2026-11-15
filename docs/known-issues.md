@@ -47,7 +47,7 @@ Retr = Context Retrieval.
 | KI-29 | The model picks nearly the same design direction for every site (Group 2 evaluation, 65 plans: airy 89%, round corners 95%, alternating sections 98%, split hero 82%, columns footer 100%); two different businesses match on 83% of the direction | Plan | High (variety) | Fixed (D-239, run 9, 2026-11-15): code deals a seeded preset direction per business family and the model may change at most 2 choices; sameness fell from ~70% to 44% (near the ~40% random floor). A reference locks its measured choices. Open watch: images still 74% rounded (model edits pull that way) |
 | KI-30 | Generated sites store nothing yet: forms show their success message but submissions go nowhere, and live data (time slots, posts, events) is sample data | Site | High (until the backend agent) | Open: backend and database agents (Group 3, items 3.2–3.3) |
 | KI-31 | Generated sites use theme-tinted placeholders instead of photos | Site | Medium (demo look) | Open: needs an Unsplash API key from the owner (D-240) |
-| KI-32 | The live preview lives in the server's memory; after a restart it is started again from the saved files (`POST .../preview`), which is not yet checked end to end | Preview | Medium | Open (2026-11-15) |
+| KI-32 | The live preview lives in the server's memory; after a restart it is started again from the saved files (`POST .../preview`) | Preview | Medium | Fixed (2026-11-15): reopen checks the right status (`planned`), always asks for a live preview; checked end to end |
 | KI-33 | A plan can give the home page only a hero section (seen in the restaurant demo run) | Plan | Medium (quality) | Open |
 
 ## Scope limits
