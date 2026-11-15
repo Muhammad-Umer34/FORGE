@@ -112,7 +112,9 @@ def style_reference(c: ClarificationState) -> dict | None:
         return None
     out = {"from": [k for k, v in (("website", ref), ("screenshot", shot)) if v]}
     if ref:
-        out |= {"site": ref.get("host"), "corner_radius": ref.get("radius"), "feel": ref.get("personality"),
+        out |= {"site": ref.get("host"), "corners": ref.get("corners"),
+                "images": ref.get("images"), "rhythm": ref.get("rhythm"), "type_scale": ref.get("type_scale"),
+                "corner_radius": ref.get("radius"), "feel": ref.get("personality"),
                 "dark": ref.get("is_dark"), "heading_font": ref.get("heading_font_source")}
     if shot and "dark" not in out:
         out["dark"] = shot.get("is_dark")

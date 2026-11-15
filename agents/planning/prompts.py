@@ -37,10 +37,11 @@ How to design:
 - settings: only inputs of kind "setting" that the component has, with a value it allows.
 - in_menu true for pages visitors should find from the header; keep the menu to about 7 pages.
 - footer_links lists the page ids shown in the footer; every page must be in the menu or the footer.
-- direction: the shape of this site. If the brief has a style_reference (a website or screenshot the user likes)
-  or style_notes, design the direction from them first: follow their corner radius, light or dark feel, density
-  and character, and use the business type only for what they do not show. Otherwise choose it for this business
-  and its visitors so that two businesses of the same kind still look different. density airy (calm, premium: spa, architect) to compact (busy menus, many items);
+- direction: the shape of this site. Code has dealt a starting direction for this site (given below); return it
+  as it is unless this business clearly needs another value. Change at most 2 choices, and list each one in
+  direction_changes with a one-line reason tied to this business (a kids' café: round corners). Locked choices come
+  from the user's reference site and must not change. style_notes from the user count as a reason. The choices:
+  density airy (calm, premium) to compact (busy menus, many items);
   corners sharp (firm, professional) to round (friendly); type_scale expressive (bold, confident) or calm; surfaces
   flat, cards or outlined; rhythm alternating (tinted bands) or continuous; images rounded or square; headings plain,
   eyebrow (small label above) or underline; hero_variant centred, split (text beside a photo), full-bleed (text on a
@@ -136,8 +137,10 @@ def _dump(value) -> str:
     return json.dumps(value, ensure_ascii=False, indent=1, default=str)
 
 
-def site_user(brief: dict, fixed: dict, options: dict, needs: dict, limits) -> str:
-    return (f"Brief:\n{_dump(brief)}\n\nPlaced by code (do not return these):\n{_dump(fixed)}\n\n"
+def site_user(brief: dict, fixed: dict, options: dict, needs: dict, limits, start: dict | None = None) -> str:
+    dealt = (f"Starting direction (change at most 2 choices, with reasons):\n{_dump(start['direction'])}\n"
+             f"Locked (from the user's reference): {', '.join(start['locked']) or 'none'}\n\n") if start else ""
+    return (f"Brief:\n{_dump(brief)}\n\nPlaced by code (do not return these):\n{_dump(fixed)}\n\n{dealt}"
             f"Found components per feature (choose from these):\n{_dump(options)}\n\n"
             f"Inputs of each found component (kinds and allowed settings):\n{_dump(needs)}\n\n"
             f"Limit: at most {limits.max_custom_features} custom parts.")

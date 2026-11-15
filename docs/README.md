@@ -10,6 +10,7 @@ kept up to date with every change.
 | [worklog.md](worklog.md) | What was done, when and why, newest first: commits, decisions, checks, open items | After every piece of work |
 | [known-issues.md](known-issues.md) | Open bugs and scope limits, and what was fixed by which commit | When an issue is found or fixed |
 | [progress.md](progress.md) | The scoreboard of every evaluation run (what changed the numbers) and every issue met: how it was found, its cause and its fix | After every evaluation run and every issue found |
+| [problem-journal.md](problem-journal.md) | Each issue in `progress.md` worked through step by step: symptom, every try and what it showed (wrong turns too), fix, how it was checked, status; plus the lessons learned | With every issue, as it is worked on |
 
 Design documents, reports and research live outside the codebase (D-008):
 - `D:/FYP/FORGE-DOCUMENTS/` — designs (`FORGE_Clarification_Agent_Plan_v6.md`), proposal, plans, notes.
@@ -34,6 +35,10 @@ Code-level documentation: `agents/README.md` (the run and each agent's modules),
 7. **Every evaluation run adds a scoreboard row** to `progress.md` (date, commit, models, numbers, and what caused
    the change), and **every issue met adds a line** to its issues table (how it was found, cause, fix, decision),
    including invalid runs and issues found by tests.
+8. **Every problem is journaled as it is worked on** in `problem-journal.md`, under its issue number: the
+   symptom, every approach tried and what it showed, what did not work and why, how one try led to the next,
+   new problems met on the way, the fix, how it was checked, and its status. Written during the work, not
+   afterwards; new lessons go in its top list.
 
 Status values in the decision log: **Implemented** (done and checked), **Approved** (agreed, not built),
 **Proposed** (waiting for approval), **Rejected**, **Superseded**.

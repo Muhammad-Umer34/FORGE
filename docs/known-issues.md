@@ -44,7 +44,7 @@ Retr = Context Retrieval.
 | KI-27 | Installing packages inside WebContainers never finished in the Claude app's built-in browser (Chrome works): previews must be tested in a normal browser | Preview (dev only) | Low | Open |
 | KI-28 | Migration 0008 (`generated_files`) was not applied to the app database; the build step needs it before plan approval works in the studio | Build | High until applied | Fixed (applied 2026-11-14) |
 
-| KI-29 | The model picks nearly the same design direction for every site (Group 2 evaluation, 65 plans: airy 89%, round corners 95%, alternating sections 98%, split hero 82%, columns footer 100%); two different businesses match on 83% of the direction | Plan | High (variety) | Decided (D-237): with a style reference the direction follows it; without one, similar directions are accepted |
+| KI-29 | The model picks nearly the same design direction for every site (Group 2 evaluation, 65 plans: airy 89%, round corners 95%, alternating sections 98%, split hero 82%, columns footer 100%); two different businesses match on 83% of the direction | Plan | High (variety) | Fixed (D-239, run 9, 2026-11-15): code deals a seeded preset direction per business family and the model may change at most 2 choices; sameness fell from ~70% to 44% (near the ~40% random floor). A reference locks its measured choices. Open watch: images still 74% rounded (model edits pull that way) |
 
 ## Scope limits
 

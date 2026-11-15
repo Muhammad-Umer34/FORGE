@@ -110,6 +110,10 @@ def measure(brief: dict, values: dict, seconds: float, error: str | None) -> dic
         "sections": len(plan.components) if plan and result == "planned" else 0,
         "tests": len(frozen.test_cases) if frozen else 0,
         "shape": shape(plan) if plan and result == "planned" else None,
+        "family": (p.start_direction or {}).get("family") if p else None,
+        "preset": plan.direction_preset if plan and result == "planned" else None,
+        "direction_changes": plan.direction_changes if plan and result == "planned" else [],
+        "business_type": frozen.business_type if frozen else None,
         "prompt_tokens": usage.prompt_tokens if usage else 0, "completion_tokens": usage.completion_tokens if usage else 0,
         "cost_usd": round(usage.estimated_cost_usd, 4) if usage else 0.0,
         "seconds": round(seconds, 1),
@@ -150,7 +154,8 @@ def shape(plan) -> dict:
     """What a plan looks like (D-224): its sections as component + variant, and its design direction."""
     sections = sorted(f"{c.component_id}:{c.settings.get('variant', '-')}" for c in plan.components
                       if c.role == "feature" or c.component_id == "hero-banner")
-    return {"sections": sections, "direction": plan.direction.model_dump(exclude={"chosen"})}
+    return {"sections": sections, "direction": plan.direction.model_dump(exclude={"chosen", "footer_variant"}),
+            "preset": plan.direction_preset, "changes": [c["field"] for c in plan.direction_changes]}
 
 
 def _jaccard(a: list, b: list) -> float:
@@ -163,8 +168,47 @@ def sameness(a: dict, b: dict, with_variants: bool = True) -> float:
     variants and the design direction existed)."""
     if not with_variants:
         return _jaccard([s.split(":")[0] for s in a["sections"]], [s.split(":")[0] for s in b["sections"]])
-    direction = sum(a["direction"][k] == b["direction"][k] for k in a["direction"]) / len(a["direction"])
+    direction = direction_match(a, b)
     return round((_jaccard(a["sections"], b["sections"]) + direction) / 2, 3)
+
+
+VARIED = ("density", "corners", "type_scale", "surfaces", "rhythm", "images", "headings", "hero_variant")
+
+
+def direction_match(a: dict, b: dict) -> float:
+    """Share of the 8 varied choices two plans have in common (D-239); the footer follows the page count, so it is
+    left out. Random picking over the menus would give about 0.40."""
+    return sum(a["direction"][k] == b["direction"][k] for k in VARIED) / len(VARIED)
+
+
+def variety_report(rows: list[dict]) -> dict:
+    """Direction variety between plans of different briefs: same family vs different families, the most common
+    option of each choice, and how often the model changed each choice (D-239)."""
+    planned = [r for r in rows if r.get("shape")]
+    same, cross = [], []
+    for i, a in enumerate(planned):
+        for b in planned[i + 1:]:
+            if a["brief_id"] != b["brief_id"]:
+                (same if a.get("family") and a.get("family") == b.get("family") else cross).append(
+                    direction_match(a["shape"], b["shape"]))
+    avg = lambda xs: round(sum(xs) / len(xs), 3) if xs else None
+    top = {}
+    for k in VARIED:
+        counts = {}
+        for r in planned:
+            counts[r["shape"]["direction"][k]] = counts.get(r["shape"]["direction"][k], 0) + 1
+        value = max(counts, key=counts.get) if counts else None
+        top[k] = {"most_common": value, "share": round(counts[value] / len(planned), 2) if value else None}
+    changed = {}
+    for r in planned:
+        for c in r.get("direction_changes") or []:
+            changed[c["field"]] = changed.get(c["field"], 0) + 1
+    return {"same_family": {"pairs": len(same), "match": avg(same)},
+            "cross_family": {"pairs": len(cross), "match": avg(cross)},
+            "all_pairs": {"pairs": len(same) + len(cross), "match": avg(same + cross)},
+            "most_common": top,
+            "model_change_rate": {k: round(v / len(planned), 2) for k, v in changed.items()} if planned else {},
+            "presets_used": len({r.get("preset") for r in planned if r.get("preset")})}
 
 
 def sameness_report(rows: list[dict]) -> dict:
@@ -177,8 +221,31 @@ def sameness_report(rows: list[dict]) -> dict:
             if a["group"] == b["group"]:
                 pairs["same_brief" if a["brief_id"] == b["brief_id"] else "same_group"].append((a["shape"], b["shape"]))
     avg = lambda xs: round(sum(xs) / len(xs), 3) if xs else None
-    return {k: {"pairs": len(v), "components_only": avg([sameness(a, b, False) for a, b in v]),
-                "with_variants_and_direction": avg([sameness(a, b) for a, b in v])} for k, v in pairs.items()}
+    out = {k: {"pairs": len(v), "components_only": avg([sameness(a, b, False) for a, b in v]),
+               "with_variants_and_direction": avg([sameness(a, b) for a, b in v])} for k, v in pairs.items()}
+    out["direction"] = direction_report(planned)
+    return out
+
+
+def direction_report(planned: list[dict]) -> dict:
+    """D-239: how alike the 8 varied direction choices are (the footer follows the page count, so it is left out),
+    for different briefs in the same family and across families; random picking gives about 0.40."""
+    from agents.planning.direction import FIELDS, family_of   # noqa: PLC0415
+    avg = lambda xs: round(sum(xs) / len(xs), 3) if xs else None
+    match = lambda a, b: sum(a["direction"][f] == b["direction"][f] for f in FIELDS) / len(FIELDS)
+    fam = {id(r): family_of(r.get("business_type")) for r in planned}
+    same, cross = [], []
+    for i, a in enumerate(planned):
+        for b in planned[i + 1:]:
+            if a["brief_id"] != b["brief_id"]:
+                (same if fam[id(a)] == fam[id(b)] else cross).append(match(a["shape"], b["shape"]))
+    spread = {f: max(Counter(r["shape"]["direction"][f] for r in planned).values()) / len(planned) for f in FIELDS}
+    changes = Counter(c for r in planned for c in r["shape"].get("changes", []))
+    return {"same_family": avg(same), "cross_family": avg(cross), "all_pairs": avg(same + cross),
+            "pairs": [len(same), len(cross)], "most_common_share": {f: round(v, 2) for f, v in spread.items()},
+            "presets_used": len({r["shape"].get("preset") for r in planned}),
+            "changes_per_plan": round(sum(changes.values()) / len(planned), 2) if planned else 0,
+            "changed_choices": dict(changes)}
 
 
 def summary(rows: list[dict]) -> dict:
@@ -205,7 +272,8 @@ def summary(rows: list[dict]) -> dict:
     failed_nodes = Counter(r["failure"]["node"] for r in rows if r["failure"])
     return {"overall": stats(rows), "groups": {g: stats(rs) for g, rs in by_group.items()},
             "failed_checks": dict(failed_checks), "failed_nodes": dict(failed_nodes),
-            "total_cost_usd": round(sum(r["cost_usd"] for r in rows), 4), "sameness": sameness_report(rows)}
+            "total_cost_usd": round(sum(r["cost_usd"] for r in rows), 4), "sameness": sameness_report(rows),
+            "variety": variety_report(rows)}
 
 
 async def main() -> None:
@@ -229,9 +297,11 @@ async def main() -> None:
     tracing.flush()
 
     result = {"at": datetime.now(timezone.utc).isoformat(), "runs_per_brief": args.runs,
-              "models": _run_config().model_per_task, "summary": summary(list(rows)), "rows": list(rows)}
+              "models": _run_config().model_per_task, "rows": list(rows)}
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     out = OUTPUT_DIR / f"eval_{provider()}_{datetime.now():%Y%m%d_%H%M%S}.json"
+    out.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")   # save rows before the summary can fail
+    result["summary"] = summary(list(rows))
     out.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
     print("\nSUMMARY")
     print(json.dumps(result["summary"], indent=2))

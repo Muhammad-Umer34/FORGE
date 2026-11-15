@@ -6,6 +6,62 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-15 · Design variety: code deals the direction (D-239)
+
+**What** Fixed KI-29. Research first (`D:/FYP/reports/Reducing sameness in AI site designs.md`, four subagents):
+a tuned model asked once returns its favourite look, so the random draws move into code.
+- `components/design_presets.json`: 8 business families plus general, 4 curated presets each (4–5 fixed choices),
+  presets of a family share at most 3 fixed choices.
+- `agents/planning/direction.py`: family from the business type, a seeded preset pick that favours the least-used
+  preset among recent sites of that family, open choices drawn in the family's range, `settle` for the model's at
+  most 2 reasoned changes (in range, not on a locked choice) and the footer from page count.
+- The planner deals the start once per site and passes it to the site-design call; `build_plan` settles the
+  model's direction against it. A reference site's measured choices (corners, image corners, bands, headline size)
+  override and lock; `reference_style.py` gained those three new measurements.
+- `run_eval.py`: variety metrics (same- vs cross-family match over the 8 varied choices, most-common option per
+  choice, model change rate), and it now writes the rows before the summary so a summary bug cannot lose a run.
+
+**Why** Left free, the model gave every site nearly the same look (83% → 70–74%); prompts did not move it (D-239).
+
+**Checked** 96 direction/planning tests and all 451 non-database tests pass. Evaluation run 9: direction sameness
+**44%** (near the ~40% random floor), was ~70%; hero split 26% (was 74%); 30 of 36 presets used; real correctness
+98.1% (3 of 4 wrong were Gemini rate-limit outages, 1 real SEO-length failure). References: 2 of 3 applied and
+locked their measured choices.
+
+**Open**
+- Images still 74% rounded; the model spends its edits on corners (35%) and images (33%), pulling toward soft and
+  rounded. Under target, so watched, not fixed.
+- content-01: SEO description over 160 characters in one run (issue 30, same class as issue 28).
+- Reference measurement is flaky on plain sites (ref-01 Craigslist); it falls back to the preset, by design. The
+  extractor still needs hand-tuning on ~15 labelled sites (plan section 5).
+- Visual side-by-side test of 8 built sites waits on the Group 3 builders.
+
+---
+
+## 2026-11-14 · Evaluation before Group 3, reference fix
+
+**What** Evaluation run 7 (81 runs) with a new "style reference" group (ref-01..03 in `scripts/eval_briefs.json`:
+café briefs pointing at craigslist.org, linear.app, stripe.com). The reference did not shape the plan, so:
+`reference_style` now measures `corners` from every button; `brief.style_reference` carries it; the planner prompt
+names it; `assemble._follow_reference` applies it in code (D-238). Run 8 tried business-type examples in the
+direction guidance; it made no difference and was reverted.
+
+**Why** Group 3's builders turn plans into code, so the plans were measured first (D-237 had not been measured).
+
+**Checked** Tests: everything passes except the 62 that need the test database (down). New tests: corners from
+unfilled buttons; reference corners win over the model. Runs 7–8: 98.7% and 97.7% correct leaving out network drops.
+
+**Open**
+- Live check of D-238: the network dropped site reads during the re-runs, so no run reached planning with a reference.
+- KI-29 without a reference: 70–74% direction sameness; prompt wording does not move it (issue 27).
+- personal-02: search title over 60 characters in 1 run of 3 (issue 28). forms-03 still plans a contact form.
+- The runner counts network drops as wrong plans (issue 29).
+
+**Docs** New `docs/problem-journal.md`: every issue 1–29 worked through step by step (symptom, each try and what
+it showed, fix, check, status) and the lessons learned; linked from `README.md` and `progress.md`.
+
+---
+
 ## 2026-11-14 · Phase 3 Group 2: plan upgrades
 
 **What** Group 2 of `D:/FYP/reports/FORGE Phase 3 builder plan.md`.

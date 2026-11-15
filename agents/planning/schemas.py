@@ -58,6 +58,11 @@ class CustomSpecOut(BaseModel):
     sends: list[str] = Field(default_factory=list)   # fields it sends to the site's backend, if it is a form
 
 
+class DirectionChangeOut(BaseModel):
+    field: str                                 # one of the direction choices
+    reason: str                                # why this business needs it, one line
+
+
 class SiteDesign(BaseModel):
     """Call 1: pages, sections in order, component choices, settings and custom parts."""
     pages: list[PlannedPage]
@@ -65,6 +70,7 @@ class SiteDesign(BaseModel):
     footer_links: list[str] = Field(default_factory=list)   # page ids
     custom_specs: list[CustomSpecOut] = Field(default_factory=list)
     direction: Optional[DesignDirection] = None              # the site's shape (D-224); set chosen=true
+    direction_changes: list[DirectionChangeOut] = Field(default_factory=list)   # changes to the start (D-239)
     unsure: list[str] = Field(default_factory=list)         # choices made without enough information
 
 

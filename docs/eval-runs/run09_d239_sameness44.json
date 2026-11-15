@@ -1,0 +1,3479 @@
+{
+  "at": "2026-11-15T15:19:18.816656+00:00",
+  "runs_per_brief": 2,
+  "models": {
+    "clarification": "vertex/gemini-3.8-flash",
+    "planning": "vertex/gemini-2.5-pro",
+    "planning_fix": "vertex/gemini-2.5-pro"
+  },
+  "summary": {
+    "overall": {
+      "runs": 54,
+      "correct_outcome": 0.926,
+      "valid_plan_rate": 0.92,
+      "must_coverage": 0.942,
+      "must_not_leaks": 0,
+      "avg_questions": 0.52,
+      "avg_calls": 7.57,
+      "avg_fix_rounds": 0.0,
+      "avg_cost_usd": 0.0312,
+      "avg_seconds": 48.8
+    },
+    "groups": {
+      "simple info site": {
+        "runs": 6,
+        "correct_outcome": 1.0,
+        "valid_plan_rate": 1.0,
+        "must_coverage": 1.0,
+        "must_not_leaks": 0,
+        "avg_questions": 0.33,
+        "avg_calls": 7.33,
+        "avg_fix_rounds": 0.0,
+        "avg_cost_usd": 0.031,
+        "avg_seconds": 41.2
+      },
+      "forms": {
+        "runs": 6,
+        "correct_outcome": 0.833,
+        "valid_plan_rate": 0.833,
+        "must_coverage": 0.786,
+        "must_not_leaks": 0,
+        "avg_questions": 0.0,
+        "avg_calls": 7.0,
+        "avg_fix_rounds": 0.0,
+        "avg_cost_usd": 0.0297,
+        "avg_seconds": 39.7
+      },
+      "booking": {
+        "runs": 6,
+        "correct_outcome": 0.833,
+        "valid_plan_rate": 0.833,
+        "must_coverage": 0.917,
+        "must_not_leaks": 0,
+        "avg_questions": 0.0,
+        "avg_calls": 7.0,
+        "avg_fix_rounds": 0.0,
+        "avg_cost_usd": 0.0323,
+        "avg_seconds": 48.2
+      },
+      "blog or events": {
+        "runs": 6,
+        "correct_outcome": 0.833,
+        "valid_plan_rate": 0.833,
+        "must_coverage": 0.889,
+        "must_not_leaks": 0,
+        "avg_questions": 1.33,
+        "avg_calls": 9.67,
+        "avg_fix_rounds": 0.0,
+        "avg_cost_usd": 0.0393,
+        "avg_seconds": 58.0
+      },
+      "vague": {
+        "runs": 6,
+        "correct_outcome": 0.833,
+        "valid_plan_rate": 0.833,
+        "must_coverage": 1.0,
+        "must_not_leaks": 0,
+        "avg_questions": 1.67,
+        "avg_calls": 7.5,
+        "avg_fix_rounds": 0.0,
+        "avg_cost_usd": 0.0254,
+        "avg_seconds": 64.1
+      },
+      "Roman Urdu": {
+        "runs": 6,
+        "correct_outcome": 1.0,
+        "valid_plan_rate": 1.0,
+        "must_coverage": 1.0,
+        "must_not_leaks": 0,
+        "avg_questions": 0.17,
+        "avg_calls": 7.83,
+        "avg_fix_rounds": 0.0,
+        "avg_cost_usd": 0.0317,
+        "avg_seconds": 46.5
+      },
+      "out of scope": {
+        "runs": 6,
+        "correct_outcome": 1.0,
+        "valid_plan_rate": 1.0,
+        "must_coverage": null,
+        "must_not_leaks": 0,
+        "avg_questions": 0.67,
+        "avg_calls": 3.33,
+        "avg_fix_rounds": 0.0,
+        "avg_cost_usd": 0.0146,
+        "avg_seconds": 20.1
+      },
+      "personal or non-business": {
+        "runs": 6,
+        "correct_outcome": 1.0,
+        "valid_plan_rate": 1.0,
+        "must_coverage": 1.0,
+        "must_not_leaks": 0,
+        "avg_questions": 0.33,
+        "avg_calls": 9.67,
+        "avg_fix_rounds": 0.0,
+        "avg_cost_usd": 0.0381,
+        "avg_seconds": 55.5
+      },
+      "style reference": {
+        "runs": 6,
+        "correct_outcome": 1.0,
+        "valid_plan_rate": 1.0,
+        "must_coverage": 1.0,
+        "must_not_leaks": 0,
+        "avg_questions": 0.17,
+        "avg_calls": 8.83,
+        "avg_fix_rounds": 0.0,
+        "avg_cost_usd": 0.0389,
+        "avg_seconds": 66.2
+      }
+    },
+    "failed_checks": {
+      "7": 1
+    },
+    "failed_nodes": {
+      "finish_texts": 1
+    },
+    "total_cost_usd": 1.6859,
+    "sameness": {
+      "same_group": {
+        "pairs": 80,
+        "components_only": 0.552,
+        "with_variants_and_direction": 0.367
+      },
+      "same_brief": {
+        "pairs": 21,
+        "components_only": 1.0,
+        "with_variants_and_direction": 0.533
+      },
+      "direction": {
+        "same_family": 0.411,
+        "cross_family": 0.439,
+        "all_pairs": 0.436,
+        "pairs": [
+          98,
+          916
+        ],
+        "most_common_share": {
+          "density": 0.67,
+          "corners": 0.63,
+          "type_scale": 0.57,
+          "surfaces": 0.37,
+          "rhythm": 0.52,
+          "images": 0.74,
+          "headings": 0.37,
+          "hero_variant": 0.26
+        },
+        "presets_used": 30,
+        "changes_per_plan": 1.13,
+        "changed_choices": {
+          "type_scale": 4,
+          "headings": 1,
+          "images": 15,
+          "corners": 16,
+          "density": 11,
+          "surfaces": 5
+        }
+      }
+    },
+    "variety": {
+      "same_family": {
+        "pairs": 98,
+        "match": 0.411
+      },
+      "cross_family": {
+        "pairs": 916,
+        "match": 0.439
+      },
+      "all_pairs": {
+        "pairs": 1014,
+        "match": 0.436
+      },
+      "most_common": {
+        "density": {
+          "most_common": "airy",
+          "share": 0.67
+        },
+        "corners": {
+          "most_common": "soft",
+          "share": 0.63
+        },
+        "type_scale": {
+          "most_common": "calm",
+          "share": 0.57
+        },
+        "surfaces": {
+          "most_common": "flat",
+          "share": 0.37
+        },
+        "rhythm": {
+          "most_common": "continuous",
+          "share": 0.52
+        },
+        "images": {
+          "most_common": "rounded",
+          "share": 0.74
+        },
+        "headings": {
+          "most_common": "plain",
+          "share": 0.37
+        },
+        "hero_variant": {
+          "most_common": "split",
+          "share": 0.26
+        }
+      },
+      "model_change_rate": {
+        "type_scale": 0.09,
+        "headings": 0.02,
+        "images": 0.33,
+        "corners": 0.35,
+        "density": 0.24,
+        "surfaces": 0.11
+      },
+      "presets_used": 30
+    }
+  },
+  "rows": [
+    {
+      "brief_id": "info-01",
+      "group": "simple info site",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "services-overview"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 13,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:centred"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "cards",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "eyebrow",
+          "hero_variant": "centred"
+        },
+        "preset": "pro-modern-consultancy",
+        "changes": [
+          "type_scale"
+        ]
+      },
+      "family": "professional",
+      "preset": "pro-modern-consultancy",
+      "direction_changes": [
+        {
+          "field": "type_scale",
+          "from": "expressive",
+          "to": "calm",
+          "reason": "Accounting firms benefit from a calm, professional tone rather than an expressive one."
+        }
+      ],
+      "business_type": "accounting firm",
+      "prompt_tokens": 15949,
+      "completion_tokens": 4853,
+      "cost_usd": 0.0302,
+      "seconds": 49.2,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "info-01",
+      "group": "simple info site",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "services-overview"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 13,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:full-bleed"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "sharp",
+          "type_scale": "calm",
+          "surfaces": "cards",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "plain",
+          "hero_variant": "full-bleed"
+        },
+        "preset": "pro-trusted-local",
+        "changes": [
+          "type_scale",
+          "headings"
+        ]
+      },
+      "family": "professional",
+      "preset": "pro-trusted-local",
+      "direction_changes": [
+        {
+          "field": "type_scale",
+          "from": "expressive",
+          "to": "calm",
+          "reason": "A calm type scale conveys the reliability and trust required for financial services."
+        },
+        {
+          "field": "headings",
+          "from": "underline",
+          "to": "plain",
+          "reason": "Accounting firms benefit from a clean, professional, and understated look."
+        }
+      ],
+      "business_type": "accounting firm",
+      "prompt_tokens": 15959,
+      "completion_tokens": 5602,
+      "cost_usd": 0.033,
+      "seconds": 46.0,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "info-02",
+      "group": "simple info site",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "opening-hours",
+        "whatsapp-chat"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 6,
+      "clarification_calls": 2,
+      "planning_calls": 4,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 15,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "business-hours:-",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:split"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "cards",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "eyebrow",
+          "hero_variant": "split"
+        },
+        "preset": "trades-service-cards",
+        "changes": [
+          "images"
+        ]
+      },
+      "family": "trades",
+      "preset": "trades-service-cards",
+      "direction_changes": [
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Rounded images feel more modern and friendly for a local service business."
+        }
+      ],
+      "business_type": "plumber",
+      "prompt_tokens": 13363,
+      "completion_tokens": 4397,
+      "cost_usd": 0.0265,
+      "seconds": 36.2,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "info-02",
+      "group": "simple info site",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "opening-hours",
+        "whatsapp-chat"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 6,
+      "clarification_calls": 2,
+      "planning_calls": 4,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 15,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "business-hours:-",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:centred"
+        ],
+        "direction": {
+          "density": "compact",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "outlined",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "plain",
+          "hero_variant": "centred"
+        },
+        "preset": "trades-straight-talking",
+        "changes": [
+          "images"
+        ]
+      },
+      "family": "trades",
+      "preset": "trades-straight-talking",
+      "direction_changes": [
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Square images provide a clean, structured look for service documentation."
+        }
+      ],
+      "business_type": "plumber",
+      "prompt_tokens": 13443,
+      "completion_tokens": 4664,
+      "cost_usd": 0.0276,
+      "seconds": 31.2,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "info-03",
+      "group": "simple info site",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "location-map",
+        "team",
+        "testimonials"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 16,
+      "tests": 8,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "contact-form:details-first",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:split",
+          "location-map:-",
+          "team-grid:cards",
+          "testimonials:spotlight"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "outlined",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "eyebrow",
+          "hero_variant": "split"
+        },
+        "preset": "pro-firm-calm",
+        "changes": [
+          "corners",
+          "images"
+        ]
+      },
+      "family": "professional",
+      "preset": "pro-firm-calm",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "sharp",
+          "to": "soft",
+          "reason": "Dental clinics benefit from a friendly, approachable look."
+        },
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Rounded images feel more modern and welcoming for a healthcare setting."
+        }
+      ],
+      "business_type": "dental clinic",
+      "prompt_tokens": 18213,
+      "completion_tokens": 5504,
+      "cost_usd": 0.0343,
+      "seconds": 39.7,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "info-03",
+      "group": "simple info site",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "location-map",
+        "team",
+        "testimonials"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 16,
+      "tests": 6,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:editorial",
+          "location-map:-",
+          "team-grid:cards",
+          "testimonials:spotlight"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "outlined",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "plain",
+          "hero_variant": "editorial"
+        },
+        "preset": "pro-editorial",
+        "changes": [
+          "images"
+        ]
+      },
+      "family": "professional",
+      "preset": "pro-editorial",
+      "direction_changes": [
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Rounded images feel more modern and welcoming for a healthcare setting."
+        }
+      ],
+      "business_type": "dental clinic",
+      "prompt_tokens": 18011,
+      "completion_tokens": 5627,
+      "cost_usd": 0.0346,
+      "seconds": 45.2,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "forms-01",
+      "group": "forms",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "menu-catalog",
+        "order-request"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 5,
+      "sections": 18,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-info-block:-",
+          "hero-banner:full-bleed",
+          "menu-catalog-grid:-",
+          "menu-catalog-grid:-",
+          "order-request-form:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "flat",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "underline",
+          "hero_variant": "full-bleed"
+        },
+        "preset": "food-photo-led",
+        "changes": [
+          "images"
+        ]
+      },
+      "family": "food",
+      "preset": "food-photo-led",
+      "direction_changes": [
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Rounded images feel softer and more artisanal for food photography."
+        }
+      ],
+      "business_type": "home bakery",
+      "prompt_tokens": 17289,
+      "completion_tokens": 5996,
+      "cost_usd": 0.0355,
+      "seconds": 44.4,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "forms-01",
+      "group": "forms",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "menu-catalog",
+        "order-request"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 5,
+      "sections": 18,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-info-block:-",
+          "hero-banner:split",
+          "menu-catalog-grid:-",
+          "menu-catalog-grid:-",
+          "order-request-form:-"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "round",
+          "type_scale": "calm",
+          "surfaces": "cards",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "eyebrow",
+          "hero_variant": "split"
+        },
+        "preset": "food-warm-friendly",
+        "changes": []
+      },
+      "family": "food",
+      "preset": "food-warm-friendly",
+      "direction_changes": [],
+      "business_type": "home bakery",
+      "prompt_tokens": 17317,
+      "completion_tokens": 5371,
+      "cost_usd": 0.0331,
+      "seconds": 42.4,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "forms-02",
+      "group": "forms",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "newsletter",
+        "portfolio"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 16,
+      "tests": 6,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-form:details-first",
+          "hero-banner:centred",
+          "newsletter-signup:-",
+          "portfolio-grid:-",
+          "portfolio-grid:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "round",
+          "type_scale": "calm",
+          "surfaces": "flat",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "plain",
+          "hero_variant": "centred"
+        },
+        "preset": "fit-studio-calm",
+        "changes": []
+      },
+      "family": "fitness_events",
+      "preset": "fit-studio-calm",
+      "direction_changes": [],
+      "business_type": "interior design studio",
+      "prompt_tokens": 16959,
+      "completion_tokens": 5929,
+      "cost_usd": 0.035,
+      "seconds": 44.0,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "forms-02",
+      "group": "forms",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "newsletter",
+        "portfolio"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 16,
+      "tests": 6,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-form:details-first",
+          "hero-banner:editorial",
+          "newsletter-signup:-",
+          "portfolio-grid:-",
+          "portfolio-grid:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "round",
+          "type_scale": "calm",
+          "surfaces": "outlined",
+          "rhythm": "alternating",
+          "images": "square",
+          "headings": "underline",
+          "hero_variant": "editorial"
+        },
+        "preset": "fit-poster",
+        "changes": [
+          "density"
+        ]
+      },
+      "family": "fitness_events",
+      "preset": "fit-poster",
+      "direction_changes": [
+        {
+          "field": "density",
+          "from": "compact",
+          "to": "airy",
+          "reason": "Interior design studios benefit from an airy, premium feel."
+        }
+      ],
+      "business_type": "interior design studio",
+      "prompt_tokens": 16985,
+      "completion_tokens": 4940,
+      "cost_usd": 0.0313,
+      "seconds": 39.5,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "forms-03",
+      "group": "forms",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "faq"
+      ],
+      "must_missing": [
+        "lead-capture"
+      ],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 16,
+      "tests": 6,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "faq-accordion:boxed",
+          "features-grid:cards",
+          "hero-banner:centred"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "flat",
+          "rhythm": "alternating",
+          "images": "square",
+          "headings": "plain",
+          "hero_variant": "centred"
+        },
+        "preset": "edu-institutional",
+        "changes": []
+      },
+      "family": "education_community",
+      "preset": "edu-institutional",
+      "direction_changes": [],
+      "business_type": "home tuition service",
+      "prompt_tokens": 17159,
+      "completion_tokens": 5393,
+      "cost_usd": 0.0331,
+      "seconds": 43.4,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "forms-03",
+      "group": "forms",
+      "expect": "planned",
+      "outcome": "failed",
+      "correct": false,
+      "must_found": [],
+      "must_missing": [
+        "faq",
+        "lead-capture"
+      ],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 2,
+      "clarification_calls": 2,
+      "planning_calls": 0,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 0,
+      "sections": 0,
+      "tests": 6,
+      "shape": null,
+      "family": null,
+      "preset": null,
+      "direction_changes": [],
+      "business_type": "home tuition service",
+      "prompt_tokens": 4687,
+      "completion_tokens": 1873,
+      "cost_usd": 0.0105,
+      "seconds": 24.4,
+      "failure": null,
+      "error": "ModelCallError: GoogleRateLimitError: Error calling model 'gemini-3.1-flash-lite' (RESOURCE_EXHAUSTED): 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for mor"
+    },
+    {
+      "brief_id": "booking-01",
+      "group": "booking",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "booking",
+        "gallery",
+        "services-price-list"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 5,
+      "sections": 18,
+      "tests": 6,
+      "shape": {
+        "sections": [
+          "booking-form:-",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:split",
+          "image-gallery:grid",
+          "services-price-list:list"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "cards",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "eyebrow",
+          "hero_variant": "split"
+        },
+        "preset": "beauty-friendly-salon",
+        "changes": [
+          "corners"
+        ]
+      },
+      "family": "beauty",
+      "preset": "beauty-friendly-salon",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "round",
+          "to": "soft",
+          "reason": "Hair salons benefit from a friendly, approachable aesthetic."
+        }
+      ],
+      "business_type": "hair salon",
+      "prompt_tokens": 17862,
+      "completion_tokens": 6042,
+      "cost_usd": 0.0361,
+      "seconds": 50.9,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "booking-01",
+      "group": "booking",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "booking",
+        "gallery",
+        "services-price-list"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 5,
+      "sections": 18,
+      "tests": 6,
+      "shape": {
+        "sections": [
+          "booking-form:-",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:editorial",
+          "image-gallery:grid",
+          "services-price-list:list"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "round",
+          "type_scale": "calm",
+          "surfaces": "outlined",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "underline",
+          "hero_variant": "editorial"
+        },
+        "preset": "beauty-boutique-editorial",
+        "changes": [
+          "corners"
+        ]
+      },
+      "family": "beauty",
+      "preset": "beauty-boutique-editorial",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "sharp",
+          "to": "round",
+          "reason": "Round corners feel more friendly and welcoming for a hair salon."
+        }
+      ],
+      "business_type": "hair salon",
+      "prompt_tokens": 17829,
+      "completion_tokens": 6906,
+      "cost_usd": 0.0393,
+      "seconds": 50.5,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "booking-02",
+      "group": "booking",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "booking",
+        "team"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 5,
+      "sections": 18,
+      "tests": 6,
+      "shape": {
+        "sections": [
+          "booking-form:-",
+          "contact-info-block:-",
+          "events-list:-",
+          "features-grid:cards",
+          "hero-banner:full-bleed",
+          "team-grid:cards"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "cards",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "plain",
+          "hero_variant": "full-bleed"
+        },
+        "preset": "fit-high-energy",
+        "changes": [
+          "corners"
+        ]
+      },
+      "family": "fitness_events",
+      "preset": "fit-high-energy",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "sharp",
+          "to": "soft",
+          "reason": "Yoga studios benefit from a softer, more welcoming aesthetic."
+        }
+      ],
+      "business_type": "yoga studio",
+      "prompt_tokens": 17416,
+      "completion_tokens": 5946,
+      "cost_usd": 0.0354,
+      "seconds": 53.5,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "booking-02",
+      "group": "booking",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "booking",
+        "team"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 5,
+      "sections": 18,
+      "tests": 6,
+      "shape": {
+        "sections": [
+          "booking-form:-",
+          "contact-info-block:-",
+          "events-list:-",
+          "features-grid:cards",
+          "hero-banner:split",
+          "team-grid:cards"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "cards",
+          "rhythm": "continuous",
+          "images": "square",
+          "headings": "eyebrow",
+          "hero_variant": "split"
+        },
+        "preset": "fit-schedule-first",
+        "changes": [
+          "density",
+          "type_scale"
+        ]
+      },
+      "family": "fitness_events",
+      "preset": "fit-schedule-first",
+      "direction_changes": [
+        {
+          "field": "density",
+          "from": "compact",
+          "to": "airy",
+          "reason": "Yoga studios benefit from an airy, spacious feel to promote relaxation."
+        },
+        {
+          "field": "type_scale",
+          "from": "expressive",
+          "to": "calm",
+          "reason": "A calm type scale aligns with the peaceful nature of a yoga studio."
+        }
+      ],
+      "business_type": "yoga studio",
+      "prompt_tokens": 17415,
+      "completion_tokens": 6738,
+      "cost_usd": 0.0383,
+      "seconds": 60.8,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "booking-03",
+      "group": "booking",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "booking"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 12,
+      "tests": 4,
+      "shape": {
+        "sections": [
+          "booking-form:-",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:full-bleed"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "flat",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "underline",
+          "hero_variant": "full-bleed"
+        },
+        "preset": "pro-trusted-local",
+        "changes": [
+          "corners"
+        ]
+      },
+      "family": "professional",
+      "preset": "pro-trusted-local",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "sharp",
+          "to": "soft",
+          "reason": "Physiotherapy clinics benefit from a friendly, approachable feel."
+        }
+      ],
+      "business_type": "physiotherapy clinic",
+      "prompt_tokens": 15422,
+      "completion_tokens": 5207,
+      "cost_usd": 0.0311,
+      "seconds": 45.1,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "booking-03",
+      "group": "booking",
+      "expect": "planned",
+      "outcome": "failed",
+      "correct": false,
+      "must_found": [],
+      "must_missing": [
+        "booking"
+      ],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 2,
+      "clarification_calls": 2,
+      "planning_calls": 0,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 0,
+      "sections": 0,
+      "tests": 4,
+      "shape": null,
+      "family": null,
+      "preset": null,
+      "direction_changes": [],
+      "business_type": "physiotherapy clinic",
+      "prompt_tokens": 4584,
+      "completion_tokens": 2655,
+      "cost_usd": 0.0134,
+      "seconds": 28.3,
+      "failure": null,
+      "error": "ModelCallError: GoogleRateLimitError: Error calling model 'gemini-3.1-flash-lite' (RESOURCE_EXHAUSTED): 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for mor"
+    },
+    {
+      "brief_id": "content-01",
+      "group": "blog or events",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "blog",
+        "newsletter"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 10,
+      "clarification_calls": 2,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 14,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "blog-list:-",
+          "blog-post:-",
+          "contact-form:details-first",
+          "hero-banner:full-bleed",
+          "newsletter-signup:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "cards",
+          "rhythm": "continuous",
+          "images": "square",
+          "headings": "plain",
+          "hero_variant": "full-bleed"
+        },
+        "preset": "creative-big-picture",
+        "changes": [
+          "corners"
+        ]
+      },
+      "family": "creative_personal",
+      "preset": "creative-big-picture",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "round",
+          "to": "soft",
+          "reason": "Changing to sharp for a more professional, editorial food blog look."
+        }
+      ],
+      "business_type": "food blog",
+      "prompt_tokens": 16964,
+      "completion_tokens": 4982,
+      "cost_usd": 0.0314,
+      "seconds": 53.6,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "content-01",
+      "group": "blog or events",
+      "expect": "planned",
+      "outcome": "failed",
+      "correct": false,
+      "must_found": [],
+      "must_missing": [
+        "blog",
+        "newsletter"
+      ],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 10,
+      "clarification_calls": 2,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [
+        "7: text 'home.seo.description': longer than 160 characters"
+      ],
+      "pages": 0,
+      "sections": 0,
+      "tests": 5,
+      "shape": null,
+      "family": "creative_personal",
+      "preset": null,
+      "direction_changes": [],
+      "business_type": "food blog",
+      "prompt_tokens": 17068,
+      "completion_tokens": 5725,
+      "cost_usd": 0.0343,
+      "seconds": 50.9,
+      "failure": {
+        "node": "finish_texts",
+        "detail": "7: text 'home.seo.description': longer than 160 characters"
+      },
+      "error": null
+    },
+    {
+      "brief_id": "content-02",
+      "group": "blog or events",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "events",
+        "gallery"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 2,
+      "calls": 11,
+      "clarification_calls": 3,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [],
+      "pages": 5,
+      "sections": 20,
+      "tests": 8,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "contact-form:stacked",
+          "contact-info-block:-",
+          "events-list:-",
+          "features-grid:cards",
+          "hero-banner:editorial",
+          "image-gallery:grid",
+          "process-steps:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "outlined",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "underline",
+          "hero_variant": "editorial"
+        },
+        "preset": "edu-bulletin",
+        "changes": [
+          "corners",
+          "images"
+        ]
+      },
+      "family": "education_community",
+      "preset": "edu-bulletin",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "sharp",
+          "to": "soft",
+          "reason": "Using round corners to create a more friendly and approachable atmosphere for an art society."
+        },
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Using rounded images to match the friendly aesthetic."
+        }
+      ],
+      "business_type": "community art society",
+      "prompt_tokens": 20900,
+      "completion_tokens": 7243,
+      "cost_usd": 0.0428,
+      "seconds": 70.3,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "content-02",
+      "group": "blog or events",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "events",
+        "gallery"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 10,
+      "clarification_calls": 2,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [],
+      "pages": 5,
+      "sections": 20,
+      "tests": 8,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "contact-form:details-first",
+          "contact-info-block:-",
+          "events-list:-",
+          "features-grid:cards",
+          "hero-banner:full-bleed",
+          "image-gallery:grid",
+          "process-steps:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "flat",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "underline",
+          "hero_variant": "full-bleed"
+        },
+        "preset": "edu-story-led",
+        "changes": [
+          "corners",
+          "images"
+        ]
+      },
+      "family": "education_community",
+      "preset": "edu-story-led",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "round",
+          "to": "soft",
+          "reason": "Round corners align with the friendly, creative nature of an art society."
+        },
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Rounded images feel more artistic and friendly for a community art society."
+        }
+      ],
+      "business_type": "community art society",
+      "prompt_tokens": 19998,
+      "completion_tokens": 7754,
+      "cost_usd": 0.0441,
+      "seconds": 57.7,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "content-03",
+      "group": "blog or events",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "blog",
+        "contact-form",
+        "portfolio",
+        "pricing-table",
+        "testimonials"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 6,
+      "sections": 22,
+      "tests": 8,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "blog-list:-",
+          "blog-post:-",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "hero-banner:editorial",
+          "portfolio-grid:-",
+          "pricing-table:cards",
+          "testimonials:cards"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "flat",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "underline",
+          "hero_variant": "editorial"
+        },
+        "preset": "creative-portfolio-grid",
+        "changes": [
+          "corners",
+          "images"
+        ]
+      },
+      "family": "creative_personal",
+      "preset": "creative-portfolio-grid",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "sharp",
+          "to": "soft",
+          "reason": "Wedding photography benefits from a softer, more romantic aesthetic."
+        },
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Rounded images feel more elegant and friendly for wedding photography."
+        }
+      ],
+      "business_type": "wedding photographer",
+      "prompt_tokens": 19300,
+      "completion_tokens": 6692,
+      "cost_usd": 0.0396,
+      "seconds": 49.2,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "content-03",
+      "group": "blog or events",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "blog",
+        "contact-form",
+        "portfolio",
+        "pricing-table",
+        "testimonials"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 3,
+      "calls": 9,
+      "clarification_calls": 3,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 6,
+      "sections": 22,
+      "tests": 8,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "blog-list:-",
+          "blog-post:-",
+          "contact-form:stacked",
+          "contact-info-block:-",
+          "hero-banner:centred",
+          "portfolio-grid:-",
+          "pricing-table:cards",
+          "testimonials:cards"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "outlined",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "underline",
+          "hero_variant": "centred"
+        },
+        "preset": "creative-notebook",
+        "changes": [
+          "density",
+          "images"
+        ]
+      },
+      "family": "creative_personal",
+      "preset": "creative-notebook",
+      "direction_changes": [
+        {
+          "field": "density",
+          "from": "balanced",
+          "to": "airy",
+          "reason": "Wedding photography sites benefit from an airy, premium feel."
+        },
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Rounded images feel more friendly and modern for wedding photography."
+        }
+      ],
+      "business_type": "wedding photographer",
+      "prompt_tokens": 20301,
+      "completion_tokens": 7499,
+      "cost_usd": 0.0433,
+      "seconds": 66.2,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "vague-01",
+      "group": "vague",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 2,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 13,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:full-bleed"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "sharp",
+          "type_scale": "expressive",
+          "surfaces": "flat",
+          "rhythm": "alternating",
+          "images": "square",
+          "headings": "plain",
+          "hero_variant": "full-bleed"
+        },
+        "preset": "general-bold-photo",
+        "changes": []
+      },
+      "family": "general",
+      "preset": "general-bold-photo",
+      "direction_changes": [],
+      "business_type": null,
+      "prompt_tokens": 15887,
+      "completion_tokens": 4412,
+      "cost_usd": 0.0285,
+      "seconds": 48.2,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "vague-01",
+      "group": "vague",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 2,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 13,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:editorial"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "round",
+          "type_scale": "calm",
+          "surfaces": "outlined",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "underline",
+          "hero_variant": "editorial"
+        },
+        "preset": "general-editorial-minimal",
+        "changes": []
+      },
+      "family": "general",
+      "preset": "general-editorial-minimal",
+      "direction_changes": [],
+      "business_type": null,
+      "prompt_tokens": 15894,
+      "completion_tokens": 3874,
+      "cost_usd": 0.0264,
+      "seconds": 59.4,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "vague-02",
+      "group": "vague",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 11,
+      "clarification_calls": 3,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 13,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:centred"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "sharp",
+          "type_scale": "calm",
+          "surfaces": "outlined",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "plain",
+          "hero_variant": "centred"
+        },
+        "preset": "retail-catalogue",
+        "changes": [
+          "density"
+        ]
+      },
+      "family": "retail",
+      "preset": "retail-catalogue",
+      "direction_changes": [
+        {
+          "field": "density",
+          "from": "compact",
+          "to": "airy",
+          "reason": "Airy density provides a more premium and welcoming feel for a shop."
+        }
+      ],
+      "business_type": "shop",
+      "prompt_tokens": 16739,
+      "completion_tokens": 3985,
+      "cost_usd": 0.0275,
+      "seconds": 117.9,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "vague-02",
+      "group": "vague",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 10,
+      "clarification_calls": 2,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 13,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:editorial"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "flat",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "plain",
+          "hero_variant": "editorial"
+        },
+        "preset": "retail-gallery",
+        "changes": [
+          "images"
+        ]
+      },
+      "family": "retail",
+      "preset": "retail-gallery",
+      "direction_changes": [
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Changing to rounded for a softer, more modern look."
+        }
+      ],
+      "business_type": "shop",
+      "prompt_tokens": 16736,
+      "completion_tokens": 3929,
+      "cost_usd": 0.0273,
+      "seconds": 77.7,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "vague-03",
+      "group": "vague",
+      "expect": "planned",
+      "outcome": "failed",
+      "correct": false,
+      "must_found": [],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 2,
+      "calls": 2,
+      "clarification_calls": 2,
+      "planning_calls": 0,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 0,
+      "sections": 0,
+      "tests": 4,
+      "shape": null,
+      "family": null,
+      "preset": null,
+      "direction_changes": [],
+      "business_type": null,
+      "prompt_tokens": 4614,
+      "completion_tokens": 2164,
+      "cost_usd": 0.0116,
+      "seconds": 33.0,
+      "failure": null,
+      "error": "ModelCallError: GoogleRateLimitError: Error calling model 'gemini-3.1-flash-lite' (RESOURCE_EXHAUSTED): 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for mor"
+    },
+    {
+      "brief_id": "vague-03",
+      "group": "vague",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 2,
+      "calls": 6,
+      "clarification_calls": 2,
+      "planning_calls": 4,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 13,
+      "tests": 4,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:split"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "cards",
+          "rhythm": "alternating",
+          "images": "square",
+          "headings": "underline",
+          "hero_variant": "split"
+        },
+        "preset": "general-classic-split",
+        "changes": []
+      },
+      "family": "general",
+      "preset": "general-classic-split",
+      "direction_changes": [],
+      "business_type": null,
+      "prompt_tokens": 12740,
+      "completion_tokens": 5773,
+      "cost_usd": 0.0312,
+      "seconds": 48.5,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "urdu-01",
+      "group": "Roman Urdu",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "whatsapp-chat"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 7,
+      "clarification_calls": 3,
+      "planning_calls": 4,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 16,
+      "tests": 4,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-info-block:-",
+          "hero-banner:full-bleed",
+          "product-card-grid:-",
+          "product-card-grid:-"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "outlined",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "underline",
+          "hero_variant": "full-bleed"
+        },
+        "preset": "retail-lookbook",
+        "changes": [
+          "corners",
+          "images"
+        ]
+      },
+      "family": "retail",
+      "preset": "retail-lookbook",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "round",
+          "to": "soft",
+          "reason": "Round corners feel more approachable and friendly for a clothing brand."
+        },
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Clothing shops look better with rounded images for a softer, more fashion-forward aesthetic."
+        }
+      ],
+      "business_type": "clothing shop",
+      "prompt_tokens": 14137,
+      "completion_tokens": 4663,
+      "cost_usd": 0.0281,
+      "seconds": 43.0,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "urdu-01",
+      "group": "Roman Urdu",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "whatsapp-chat"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 6,
+      "clarification_calls": 2,
+      "planning_calls": 4,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 16,
+      "tests": 4,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-info-block:-",
+          "hero-banner:split",
+          "product-card-grid:-",
+          "product-card-grid:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "round",
+          "type_scale": "calm",
+          "surfaces": "flat",
+          "rhythm": "alternating",
+          "images": "square",
+          "headings": "eyebrow",
+          "hero_variant": "split"
+        },
+        "preset": "retail-friendly-store",
+        "changes": [
+          "density",
+          "surfaces"
+        ]
+      },
+      "family": "retail",
+      "preset": "retail-friendly-store",
+      "direction_changes": [
+        {
+          "field": "density",
+          "from": "balanced",
+          "to": "airy",
+          "reason": "Clothing stores benefit from an airy, premium feel to showcase designs."
+        },
+        {
+          "field": "surfaces",
+          "from": "cards",
+          "to": "flat",
+          "reason": "Flat surfaces provide a clean, modern look for fashion photography."
+        }
+      ],
+      "business_type": "clothing store",
+      "prompt_tokens": 13445,
+      "completion_tokens": 4074,
+      "cost_usd": 0.0254,
+      "seconds": 34.5,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "urdu-02",
+      "group": "Roman Urdu",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "booking",
+        "location-map",
+        "menu-catalog",
+        "opening-hours"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 17,
+      "tests": 7,
+      "shape": {
+        "sections": [
+          "booking-form:-",
+          "business-hours:-",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:editorial",
+          "location-map:-",
+          "menu-catalog-grid:-"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "flat",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "underline",
+          "hero_variant": "editorial"
+        },
+        "preset": "food-bistro-editorial",
+        "changes": [
+          "corners",
+          "images"
+        ]
+      },
+      "family": "food",
+      "preset": "food-bistro-editorial",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "sharp",
+          "to": "soft",
+          "reason": "Using round corners to create a more friendly and welcoming atmosphere for a restaurant."
+        },
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Using rounded images to match the friendly restaurant aesthetic."
+        }
+      ],
+      "business_type": "restaurant",
+      "prompt_tokens": 18083,
+      "completion_tokens": 5914,
+      "cost_usd": 0.0357,
+      "seconds": 54.3,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "urdu-02",
+      "group": "Roman Urdu",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "booking",
+        "location-map",
+        "menu-catalog",
+        "opening-hours"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 17,
+      "tests": 7,
+      "shape": {
+        "sections": [
+          "booking-form:-",
+          "business-hours:-",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:centred",
+          "location-map:-",
+          "menu-catalog-grid:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "sharp",
+          "type_scale": "calm",
+          "surfaces": "outlined",
+          "rhythm": "continuous",
+          "images": "square",
+          "headings": "plain",
+          "hero_variant": "centred"
+        },
+        "preset": "food-menu-first",
+        "changes": [
+          "density"
+        ]
+      },
+      "family": "food",
+      "preset": "food-menu-first",
+      "direction_changes": [
+        {
+          "field": "density",
+          "from": "compact",
+          "to": "airy",
+          "reason": "Airy density provides a more premium and relaxed dining atmosphere."
+        }
+      ],
+      "business_type": "restaurant",
+      "prompt_tokens": 18068,
+      "completion_tokens": 6061,
+      "cost_usd": 0.0363,
+      "seconds": 50.8,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "urdu-03",
+      "group": "Roman Urdu",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "team"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 14,
+      "tests": 6,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:centred",
+          "team-grid:cards"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "round",
+          "type_scale": "calm",
+          "surfaces": "flat",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "plain",
+          "hero_variant": "centred"
+        },
+        "preset": "edu-institutional",
+        "changes": [
+          "corners"
+        ]
+      },
+      "family": "education_community",
+      "preset": "edu-institutional",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "soft",
+          "to": "round",
+          "reason": "Round corners provide a more welcoming and friendly atmosphere for an educational academy."
+        }
+      ],
+      "business_type": "Quran academy",
+      "prompt_tokens": 16617,
+      "completion_tokens": 5102,
+      "cost_usd": 0.0316,
+      "seconds": 47.0,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "urdu-03",
+      "group": "Roman Urdu",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "team"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 10,
+      "clarification_calls": 2,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 14,
+      "tests": 6,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:editorial",
+          "team-grid:cards"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "outlined",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "underline",
+          "hero_variant": "editorial"
+        },
+        "preset": "edu-bulletin",
+        "changes": [
+          "corners",
+          "images"
+        ]
+      },
+      "family": "education_community",
+      "preset": "edu-bulletin",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "sharp",
+          "to": "soft",
+          "reason": "Changing to round corners to create a more welcoming and friendly atmosphere for students."
+        },
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Changing to rounded images to match the friendly aesthetic."
+        }
+      ],
+      "business_type": "Quran academy",
+      "prompt_tokens": 17504,
+      "completion_tokens": 5341,
+      "cost_usd": 0.0332,
+      "seconds": 49.5,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "scope-01",
+      "group": "out of scope",
+      "expect": "out_of_scope",
+      "outcome": "out_of_scope",
+      "correct": true,
+      "must_found": [],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 1,
+      "clarification_calls": 1,
+      "planning_calls": 0,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 0,
+      "sections": 0,
+      "tests": 0,
+      "shape": null,
+      "family": null,
+      "preset": null,
+      "direction_changes": [],
+      "business_type": null,
+      "prompt_tokens": 3800,
+      "completion_tokens": 220,
+      "cost_usd": 0.0037,
+      "seconds": 7.3,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "scope-01",
+      "group": "out of scope",
+      "expect": "out_of_scope",
+      "outcome": "out_of_scope",
+      "correct": true,
+      "must_found": [],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 1,
+      "clarification_calls": 1,
+      "planning_calls": 0,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 0,
+      "sections": 0,
+      "tests": 0,
+      "shape": null,
+      "family": null,
+      "preset": null,
+      "direction_changes": [],
+      "business_type": null,
+      "prompt_tokens": 3800,
+      "completion_tokens": 304,
+      "cost_usd": 0.004,
+      "seconds": 5.6,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "scope-02",
+      "group": "out of scope",
+      "expect": "out_of_scope",
+      "outcome": "out_of_scope",
+      "correct": true,
+      "must_found": [],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 1,
+      "clarification_calls": 1,
+      "planning_calls": 0,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 0,
+      "sections": 0,
+      "tests": 0,
+      "shape": null,
+      "family": null,
+      "preset": null,
+      "direction_changes": [],
+      "business_type": null,
+      "prompt_tokens": 3805,
+      "completion_tokens": 596,
+      "cost_usd": 0.0051,
+      "seconds": 6.3,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "scope-02",
+      "group": "out of scope",
+      "expect": "out_of_scope",
+      "outcome": "out_of_scope",
+      "correct": true,
+      "must_found": [],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 1,
+      "clarification_calls": 1,
+      "planning_calls": 0,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 0,
+      "sections": 0,
+      "tests": 0,
+      "shape": null,
+      "family": null,
+      "preset": null,
+      "direction_changes": [],
+      "business_type": null,
+      "prompt_tokens": 3805,
+      "completion_tokens": 520,
+      "cost_usd": 0.0048,
+      "seconds": 5.6,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "scope-03",
+      "group": "out of scope",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 15,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "booking-form:-",
+          "contact-info-block:-",
+          "events-list:-",
+          "features-grid:cards",
+          "hero-banner:split"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "round",
+          "type_scale": "expressive",
+          "surfaces": "cards",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "eyebrow",
+          "hero_variant": "split"
+        },
+        "preset": "fit-schedule-first",
+        "changes": [
+          "density"
+        ]
+      },
+      "family": "fitness_events",
+      "preset": "fit-schedule-first",
+      "direction_changes": [
+        {
+          "field": "density",
+          "from": "compact",
+          "to": "airy",
+          "reason": "Gym websites benefit from an airy, open feel to convey energy and space."
+        }
+      ],
+      "business_type": "gym",
+      "prompt_tokens": 16618,
+      "completion_tokens": 6131,
+      "cost_usd": 0.0355,
+      "seconds": 45.4,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "scope-03",
+      "group": "out of scope",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 15,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "booking-form:-",
+          "contact-info-block:-",
+          "events-list:-",
+          "features-grid:cards",
+          "hero-banner:full-bleed"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "outlined",
+          "rhythm": "alternating",
+          "images": "square",
+          "headings": "underline",
+          "hero_variant": "full-bleed"
+        },
+        "preset": "fit-high-energy",
+        "changes": [
+          "corners"
+        ]
+      },
+      "family": "fitness_events",
+      "preset": "fit-high-energy",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "sharp",
+          "to": "soft",
+          "reason": "Changing to round corners to create a more friendly and welcoming atmosphere for a gym."
+        }
+      ],
+      "business_type": "gym",
+      "prompt_tokens": 16605,
+      "completion_tokens": 5804,
+      "cost_usd": 0.0342,
+      "seconds": 50.2,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "personal-01",
+      "group": "personal or non-business",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "portfolio",
+        "resume-skills"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 9,
+      "clarification_calls": 3,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 14,
+      "tests": 6,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-form:details-first",
+          "hero-banner:editorial",
+          "portfolio-grid:-",
+          "resume-skills:-",
+          "timeline:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "round",
+          "type_scale": "expressive",
+          "surfaces": "outlined",
+          "rhythm": "continuous",
+          "images": "square",
+          "headings": "underline",
+          "hero_variant": "editorial"
+        },
+        "preset": "general-editorial-minimal",
+        "changes": [
+          "density",
+          "type_scale"
+        ]
+      },
+      "family": "general",
+      "preset": "general-editorial-minimal",
+      "direction_changes": [
+        {
+          "field": "density",
+          "from": "balanced",
+          "to": "airy",
+          "reason": "An airy layout provides a premium, clean feel for a design portfolio."
+        },
+        {
+          "field": "type_scale",
+          "from": "calm",
+          "to": "expressive",
+          "reason": "An expressive type scale helps highlight design work and professional authority."
+        }
+      ],
+      "business_type": null,
+      "prompt_tokens": 17275,
+      "completion_tokens": 5087,
+      "cost_usd": 0.032,
+      "seconds": 51.3,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "personal-01",
+      "group": "personal or non-business",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "portfolio",
+        "resume-skills"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 14,
+      "tests": 6,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-form:details-first",
+          "hero-banner:editorial",
+          "portfolio-grid:-",
+          "resume-skills:-",
+          "timeline:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "flat",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "plain",
+          "hero_variant": "editorial"
+        },
+        "preset": "creative-portfolio-grid",
+        "changes": [
+          "corners",
+          "images"
+        ]
+      },
+      "family": "creative_personal",
+      "preset": "creative-portfolio-grid",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "sharp",
+          "to": "soft",
+          "reason": "UI design portfolios often benefit from a modern, rounded aesthetic."
+        },
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "Rounded images feel more contemporary for a creative professional."
+        }
+      ],
+      "business_type": "UI designer",
+      "prompt_tokens": 16492,
+      "completion_tokens": 5758,
+      "cost_usd": 0.034,
+      "seconds": 45.8,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "personal-02",
+      "group": "personal or non-business",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "key-stats",
+        "team"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 11,
+      "clarification_calls": 3,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 15,
+      "tests": 7,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:full-bleed",
+          "stats-counter:-",
+          "team-grid:cards"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "round",
+          "type_scale": "expressive",
+          "surfaces": "cards",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "eyebrow",
+          "hero_variant": "full-bleed"
+        },
+        "preset": "edu-story-led",
+        "changes": [
+          "surfaces",
+          "images"
+        ]
+      },
+      "family": "education_community",
+      "preset": "edu-story-led",
+      "direction_changes": [
+        {
+          "field": "surfaces",
+          "from": "flat",
+          "to": "cards",
+          "reason": "Cards provide a structured, professional look for educational content."
+        },
+        {
+          "field": "images",
+          "from": "square",
+          "to": "rounded",
+          "reason": "NGOs often benefit from softer, rounded imagery to appear more approachable."
+        }
+      ],
+      "business_type": "NGO",
+      "prompt_tokens": 19124,
+      "completion_tokens": 7454,
+      "cost_usd": 0.0423,
+      "seconds": 65.7,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "personal-02",
+      "group": "personal or non-business",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "key-stats",
+        "team"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 10,
+      "clarification_calls": 2,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [],
+      "pages": 3,
+      "sections": 15,
+      "tests": 7,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "features-grid:cards",
+          "hero-banner:split",
+          "stats-counter:-",
+          "team-grid:cards"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "round",
+          "type_scale": "expressive",
+          "surfaces": "cards",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "eyebrow",
+          "hero_variant": "split"
+        },
+        "preset": "edu-welcoming",
+        "changes": []
+      },
+      "family": "education_community",
+      "preset": "edu-welcoming",
+      "direction_changes": [],
+      "business_type": "NGO",
+      "prompt_tokens": 18099,
+      "completion_tokens": 6446,
+      "cost_usd": 0.0377,
+      "seconds": 56.9,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "personal-03",
+      "group": "personal or non-business",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "events",
+        "gallery"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 10,
+      "clarification_calls": 2,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [],
+      "pages": 5,
+      "sections": 19,
+      "tests": 7,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "contact-form:details-first",
+          "contact-info-block:-",
+          "events-list:-",
+          "features-grid:cards",
+          "hero-banner:split",
+          "image-gallery:grid"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "round",
+          "type_scale": "calm",
+          "surfaces": "cards",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "eyebrow",
+          "hero_variant": "split"
+        },
+        "preset": "edu-welcoming",
+        "changes": []
+      },
+      "family": "education_community",
+      "preset": "edu-welcoming",
+      "direction_changes": [],
+      "business_type": "school",
+      "prompt_tokens": 19304,
+      "completion_tokens": 7699,
+      "cost_usd": 0.0433,
+      "seconds": 58.7,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "personal-03",
+      "group": "personal or non-business",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "events",
+        "gallery"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 10,
+      "clarification_calls": 2,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [],
+      "pages": 5,
+      "sections": 19,
+      "tests": 7,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "contact-form:details-first",
+          "contact-info-block:-",
+          "events-list:-",
+          "features-grid:cards",
+          "hero-banner:centred",
+          "image-gallery:grid"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "outlined",
+          "rhythm": "alternating",
+          "images": "rounded",
+          "headings": "plain",
+          "hero_variant": "centred"
+        },
+        "preset": "edu-institutional",
+        "changes": []
+      },
+      "family": "education_community",
+      "preset": "edu-institutional",
+      "direction_changes": [],
+      "business_type": "school",
+      "prompt_tokens": 19303,
+      "completion_tokens": 6573,
+      "cost_usd": 0.0391,
+      "seconds": 54.6,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "ref-01",
+      "group": "style reference",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "opening-hours"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 18,
+      "tests": 7,
+      "shape": {
+        "sections": [
+          "about-us:image-left",
+          "about-us:image-right",
+          "business-hours:-",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "hero-banner:centred",
+          "location-map:-",
+          "menu-catalog-grid:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "round",
+          "type_scale": "calm",
+          "surfaces": "flat",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "plain",
+          "hero_variant": "centred"
+        },
+        "preset": "food-menu-first",
+        "changes": [
+          "density",
+          "surfaces"
+        ]
+      },
+      "family": "food",
+      "preset": "food-menu-first",
+      "direction_changes": [
+        {
+          "field": "density",
+          "from": "compact",
+          "to": "airy",
+          "reason": "An airy layout feels more premium and welcoming for a café."
+        },
+        {
+          "field": "surfaces",
+          "from": "outlined",
+          "to": "flat",
+          "reason": "Flat surfaces align with a clean, professional aesthetic."
+        }
+      ],
+      "business_type": "café",
+      "prompt_tokens": 18507,
+      "completion_tokens": 7093,
+      "cost_usd": 0.0405,
+      "seconds": 75.3,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "ref-01",
+      "group": "style reference",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "opening-hours"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 10,
+      "clarification_calls": 2,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 17,
+      "tests": 7,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "business-hours:-",
+          "contact-form:stacked",
+          "contact-info-block:-",
+          "hero-banner:split",
+          "location-map:-",
+          "menu-catalog-grid:-"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "cards",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "eyebrow",
+          "hero_variant": "split"
+        },
+        "preset": "food-warm-friendly",
+        "changes": [
+          "corners"
+        ]
+      },
+      "family": "food",
+      "preset": "food-warm-friendly",
+      "direction_changes": [
+        {
+          "field": "corners",
+          "from": "round",
+          "to": "soft",
+          "reason": "Changed to sharp to match the professional feel of the reference site."
+        }
+      ],
+      "business_type": "café",
+      "prompt_tokens": 19117,
+      "completion_tokens": 5817,
+      "cost_usd": 0.0362,
+      "seconds": 63.0,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "ref-02",
+      "group": "style reference",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "opening-hours"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 10,
+      "clarification_calls": 2,
+      "planning_calls": 8,
+      "fix_rounds": 0,
+      "text_rewrites": 1,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 17,
+      "tests": 7,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "business-hours:-",
+          "contact-form:stacked",
+          "contact-info-block:-",
+          "hero-banner:centred",
+          "location-map:-",
+          "menu-catalog-grid:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "flat",
+          "rhythm": "alternating",
+          "images": "square",
+          "headings": "underline",
+          "hero_variant": "centred"
+        },
+        "preset": "retail-catalogue",
+        "changes": [
+          "density",
+          "surfaces"
+        ]
+      },
+      "family": "retail",
+      "preset": "retail-catalogue",
+      "direction_changes": [
+        {
+          "field": "density",
+          "from": "compact",
+          "to": "airy",
+          "reason": "Airy density provides a premium, calm feel suitable for a coffee shop."
+        },
+        {
+          "field": "surfaces",
+          "from": "outlined",
+          "to": "flat",
+          "reason": "Flat surfaces align with the professional, clean aesthetic of the reference site."
+        }
+      ],
+      "business_type": "coffee shop",
+      "prompt_tokens": 19191,
+      "completion_tokens": 6598,
+      "cost_usd": 0.0391,
+      "seconds": 76.3,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "ref-02",
+      "group": "style reference",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "opening-hours"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 17,
+      "tests": 7,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "business-hours:-",
+          "contact-form:stacked",
+          "contact-info-block:-",
+          "hero-banner:split",
+          "location-map:-",
+          "menu-catalog-grid:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "expressive",
+          "surfaces": "flat",
+          "rhythm": "alternating",
+          "images": "square",
+          "headings": "plain",
+          "hero_variant": "split"
+        },
+        "preset": "retail-friendly-store",
+        "changes": [
+          "density",
+          "surfaces"
+        ]
+      },
+      "family": "retail",
+      "preset": "retail-friendly-store",
+      "direction_changes": [
+        {
+          "field": "density",
+          "from": "balanced",
+          "to": "airy",
+          "reason": "Airy density provides a premium, calm feel suitable for a coffee shop."
+        },
+        {
+          "field": "surfaces",
+          "from": "cards",
+          "to": "flat",
+          "reason": "Flat surfaces align with the professional, clean aesthetic of the reference site."
+        }
+      ],
+      "business_type": "coffee shop",
+      "prompt_tokens": 18247,
+      "completion_tokens": 7194,
+      "cost_usd": 0.0407,
+      "seconds": 54.6,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "ref-03",
+      "group": "style reference",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "opening-hours"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 0,
+      "calls": 8,
+      "clarification_calls": 2,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 18,
+      "tests": 7,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "about-us:stacked",
+          "business-hours:-",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "hero-banner:editorial",
+          "location-map:-",
+          "menu-catalog-grid:-"
+        ],
+        "direction": {
+          "density": "balanced",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "flat",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "underline",
+          "hero_variant": "editorial"
+        },
+        "preset": "food-bistro-editorial",
+        "changes": []
+      },
+      "family": "food",
+      "preset": "food-bistro-editorial",
+      "direction_changes": [],
+      "business_type": "café and bakery",
+      "prompt_tokens": 18588,
+      "completion_tokens": 6564,
+      "cost_usd": 0.0386,
+      "seconds": 62.8,
+      "failure": null,
+      "error": null
+    },
+    {
+      "brief_id": "ref-03",
+      "group": "style reference",
+      "expect": "planned",
+      "outcome": "planned",
+      "correct": true,
+      "must_found": [
+        "contact-form",
+        "opening-hours"
+      ],
+      "must_missing": [],
+      "must_not_leaked": [],
+      "questions": 1,
+      "calls": 9,
+      "clarification_calls": 3,
+      "planning_calls": 6,
+      "fix_rounds": 0,
+      "text_rewrites": 0,
+      "final_issues": [],
+      "pages": 4,
+      "sections": 17,
+      "tests": 5,
+      "shape": {
+        "sections": [
+          "about-us:image-right",
+          "business-hours:-",
+          "contact-form:form-first",
+          "contact-info-block:-",
+          "hero-banner:full-bleed",
+          "location-map:-",
+          "menu-catalog-grid:-"
+        ],
+        "direction": {
+          "density": "airy",
+          "corners": "soft",
+          "type_scale": "calm",
+          "surfaces": "flat",
+          "rhythm": "continuous",
+          "images": "rounded",
+          "headings": "plain",
+          "hero_variant": "full-bleed"
+        },
+        "preset": "food-photo-led",
+        "changes": []
+      },
+      "family": "food",
+      "preset": "food-photo-led",
+      "direction_changes": [],
+      "business_type": "café and bakery",
+      "prompt_tokens": 19006,
+      "completion_tokens": 6458,
+      "cost_usd": 0.0385,
+      "seconds": 65.3,
+      "failure": null,
+      "error": null
+    }
+  ]
+}

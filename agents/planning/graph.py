@@ -12,7 +12,8 @@ from typing import Optional, TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from agents.planning import nodes
-from agents.state import BuildPlan, ClarifiedBrief, GraphState, PlanningState, RetrievalResult, RunConfig
+from agents.state import (BuildPlan, ClarifiedBrief, GraphState, PlanningState, RequestInfo, RetrievalResult,
+                          RunConfig)
 
 _ENDED = ("failed", "cancelled")
 
@@ -25,6 +26,7 @@ class PlanningInput(TypedDict, total=False):
     plan: Optional[BuildPlan]
     planning: PlanningState
     run_config: RunConfig
+    request: RequestInfo                       # its id seeds the design direction (D-239)
 
 
 def _status(state: GraphState) -> str:

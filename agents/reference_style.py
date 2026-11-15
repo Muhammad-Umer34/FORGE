@@ -162,8 +162,31 @@ _EXTRACT_JS = """() => {
   });
   const blocks = Object.entries(blockArea).sort((a, b) => b[1] - a[1]).slice(0, 15)
     .map(([k, area]) => ({ bg: [...k.split(',').map(Number), 255], area: Math.round(area) }));
+  // Shape for planning (D-239). Image corners: big images only (avatars skipped), rounding of the image or of a
+  // parent that clips it. Bands: the background of each page section in order. Type: main heading vs body text.
+  const images = [...document.querySelectorAll('img, picture, video')].filter((im) => {
+    const r = box(im); return r.width >= 120 && r.height >= 120;
+  }).slice(0, 20).map((im) => {
+    let radius = parseFloat(cs(im).borderTopLeftRadius) || 0;
+    for (let e = im.parentElement, i = 0; e && i < 3 && !radius; e = e.parentElement, i++) {
+      if (cs(e).overflow !== 'visible') radius = parseFloat(cs(e).borderTopLeftRadius) || 0;
+    }
+    return radius;
+  });
+  const main = document.querySelector('main') || document.body;
+  let parts = [...main.querySelectorAll(':scope > section, :scope > div > section, :scope > div, section')];
+  parts = parts.filter((el, i) => parts.indexOf(el) === i && box(el).width >= window.innerWidth * 0.9 && box(el).height >= 150)
+    .filter((el, _, all) => !all.some((o) => o !== el && o.contains(el)))
+    .sort((a, b) => box(a).top - box(b).top).slice(0, 14);
+  const bands = parts.map((el) => solidBg(el));
+  const sizes = {};
+  [...document.querySelectorAll('p, li')].slice(0, 300).forEach((el) => {
+    const n = (el.textContent || '').trim().length; if (n < 20) return;
+    const s = Math.round(parseFloat(cs(el).fontSize)); sizes[s] = (sizes[s] || 0) + n;
+  });
+  const bodySize = Number(Object.entries(sizes).sort((a, b) => b[1] - a[1])[0]?.[0]) || parseFloat(cs(document.body).fontSize);
   return {
-    blocks,
+    blocks, images, bands, heading_size: parseFloat(cs(heading).fontSize), body_size: bodySize,
     background: solidBg(document.body), text: rgba(cs(document.body).color),
     heading_font: cs(heading).fontFamily, heading_weight: cs(heading).fontWeight, body_font: cs(document.body).fontFamily,
     buttons, links, header_bg: header ? rgba(cs(header).backgroundColor) : null,
@@ -234,6 +257,21 @@ def _radius(px: float) -> str:
     return "1rem"
 
 
+def shape_choices(raw: dict) -> tuple[str | None, str | None, str | None]:
+    """Image corners, section bands and headline size as direction choices (D-239); None when not measured.
+    shortcut: thresholds are first guesses, to be tuned on hand-labelled sites (design variety plan, section 5)."""
+    radii = raw.get("images") or []
+    images = None if len(radii) < 2 else "rounded" if statistics.median(radii) >= 6 else "square"
+    bands = [b for b in raw.get("bands") or [] if b]
+    rhythm = None
+    if len(bands) >= 3:
+        changes = sum(sum(abs(x - y) for x, y in zip(a[:3], b[:3])) > 18 for a, b in zip(bands, bands[1:]))
+        rhythm = "alternating" if changes / (len(bands) - 1) >= 0.4 else "continuous"
+    head, body = raw.get("heading_size") or 0, raw.get("body_size") or 0
+    type_scale = None if not (head and body) else "expressive" if head / body >= 3.2 else "calm"
+    return images, rhythm, type_scale
+
+
 def summarise(raw: dict, url: str) -> dict:
     """Pure function: raw computed styles -> the small style summary FORGE keeps (D-166)."""
     from agents import theming
@@ -268,6 +306,15 @@ def summarise(raw: dict, url: str) -> dict:
             r = b.get("radius") or 0
             radii.append(32 if b.get("height") and r >= b["height"] / 2 - 1 else r)   # pill shape -> most rounded
     radius = _radius(statistics.median(radii)) if radii else None
+    # The site's shape for planning (D-237): every button counts here, outlined and text-only ones too, so a site
+    # with no filled buttons still shows whether it is square or rounded. The theme keeps the filled-button radius.
+    shapes = [32 if b.get("height") and (b.get("radius") or 0) >= b["height"] / 2 - 1 else (b.get("radius") or 0)
+              for b in raw.get("buttons") or [] if (b.get("height") or 0) >= 16]
+    corners = None
+    if shapes:
+        median = statistics.median(shapes)
+        corners = "sharp" if median <= 2 else "soft" if median <= 10 else "round"
+    images, rhythm, type_scale = shape_choices(raw)
 
     pair_id, exact = theming.closest_font_pair(raw.get("heading_font") or "", raw.get("body_font") or "")
     heading_name = theming.first_font(raw.get("heading_font") or "")
@@ -295,6 +342,10 @@ def summarise(raw: dict, url: str) -> dict:
         "primary": primary,
         "is_dark": is_dark,
         "radius": radius,
+        "corners": corners,
+        "images": images,
+        "rhythm": rhythm,
+        "type_scale": type_scale,
         "font_pair_id": pair_id,
         "fonts_exact": exact,
         "heading_font_source": heading_name,

@@ -792,3 +792,12 @@ def test_search_descriptions_count_as_required_text():                         #
     _, plan = built_plan()
     required = texts.required_slots(plan)
     assert all(f"{p.page_id}.seo.{prop}" in required for p in plan.pages for prop in ("title", "description"))
+
+
+def test_measured_corners_of_the_reference_site_win_over_the_model():
+    _, plan = built_plan()
+    assert plan.direction.corners == "soft"                                  # the model's choice, no reference
+    brief = salon_brief().model_copy(update={"style_reference": {"from": ["website"], "corners": "sharp"}})
+    _, plan = built_plan(brief)
+    assert plan.direction.corners == "sharp" and plan.direction.images == "square"
+    assert plan.direction.hero_variant == CHOSEN.hero_variant                # the rest stays the model's choice

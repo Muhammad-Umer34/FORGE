@@ -149,3 +149,26 @@ def test_browser_is_pinned_to_the_checked_address(fake_dns):
     assert rs._pin_rule("https://93.184.215.14/") is None          # a literal address needs no look-up
     with pytest.raises(rs.ReferenceSiteError):
         rs._pin_rule("https://evil-rebind.com/")
+
+
+def test_corners_come_from_every_button_not_only_filled_ones():
+    # Craigslist-like: square text buttons with no fill; Linear-like: pill buttons; Stripe-like: small radius.
+    square = dict(RAW, buttons=[{"bg": [0, 0, 0, 0], "radius": 0, "height": 20, "area": 1600}])
+    pills = dict(RAW, buttons=[{"bg": [0, 0, 0, 0], "radius": 9999, "height": 32, "area": 2200}] * 3)
+    small = dict(RAW, buttons=[{"bg": [83, 58, 253, 255], "radius": 4, "height": 40, "area": 5500}])
+    assert rs.summarise(square, "https://a.com")["corners"] == "sharp"
+    assert rs.summarise(square, "https://a.com")["radius"] is None      # the theme still reads filled buttons only
+    assert rs.summarise(pills, "https://a.com")["corners"] == "round"
+    assert rs.summarise(small, "https://a.com")["corners"] == "soft"
+
+
+def test_image_corners_bands_and_headline_size_become_direction_choices():
+    white, grey = [255, 255, 255, 255], [240, 240, 240, 255]
+    raw = dict(RAW, images=[16, 12, 0], bands=[white, grey, white, grey], heading_size=64, body_size=16)
+    s = rs.summarise(raw, "https://a.com")
+    assert (s["images"], s["rhythm"], s["type_scale"]) == ("rounded", "alternating", "expressive")
+    raw = dict(RAW, images=[0, 0], bands=[white, white, white], heading_size=36, body_size=16)
+    s = rs.summarise(raw, "https://a.com")
+    assert (s["images"], s["rhythm"], s["type_scale"]) == ("square", "continuous", "calm")
+    s = rs.summarise(dict(RAW, images=[8], bands=[white]), "https://a.com")      # too little to tell
+    assert s["images"] is None and s["rhythm"] is None

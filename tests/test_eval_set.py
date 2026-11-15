@@ -14,8 +14,8 @@ CAT = load_catalogue()
 
 def test_the_set_has_unique_ids_and_covers_every_group():
     ids = [b["id"] for b in BRIEFS]
-    assert len(ids) == len(set(ids)) and 20 <= len(ids) <= 25
-    assert len({b["group"] for b in BRIEFS}) == 8
+    assert len(ids) == len(set(ids)) and 20 <= len(ids) <= 30
+    assert len({b["group"] for b in BRIEFS}) == 9
 
 
 @pytest.mark.parametrize("brief", BRIEFS, ids=lambda b: b["id"])

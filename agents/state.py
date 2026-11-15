@@ -512,6 +512,8 @@ class BuildPlan(BaseModel):
     pages: list[PlannedPage] = Field(default_factory=list)
     footer_links: list[str] = Field(default_factory=list)   # page ids
     direction: DesignDirection = Field(default_factory=DesignDirection)   # the site's shape (D-224)
+    direction_preset: str = ""                 # the preset code dealt, e.g. "food-photo-led" (D-239)
+    direction_changes: list[dict[str, str]] = Field(default_factory=list)  # the model's kept fit changes (D-239)
     sample_content: dict[str, Any] = Field(default_factory=dict)   # placeholders until the owner's details (D-225)
     accessibility: list[str] = Field(default_factory=list)   # rules every builder follows (D-221)
     components: list[PlannedComponent] = Field(default_factory=list)
@@ -541,6 +543,7 @@ class PlanningState(BaseModel):
     edits_used: int = 0
     text_rewrites_used: int = 0
     issues: list[str] = Field(default_factory=list)          # from the last check
+    start_direction: Optional[dict[str, Any]] = None         # dealt by code once per site, reused by re-plans (D-239)
     site_design: Optional[dict[str, Any]] = None             # model output of the site design call, as fixed
     data_design: Optional[dict[str, Any]] = None             # model output of the data and API call
     before_change: Optional[dict[str, Any]] = None           # designs and plan before a user change, to undo it

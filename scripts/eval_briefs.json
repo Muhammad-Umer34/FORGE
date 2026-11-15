@@ -84,6 +84,15 @@
      "must": ["key-stats", "team", "contact-form"], "must_not": [], "answers": {"purpose": "brochure", "visitor_actions": ["contact-form"]}},
     {"id": "personal-03", "group": "personal or non-business", "expect": "planned",
      "prompt": "School website: about the school, admissions information, events calendar, photo gallery and a contact form for parents.",
-     "must": ["events", "gallery", "contact-form"], "must_not": [], "answers": {"purpose": "brochure", "visitor_actions": ["contact-form"]}}
+     "must": ["events", "gallery", "contact-form"], "must_not": [], "answers": {"purpose": "brochure", "visitor_actions": ["contact-form"]}},
+    {"id": "ref-01", "group": "style reference", "expect": "planned",
+     "prompt": "A website for my small café in Islamabad. Show our menu, opening hours and location, and let people send us a message. Make it look like https://craigslist.org",
+     "must": ["opening-hours", "contact-form"], "must_not": [], "answers": {"purpose": "brochure", "visitor_actions": ["contact-form"]}},
+    {"id": "ref-02", "group": "style reference", "expect": "planned",
+     "prompt": "A website for my coffee shop in Lahore. Show our menu, opening hours and location, and let people send us a message. Make it look like https://linear.app",
+     "must": ["opening-hours", "contact-form"], "must_not": [], "answers": {"purpose": "brochure", "visitor_actions": ["contact-form"]}},
+    {"id": "ref-03", "group": "style reference", "expect": "planned",
+     "prompt": "A website for my café and bakery in Karachi. Show our menu, opening hours and location, and let people send us a message. Make it look like https://stripe.com",
+     "must": ["opening-hours", "contact-form"], "must_not": [], "answers": {"purpose": "brochure", "visitor_actions": ["contact-form"]}}
   ]
 }

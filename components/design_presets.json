@@ -1,0 +1,95 @@
+{
+  "about": "Design direction presets (D-239). Code puts a business in a family by the words in its business type, picks one preset per site (seeded, least-used first) and draws every choice the preset leaves open from the family's allowed range. Presets fix the choices that make their character; two presets of a family share at most 3 fixed choices (tested). footer_variant is not here: it follows the page count.",
+  "families": {
+    "food": {
+      "words": ["restaurant", "cafe", "café", "coffee", "bakery", "bakehouse", "patisserie", "food", "kitchen", "bistro", "diner", "pizza", "burger", "grill", "bbq", "catering", "caterer", "dessert", "ice cream", "juice", "tea", "bar", "pub", "takeaway", "dhaba", "biryani", "sweets", "chef", "eatery"],
+      "allowed": {"density": ["airy", "balanced", "compact"], "corners": ["sharp", "soft", "round"], "type_scale": ["calm", "expressive"], "surfaces": ["flat", "cards", "outlined"], "rhythm": ["alternating", "continuous"], "images": ["rounded", "square"], "headings": ["plain", "eyebrow", "underline"], "hero_variant": ["full-bleed", "split", "editorial", "centred"]},
+      "presets": [
+        {"id": "food-photo-led", "fixed": {"hero_variant": "full-bleed", "type_scale": "expressive", "images": "square", "rhythm": "alternating", "density": "airy"}},
+        {"id": "food-warm-friendly", "fixed": {"hero_variant": "split", "corners": "round", "images": "rounded", "headings": "eyebrow", "surfaces": "cards"}},
+        {"id": "food-menu-first", "fixed": {"density": "compact", "surfaces": "outlined", "hero_variant": "centred", "rhythm": "continuous", "type_scale": "calm"}},
+        {"id": "food-bistro-editorial", "fixed": {"hero_variant": "editorial", "corners": "sharp", "headings": "underline", "surfaces": "flat", "density": "balanced"}}
+      ]
+    },
+    "beauty": {
+      "words": ["salon", "spa", "beauty", "nail", "nails", "barber", "barbershop", "hair", "makeup", "skincare", "skin", "massage", "wellness", "lash", "brow", "aesthetic", "cosmetic", "bridal", "henna", "mehndi", "parlour", "parlor"],
+      "allowed": {"density": ["airy", "balanced"], "corners": ["soft", "round", "sharp"], "type_scale": ["calm", "expressive"], "surfaces": ["flat", "cards", "outlined"], "rhythm": ["alternating", "continuous"], "images": ["rounded", "square"], "headings": ["plain", "eyebrow", "underline"], "hero_variant": ["centred", "full-bleed", "editorial", "split"]},
+      "presets": [
+        {"id": "beauty-calm-spa", "fixed": {"density": "airy", "corners": "round", "type_scale": "calm", "rhythm": "continuous", "hero_variant": "centred"}},
+        {"id": "beauty-glossy-studio", "fixed": {"hero_variant": "full-bleed", "type_scale": "expressive", "images": "square", "surfaces": "flat"}},
+        {"id": "beauty-boutique-editorial", "fixed": {"hero_variant": "editorial", "headings": "underline", "surfaces": "outlined", "corners": "sharp"}},
+        {"id": "beauty-friendly-salon", "fixed": {"hero_variant": "split", "surfaces": "cards", "headings": "eyebrow", "rhythm": "alternating", "density": "balanced"}}
+      ]
+    },
+    "professional": {
+      "words": ["law", "lawyer", "legal", "attorney", "solicitor", "advocate", "accounting", "accountant", "accountancy", "tax", "audit", "bookkeeping", "consulting", "consultant", "consultancy", "finance", "financial", "insurance", "real estate", "property", "estate agent", "architect", "architecture", "engineering", "agency", "clinic", "dental", "dentist", "doctor", "medical", "physio", "physiotherapy", "therapy", "therapist", "pharmacy", "health", "hospital", "lab", "notary", "immigration", "recruitment", "hr"],
+      "allowed": {"density": ["airy", "balanced"], "corners": ["sharp", "soft"], "type_scale": ["calm", "expressive"], "surfaces": ["flat", "cards", "outlined"], "rhythm": ["alternating", "continuous"], "images": ["square", "rounded"], "headings": ["plain", "eyebrow", "underline"], "hero_variant": ["split", "editorial", "centred", "full-bleed"]},
+      "presets": [
+        {"id": "pro-firm-calm", "fixed": {"corners": "sharp", "images": "square", "type_scale": "calm", "surfaces": "outlined", "hero_variant": "split"}},
+        {"id": "pro-editorial", "fixed": {"hero_variant": "editorial", "headings": "plain", "rhythm": "continuous", "density": "airy", "type_scale": "expressive"}},
+        {"id": "pro-modern-consultancy", "fixed": {"corners": "soft", "surfaces": "cards", "rhythm": "alternating", "headings": "eyebrow", "hero_variant": "centred"}},
+        {"id": "pro-trusted-local", "fixed": {"hero_variant": "full-bleed", "density": "balanced", "images": "rounded", "headings": "underline"}}
+      ]
+    },
+    "trades": {
+      "words": ["plumber", "plumbing", "electrician", "electrical", "builder", "building", "construction", "contractor", "cleaning", "cleaner", "repair", "repairs", "mechanic", "garage", "auto", "car wash", "roofing", "roofer", "painter", "painting", "decorator", "landscaping", "gardening", "gardener", "moving", "removals", "handyman", "carpenter", "carpentry", "welding", "hvac", "solar", "pest", "locksmith", "tiling", "renovation", "workshop", "laundry", "tailor"],
+      "allowed": {"density": ["balanced", "compact", "airy"], "corners": ["sharp", "soft"], "type_scale": ["calm", "expressive"], "surfaces": ["cards", "flat", "outlined"], "rhythm": ["alternating", "continuous"], "images": ["rounded", "square"], "headings": ["plain", "eyebrow", "underline"], "hero_variant": ["split", "full-bleed", "centred", "editorial"]},
+      "presets": [
+        {"id": "trades-bold", "fixed": {"type_scale": "expressive", "hero_variant": "full-bleed", "corners": "sharp", "rhythm": "alternating"}},
+        {"id": "trades-service-cards", "fixed": {"surfaces": "cards", "density": "balanced", "hero_variant": "split", "headings": "eyebrow", "corners": "soft"}},
+        {"id": "trades-straight-talking", "fixed": {"density": "compact", "surfaces": "outlined", "hero_variant": "centred", "headings": "plain", "images": "square"}},
+        {"id": "trades-craft-editorial", "fixed": {"hero_variant": "editorial", "density": "airy", "headings": "underline", "surfaces": "flat"}}
+      ]
+    },
+    "retail": {
+      "words": ["shop", "store", "boutique", "clothing", "clothes", "fashion", "apparel", "jewellery", "jewelry", "florist", "flowers", "books", "bookshop", "gifts", "furniture", "electronics", "mobile", "toys", "shoes", "handmade", "crafts", "pottery", "candles", "cosmetics shop", "grocery", "mart", "pharmacy shop", "perfume", "fabric", "textile", "ecommerce", "e-commerce", "online store"],
+      "allowed": {"density": ["airy", "balanced", "compact"], "corners": ["sharp", "soft", "round"], "type_scale": ["calm", "expressive"], "surfaces": ["flat", "cards", "outlined"], "rhythm": ["alternating", "continuous"], "images": ["rounded", "square"], "headings": ["plain", "eyebrow", "underline"], "hero_variant": ["editorial", "split", "centred", "full-bleed"]},
+      "presets": [
+        {"id": "retail-gallery", "fixed": {"images": "square", "surfaces": "flat", "hero_variant": "editorial", "density": "airy", "headings": "plain"}},
+        {"id": "retail-friendly-store", "fixed": {"corners": "round", "surfaces": "cards", "hero_variant": "split", "rhythm": "alternating"}},
+        {"id": "retail-catalogue", "fixed": {"density": "compact", "surfaces": "outlined", "hero_variant": "centred", "type_scale": "calm", "corners": "sharp"}},
+        {"id": "retail-lookbook", "fixed": {"hero_variant": "full-bleed", "type_scale": "expressive", "headings": "underline", "rhythm": "continuous"}}
+      ]
+    },
+    "fitness_events": {
+      "words": ["gym", "fitness", "yoga", "pilates", "crossfit", "dance", "martial", "karate", "boxing", "sports", "football", "cricket", "swimming", "coach", "trainer", "personal training", "events", "event", "wedding", "party", "venue", "hall", "marquee", "club", "music", "band", "dj", "festival", "concert", "studio", "esports"],
+      "allowed": {"density": ["airy", "balanced", "compact"], "corners": ["sharp", "soft", "round"], "type_scale": ["calm", "expressive"], "surfaces": ["flat", "cards", "outlined"], "rhythm": ["alternating", "continuous"], "images": ["rounded", "square"], "headings": ["plain", "eyebrow", "underline"], "hero_variant": ["full-bleed", "centred", "split", "editorial"]},
+      "presets": [
+        {"id": "fit-high-energy", "fixed": {"type_scale": "expressive", "hero_variant": "full-bleed", "corners": "sharp", "rhythm": "alternating", "density": "balanced"}},
+        {"id": "fit-studio-calm", "fixed": {"density": "airy", "corners": "round", "type_scale": "calm", "hero_variant": "centred", "surfaces": "flat"}},
+        {"id": "fit-schedule-first", "fixed": {"surfaces": "cards", "density": "compact", "hero_variant": "split", "headings": "eyebrow"}},
+        {"id": "fit-poster", "fixed": {"hero_variant": "editorial", "images": "square", "headings": "underline", "surfaces": "outlined"}}
+      ]
+    },
+    "education_community": {
+      "words": ["school", "academy", "tutor", "tutoring", "tuition", "teacher", "college", "university", "course", "courses", "training", "institute", "nursery", "daycare", "preschool", "montessori", "madrasa", "ngo", "charity", "foundation", "nonprofit", "non-profit", "trust", "welfare", "church", "mosque", "masjid", "temple", "community", "society", "association", "volunteer", "library"],
+      "allowed": {"density": ["airy", "balanced"], "corners": ["soft", "round", "sharp"], "type_scale": ["calm", "expressive"], "surfaces": ["flat", "cards", "outlined"], "rhythm": ["alternating", "continuous"], "images": ["rounded", "square"], "headings": ["plain", "eyebrow", "underline"], "hero_variant": ["split", "centred", "full-bleed", "editorial"]},
+      "presets": [
+        {"id": "edu-welcoming", "fixed": {"corners": "round", "images": "rounded", "hero_variant": "split", "headings": "eyebrow", "surfaces": "cards"}},
+        {"id": "edu-institutional", "fixed": {"corners": "soft", "type_scale": "calm", "hero_variant": "centred", "rhythm": "alternating", "headings": "plain"}},
+        {"id": "edu-story-led", "fixed": {"hero_variant": "full-bleed", "type_scale": "expressive", "surfaces": "flat", "density": "airy"}},
+        {"id": "edu-bulletin", "fixed": {"surfaces": "outlined", "hero_variant": "editorial", "headings": "underline", "images": "square"}}
+      ]
+    },
+    "creative_personal": {
+      "words": ["photographer", "photography", "photo", "portfolio", "artist", "art", "gallery", "designer", "design", "illustrator", "writer", "author", "blog", "blogger", "personal", "resume", "cv", "musician", "filmmaker", "videographer", "video", "creative", "influencer", "podcast", "poet", "craftsman"],
+      "allowed": {"density": ["airy", "balanced", "compact"], "corners": ["sharp", "soft", "round"], "type_scale": ["calm", "expressive"], "surfaces": ["flat", "cards", "outlined"], "rhythm": ["alternating", "continuous"], "images": ["square", "rounded"], "headings": ["plain", "eyebrow", "underline"], "hero_variant": ["editorial", "split", "full-bleed", "centred"]},
+      "presets": [
+        {"id": "creative-portfolio-grid", "fixed": {"images": "square", "surfaces": "flat", "hero_variant": "editorial", "density": "airy", "corners": "sharp"}},
+        {"id": "creative-warm-personal", "fixed": {"corners": "round", "hero_variant": "split", "headings": "eyebrow", "images": "rounded"}},
+        {"id": "creative-big-picture", "fixed": {"hero_variant": "full-bleed", "type_scale": "expressive", "rhythm": "continuous", "headings": "plain"}},
+        {"id": "creative-notebook", "fixed": {"density": "balanced", "surfaces": "outlined", "hero_variant": "centred", "headings": "underline", "type_scale": "calm"}}
+      ]
+    },
+    "general": {
+      "words": [],
+      "allowed": {"density": ["airy", "balanced", "compact"], "corners": ["sharp", "soft", "round"], "type_scale": ["calm", "expressive"], "surfaces": ["flat", "cards", "outlined"], "rhythm": ["alternating", "continuous"], "images": ["rounded", "square"], "headings": ["plain", "eyebrow", "underline"], "hero_variant": ["split", "centred", "full-bleed", "editorial"]},
+      "presets": [
+        {"id": "general-classic-split", "fixed": {"hero_variant": "split", "surfaces": "cards", "corners": "soft", "rhythm": "alternating"}},
+        {"id": "general-clean-centred", "fixed": {"hero_variant": "centred", "density": "airy", "surfaces": "flat", "headings": "eyebrow", "type_scale": "calm"}},
+        {"id": "general-bold-photo", "fixed": {"hero_variant": "full-bleed", "type_scale": "expressive", "images": "square", "corners": "sharp"}},
+        {"id": "general-editorial-minimal", "fixed": {"hero_variant": "editorial", "surfaces": "outlined", "headings": "underline", "rhythm": "continuous", "density": "balanced"}}
+      ]
+    }
+  }
+}

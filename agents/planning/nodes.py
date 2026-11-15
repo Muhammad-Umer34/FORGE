@@ -15,7 +15,7 @@ from langgraph.types import interrupt
 from agents.catalogue import load_catalogue
 from agents.clarification.prompts import sanitise
 from agents.gateway import SPENDING_LIMIT, SPENDING_LIMIT_MESSAGE, CallUsage, InvalidOutputError, call_structured
-from agents.planning import assemble, checks, fixed, prompts, texts
+from agents.planning import assemble, checks, direction, fixed, prompts, texts
 from agents.planning.schemas import DataDesign, PlanDecision, PlanPatch, SiteDesign, SiteTexts
 from agents.state import Assumption, BuildPlan, FailureInfo, GraphState, PlanningState, UsageSummary, budget_left
 
@@ -72,7 +72,7 @@ def _data(p: PlanningState) -> DataDesign | None:
 def _build(state: GraphState, p: PlanningState) -> BuildPlan:
     old = state.get("plan")
     return assemble.build_plan(state["brief"], state["retrieval"], _site(p), _data(p), load_catalogue(),
-                               old.texts if old else None)
+                               old.texts if old else None, p.start_direction)
 
 
 def plan_view(plan: BuildPlan, p: PlanningState, limits) -> dict:
@@ -114,8 +114,12 @@ def design_site(state: GraphState) -> dict:
     p, cat, limits = _p(state), load_catalogue(), state["run_config"].limits
     brief, retrieval = state["brief"], state["retrieval"]
     opts = fixed.options(brief, retrieval, cat)
+    if not p.start_direction:                            # dealt once per site; a re-plan keeps it (D-239)
+        seed = state["request"].request_id if state.get("request") else f"{brief.business_type}:{brief.version}"
+        p.start_direction = direction.start(brief.business_type, seed, brief.style_reference)
     user = prompts.site_user(_brief_view(state), fixed.fixed_view(brief, retrieval, cat), opts,
-                             assemble.component_inputs([c for ids in opts.values() for c in ids]), limits)
+                             assemble.component_inputs([c for ids in opts.values() for c in ids]), limits,
+                             p.start_direction)
     try:
         out, usage = _call(state, p, "planning", SiteDesign, prompts.site_system(cat, limits), user)
     except InvalidOutputError as error:

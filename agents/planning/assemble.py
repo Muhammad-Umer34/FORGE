@@ -7,7 +7,7 @@ contract with consent rules, the work plan, the test map and the not-built list.
 import re
 
 from agents.catalogue import Catalogue
-from agents.planning import fixed
+from agents.planning import direction, fixed
 from agents.planning.content_schema import derive_content_schema, load_needs, needs_of, sample_content
 from agents.planning.schemas import DataDesign, PlanPatch, SiteDesign
 from agents.state import (
@@ -291,6 +291,16 @@ def complete_data(plan: BuildPlan) -> None:
         for e in plan.data_entities if e.name not in viewed and any(f.personal for f in e.fields)]
 
 
+def _follow_reference(plan: BuildPlan, reference: dict | None) -> None:
+    """D-237: what was measured on the user's reference site wins over the model's taste, like a hex code the user
+    typed (D-158). Only measured facts; the rest of the direction stays the model's choice for this business."""
+    corners = (reference or {}).get("corners")
+    if corners in ("sharp", "soft", "round"):
+        plan.direction.corners = corners
+        if corners == "sharp":
+            plan.direction.images = "square"
+
+
 def _vary_neighbours(plan: BuildPlan) -> None:
     """Code fix (D-224): when two neighbouring sections on a page share a layout family, the second one switches to a
     variant of another family, so pages do not repeat themselves. No model call is spent on it."""
@@ -309,7 +319,7 @@ def _vary_neighbours(plan: BuildPlan) -> None:
 
 
 def build_plan(brief: ClarifiedBrief, retrieval: RetrievalResult, site: SiteDesign, data: DataDesign | None,
-               cat: Catalogue, old_texts: list[TextSlot] | None = None) -> BuildPlan:
+               cat: Catalogue, old_texts: list[TextSlot] | None = None, start: dict | None = None) -> BuildPlan:
     pages = [p.model_copy(deep=True) for p in site.pages]
     specs = {s.spec_id: _spec(s, {p.page_id for p in pages}) for s in site.custom_specs}
     comps = _components(site, brief, cat, specs)
@@ -330,6 +340,13 @@ def build_plan(brief: ClarifiedBrief, retrieval: RetrievalResult, site: SiteDesi
         + [Assumption(text=u, reason="Chosen while planning the site") for u in site.unsure],
         accessibility=list(fixed.ACCESSIBILITY_RULES),
     )
+    if start:                                            # code dealt the direction; the model only repaired fit (D-239)
+        model = (site.direction or DesignDirection()).model_dump()
+        chosen, plan.direction_changes = direction.settle(
+            model, start, {c.field: c.reason for c in site.direction_changes}, len(plan.pages))
+        plan.direction, plan.direction_preset = DesignDirection(**chosen, chosen=True), start["preset"]
+    else:
+        _follow_reference(plan, brief.style_reference)
     _vary_neighbours(plan)
     plan.sample_content = sample_content(plan.content_schema, brief.business_type)
     for c in plan.components:                            # code-placed parts take their layout from the direction
