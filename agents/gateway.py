@@ -36,7 +36,11 @@ _TASK_MODEL_ENV = {
     "clarification": "CLARIFICATION_MODEL",
     "planning": "PLANNING_MODEL",            # design and text calls: the strongest model (plan v2 §1)
     "planning_fix": "PLANNING_FIX_MODEL",    # fix rounds and plan changes: a faster model
+    "frontend_custom": "FRONTEND_MODEL",     # custom parts, the only model-written code (D-228)
+    "frontend_fix": "FRONTEND_FIX_MODEL",    # build-gate fix rounds on those parts (D-230)
 }
+# a task with no model of its own uses another task's: code is written by the strongest model unless set apart
+_TASK_FALLBACK = {"frontend_custom": "planning", "frontend_fix": "frontend_custom"}
 _DEFAULT_MODEL = "gemini-3.8-flash"
 _TRANSIENT_CODES = {408, 429, 500, 502, 503, 504}
 _BACKOFF_SECONDS = (1.0, 3.0)          # PLACEHOLDER: waits before the 2nd and 3rd attempt
@@ -95,7 +99,8 @@ def cost_of(model: str, prompt_tokens: int, completion_tokens: int) -> float:
 
 
 def model_for(task: str) -> str:
-    return os.getenv(_TASK_MODEL_ENV.get(task, ""), "") or _DEFAULT_MODEL
+    own = os.getenv(_TASK_MODEL_ENV.get(task, ""), "")
+    return own or (model_for(_TASK_FALLBACK[task]) if task in _TASK_FALLBACK else _DEFAULT_MODEL)
 
 
 def provider() -> str:

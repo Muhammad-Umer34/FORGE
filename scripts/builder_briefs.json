@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "about": "Builder evaluation set (Phase 3 item 3.8): 9 requests, 2-3 per business family; custom features the library cannot build in b-rest-03, b-salon-02, b-law-02, b-shop-02. b-rest-02 asks for a loyalty card that needs customer accounts, which FORGE correctly does not build (kept as a refusal case). Same format as eval_briefs.json, so the strict simulated owner answers them. Never edit a request once results exist; add new ones with new ids.",
+  "briefs": [
+    {"id": "b-rest-01", "group": "restaurant", "expect": "planned", "custom": false,
+     "prompt": "A website for my Italian restaurant in Lahore with our menu, opening hours, a photo gallery and a contact form for table reservations.",
+     "must": [], "must_not": [], "answers": {}},
+    {"id": "b-rest-02", "group": "restaurant", "expect": "planned", "custom": true,
+     "prompt": "A website for my cafe in Islamabad with our menu, opening hours and a digital loyalty stamp card that shows customers how many coffees are left until a free one.",
+     "must": [], "must_not": [], "answers": {}},
+    {"id": "b-rest-03", "group": "restaurant", "expect": "planned", "custom": true,
+     "prompt": "A website for my coffee shop in Lahore with our menu and opening hours, and a build-your-own-coffee tool where customers pick a size, milk and extras and see the price.",
+     "must": [], "must_not": [], "answers": {}},
+    {"id": "b-salon-01", "group": "salon", "expect": "planned", "custom": false,
+     "prompt": "A website for my hair salon in Karachi with our services and prices, our team, customer reviews and online appointment booking.",
+     "must": [], "must_not": [], "answers": {}},
+    {"id": "b-salon-02", "group": "salon", "expect": "planned", "custom": true,
+     "prompt": "A website for my beauty salon with our services and a price calculator where clients tick the services they want and see the total price.",
+     "must": [], "must_not": [], "answers": {}},
+    {"id": "b-law-01", "group": "law firm", "expect": "planned", "custom": false,
+     "prompt": "A website for my law firm in Lahore with our practice areas, our lawyers, client testimonials, FAQs and a contact form.",
+     "must": [], "must_not": [], "answers": {}},
+    {"id": "b-law-02", "group": "law firm", "expect": "planned", "custom": true,
+     "prompt": "A website for my legal consultancy with our services, a fee estimator that gives a rough consultation fee from the type of case, and a contact form.",
+     "must": [], "must_not": [], "answers": {}},
+    {"id": "b-shop-01", "group": "shop", "expect": "planned", "custom": false,
+     "prompt": "A website for my clothing boutique with our product catalogue and prices, a photo gallery and our shop location on a map.",
+     "must": [], "must_not": [], "answers": {}},
+    {"id": "b-shop-02", "group": "shop", "expect": "planned", "custom": true,
+     "prompt": "A website for my bakery with our cake menu, a delivery zone checker where customers type their area to see if we deliver there, and a form to pre-order cakes.",
+     "must": [], "must_not": [], "answers": {}}
+  ]
+}

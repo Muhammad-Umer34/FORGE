@@ -49,6 +49,7 @@ Retr = Context Retrieval.
 | KI-31 | Generated sites use theme-tinted placeholders instead of photos | Site | Medium (demo look) | Open: needs an Unsplash API key from the owner (D-240) |
 | KI-32 | The live preview lives in the server's memory; after a restart it is started again from the saved files (`POST .../preview`) | Preview | Medium | Fixed (2026-11-15): reopen checks the right status (`planned`), always asks for a live preview; checked end to end |
 | KI-33 | A plan can give the home page only a hero section (seen in the restaurant demo run) | Plan | Medium (quality) | Open |
+| KI-34 | The builder evaluation has only 3 custom parts so far, all passing first time: the gate's fix rounds and fallbacks are verified by tests with a fake model, not yet by a live failure | Builder | Medium (evidence) | Open: add harder custom requests to the builder set |
 
 ## Scope limits
 

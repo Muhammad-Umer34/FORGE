@@ -6,6 +6,34 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-20 · Frontend Agent: custom parts written by the model (D-228 - D-230, D-241)
+
+**What** The rest of the Frontend Agent (Phase 3 items 3.4 - 3.6, 3.8):
+- `custom_writer.py`: one model call per custom part or showcase section, at most 3 at once, prompt rendered from
+  the plan; props interface written by code from the part's needs; replies accepted only inside the part's folder
+  with the right export.
+- `postprocess.py`: imports, icons (checked against the installed list), colours, paths, packages, and a keyboard
+  check for clickable divs.
+- `gate.py`: a code-checks layer (at most 2 rounds), then type check and production build with "Did you mean" fixed
+  by code, up to 4 model fix rounds per part (a worse fix discarded), and a fallback section for a part that still
+  fails.
+- `compiler.py` imports written parts; `agent.py` writes, cleans and gates them and returns their cost to the run;
+  gateway tasks `frontend_custom` / `frontend_fix`.
+- `scripts/run_builder_eval.py` + `scripts/builder_briefs.json` (9 requests) and the model-written parts saved under
+  `scripts/runs/builder_parts/`.
+- Preview: a fresh folder per start; sample prices and names made useful for interactive parts.
+
+**Why** Custom parts are the only model-written code; they must be built and checked like the rest, and the report
+needs real builder numbers (Chapters 7 and 9).
+
+**Checked** New tests: writer contract 4, post-processors 5, gate 7; all fast tests pass; all 49 library parts still
+type-check. Builder evaluation B1: 9 of 9 sites built first time, 3 of 3 custom parts in site, 97% of files by code.
+Looked at the parts in the browser (calculator totals correctly, keyboard-reachable after the fix).
+
+**Open** KI-34 (fix rounds and fallbacks not yet exercised live); journal #32.
+
+---
+
 ## 2026-11-15 · Reopening a built site; database connection limits
 
 **What** Reopening a built project showed no site (reported by Umar). Fixed the studio's reopen (it checked status

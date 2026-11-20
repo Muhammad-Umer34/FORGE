@@ -10,6 +10,7 @@ import socket
 import subprocess
 import threading
 import time
+import uuid
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -65,7 +66,8 @@ def start(request_id: str, files: dict[str, str]) -> Preview:
     """A running preview of these files. Stops any other preview first."""
     stop_all()
     try:
-        folder = bw.prepare(files, build_id=f"preview-{request_id[-12:]}")
+        # a fresh folder per start: another process (the demo script) may still hold an older preview's folder
+        folder = bw.prepare(files, build_id=f"preview-{request_id[-12:]}-{uuid.uuid4().hex[:6]}")
     except bw.BuildError as error:
         raise PreviewError(str(error)) from error
     port = _free_port()

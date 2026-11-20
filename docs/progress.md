@@ -37,6 +37,17 @@ their sections (component + variant, Jaccard) and their design direction (share 
 more model calls (calls per run stayed at 7.8). The other Phase 2 changes (patch-only fixes, defaults when questions
 run out, section-scoped changes) protect cases this set rarely triggers, since Gemini needed no fix rounds.
 
+### Builder scoreboard (Frontend Agent)
+
+The builder evaluation set (`scripts/builder_briefs.json`): 9 requests, 2-3 per business family (restaurant, salon,
+law firm, shop); 4 ask for a feature our library cannot build. Run with `scripts/run_builder_eval.py`: each request is
+planned once (plans saved), then built with the gate on. **Outcome** = built first time / after fix rounds / with a
+fallback section / failed.
+
+| # | Date | Commit | Model (custom parts) | Sites | Built | First time | After fixes | With fallbacks | Failed | Custom parts written / in site | Fix rounds | Written by code | Avg time | Avg model cost | What changed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| B1 | 2026-11-20 | uncommitted (D-228 - D-230, D-241) | gemini-2.5-pro | 9 | 9 | 9 | 0 | 0 | 0 | 3 / 3 | 0 | 97% (96 of 99 files) | 34 s | $0.0016 | First builder baseline. Custom parts: price calculator, fee estimator, delivery-zone checker; 2 small fixes by code (post-processors). The loyalty card (b-rest-02) was correctly refused as needing customer accounts; the coffee tool (b-rest-03) was matched to a library part. Fix rounds and fallbacks were not needed in this run, so they are verified by tests only (`tests/test_gate.py`) |
+
 ## 2. Issues met and how they were fixed
 
 Newest first. **Found by**: how the issue showed up. Each fix links to its decision. The step-by-step path behind
@@ -44,6 +55,10 @@ each row (every try, wrong turns, how it was checked) is in `problem-journal.md`
 
 | # | Date | Issue | Found by | Cause | Fix | Decision |
 |---|---|---|---|---|---|---|
+| 34 | 2026-11-20 | A model-written price calculator could only be used with a mouse | Trying it in the browser | Clickable `<div>`s; and the agent discarded the post-processors' issues, so non-build problems were never sent back | A keyboard check, a "code checks" layer in the gate (at most 2 rounds), the rule named in the writer's prompt | D-241 |
+| 33 | 2026-11-20 | Calculator samples said "Service 1 service_name" and Rs. 0 for every price | Looking at the live part | Generic sample text for unknown fields; money samples of Rs. 0 | Rising round amounts for prices, "Service 1" for names | D-241 |
+| 32 | 2026-11-20 | A demo crashed with FileExistsError on the preview folder | Re-running the demo | Another process still held the same folder name | A fresh folder per preview start | D-240 |
+| 31 | 2026-11-20 | The loyalty-card test request produced no custom part | First builder test | Correct refusal: the card needs customer accounts | Kept as a refusal case; a page-only custom request added | - |
 | 30 | 2026-11-15 | content-01 ended with an SEO description over 160 characters (1 run) | Evaluation run 9 | Same as issue 28 (title over 60): the rewrite round does not always shorten overlong SEO text | Open (issue 28 class); likely fix: code trims SEO title/description at a word boundary after the rewrite | – |
 | 29 | 2026-11-14 | The evaluation counts network drops as wrong plans (forms-02 ×3 in run 7, ref-01 ×2 in the reference re-run) | Run 7: failed runs with 0 model calls | DNS and connection failures (`getaddrinfo failed`, `Server disconnected`) are recorded like planning failures | Open: the runner should mark them as outages and leave them out of the correct rate; the scoreboard gives both numbers until then | – |
 | 28 | 2026-11-14 | personal-02 ends with a search title over 60 characters (1 run in 3, runs 7 and 8) | Evaluation runs 7, 8 | The rewrite round asks the model to shorten it and it sometimes does not | Open | – |

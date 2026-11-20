@@ -79,8 +79,9 @@ def main() -> None:
         parser.error("give --brief or --plan")
     config = RunConfig(preview=True, build_gate=not args.no_gate)
     started = time.perf_counter()
-    result = agent.run(plan, business, f"demo-{args.brief or Path(args.plan).stem}", config, _show)
-    print(f"Done in {time.perf_counter() - started:.0f} s: {result.status}, {len(result.files)} files")
+    result, usage = agent.run(plan, business, f"demo-{args.brief or Path(args.plan).stem}", config, _show)
+    print(f"Done in {time.perf_counter() - started:.0f} s: {result.status}, {len(result.files)} files, "
+          f"{usage.calls} model calls, ${usage.estimated_cost_usd:.3f}")
     if preview.get(f"demo-{args.brief or Path(args.plan).stem}"):
         print("The preview keeps running. Press Ctrl+C to stop it.")
         try:

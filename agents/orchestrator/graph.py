@@ -5,7 +5,7 @@ from agents.clarification import build_clarification_graph
 from agents.planning import build_planning_graph
 from agents.retrieval.ranker import rank_and_retrieve_components
 from agents.frontend_generator import agent as frontend_agent
-from agents.state import GraphState, Stage
+from agents.state import GraphState, Stage, budget_left
 
 # Clarification status -> Orchestrator stage. The Orchestrator is the only writer of `control`.
 _STAGE_AFTER_CLARIFICATION = {
@@ -54,9 +54,10 @@ def build_site(state: GraphState) -> dict:
     preview and the build gate when the run's config turns them on. The backend and database agents come later.
     Repeat-safe: an unchanged file is not written again (P13)."""
     brief = state.get("brief")
-    artifacts = frontend_agent.run(state["plan"], brief.business_type if brief else None,
-                                   state["request"].request_id, state["run_config"], get_stream_writer())
-    return {"artifacts": {"frontend": artifacts}}
+    artifacts, usage = frontend_agent.run(state["plan"], brief.business_type if brief else None,
+                                          state["request"].request_id, state["run_config"], get_stream_writer(),
+                                          budget_left(state))   # custom parts spend only what the run has left
+    return {"artifacts": {"frontend": artifacts}, "usage": usage}
 
 
 def _route_after_planning(state: GraphState) -> str:

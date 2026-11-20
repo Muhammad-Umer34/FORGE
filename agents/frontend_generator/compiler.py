@@ -29,6 +29,7 @@ PERSON_FIELDS = {"avatarUrl"}
 LEFT_OUT = {"logoUrl", "className", "canonicalUrl", "children", "shareUrl"}
 FALLBACK_PART = "cta-banner"          # what a custom part shows until the custom-part writer exists (D-240)
 LIST_LENGTH = 3
+_PRICE = re.compile(r"price|cost|fee|amount|total")
 TIME_SLOTS = ["10:00", "11:30", "14:00", "16:30"]
 DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 SOCIAL = {"instagram": "https://instagram.com/", "facebook": "https://facebook.com/"}
@@ -90,8 +91,10 @@ def _setting(need: dict, value: Any) -> Any:
 class Site:
     """Everything one compile needs, worked out once from the plan."""
 
-    def __init__(self, plan: BuildPlan, business_type: str | None, seed: str):
+    def __init__(self, plan: BuildPlan, business_type: str | None, seed: str, written: dict | None = None):
         self.plan = plan
+        self.written = written or {}              # section id -> {"module", "export_name"} of a model-written part
+        self.modules: dict[str, str] = {}         # export name -> import path, for parts outside components/
         self.sample = plan.sample_content or {}
         self.business = self.sample.get("business_name") or f"Your {(business_type or 'business').title()}"
         self.texts = {(t.section_id, t.prop): t.text for t in plan.texts if t.text}
@@ -162,6 +165,10 @@ class Site:
                 out[name] = self.picture(name)
             elif ftype == "boolean":
                 out[name] = n == 1 if name.startswith("is") else bool(value)
+            elif ftype == "money" or _PRICE.search(name.lower()):
+                # round, rising amounts: a calculator or price list shows a working total, and under the sample
+                # banner nobody takes Rs. 1,000 for a real price (D-225, D-241)
+                out[name] = n * 1000 if ftype == "number" else f"Rs. {n * 1000:,}"
             elif ftype == "number":
                 out[name] = value if isinstance(value, (int, float)) and not isinstance(value, bool) else n
             elif ftype == "number | string":
@@ -179,11 +186,11 @@ class Site:
         noun = NOUNS.get(last) or (last[:-3] + "y" if last.endswith("ies") else last.rstrip("s")).capitalize() or "Item"
         if field == "iconName":
             return ICONS[(n - 1) % len(ICONS)]
-        if field in ("name", "title", "label", "question"):
+        if field in ("name", "title", "label", "question") or field.endswith(("_name", "_title", "_label", "Name")):
             return f"{noun} {n}" + ("?" if field == "question" else "")
         if field in ("alt", "imageAlt"):
             return f"{noun} {n} photo"
-        return FIELD_SAMPLES.get(field, f"{noun} {n} {field}")
+        return FIELD_SAMPLES.get(field, f"Sample {field.replace('_', ' ').lower()} {n}")
 
     def items(self, need: dict, key: str) -> list[dict]:
         given = self.sample.get(key)
@@ -310,8 +317,13 @@ class Site:
                                       "variant": "panel"}
 
     def render(self, section: PlannedComponent) -> tuple[str, str]:
-        """(component name, JSX line) for one section."""
-        if section.custom or not section.component_id:
+        """(component name, JSX line) for one section. A model-written part (custom part or showcase section) gets
+        the same props the compiler builds for it; without one, a custom part shows its fallback (D-228, D-230)."""
+        part = self.written.get(section.section_id)
+        if part:
+            name, props = part["export_name"], self.props(section)
+            self.modules[name] = part["module"]
+        elif section.custom or not section.component_id:
             name, props = self.fallback(section)
         else:
             name, props = _name(section.component_id), self.props(section)
@@ -319,8 +331,9 @@ class Site:
 
 
 # ---------------------------------------------------------------- files
-def _imports(names: list[str]) -> str:
-    return "\n".join(f'import {{ {n} }} from "@/components/{n}"' for n in sorted(set(names)))
+def _imports(names: list[str], modules: dict[str, str] | None = None) -> str:
+    return "\n".join(f'import {{ {n} }} from "{(modules or {}).get(n, f"@/components/{n}")}"'
+                     for n in sorted(set(names)))
 
 
 def _wrap(section_id: str, jsx: str) -> str:
@@ -334,7 +347,7 @@ def _page(site: Site, page) -> str:
     title = site.text(f"{page.page_id}.{fixed.SEO[0]}", "title") or f"{page.title} · {site.business}"
     description = site.text(f"{page.page_id}.{fixed.SEO[0]}", "description") or ""
     dynamic = "[" in page.route
-    head = 'import type { Metadata } from "next"\n' + _imports([n for _, n, _ in rendered])
+    head = 'import type { Metadata } from "next"\n' + _imports([n for _, n, _ in rendered], site.modules)
     meta = f"export const metadata: Metadata = {_js({'title': {'absolute': title}, 'description': description})}"
     body = "\n".join(_wrap(sid, jsx) for sid, _, jsx in rendered)
     if dynamic:
@@ -371,7 +384,7 @@ def _layout(site: Site) -> str:
     indent = lambda jsx: "\n".join("        " + line for line in jsx.splitlines())
     return f'''import type {{ Metadata }} from "next"
 import "./globals.css"
-{_imports([n for n, _ in rendered_top + rendered_rest])}
+{_imports([n for n, _ in rendered_top + rendered_rest], site.modules)}
 
 // Written by FORGE's frontend agent (D-240) from the approved plan: theme, design direction and site-wide parts.
 export const metadata: Metadata = {_js(meta)}
@@ -433,10 +446,13 @@ ROBOTS = ('import type { MetadataRoute } from "next"\n\nconst base = process.env
           '  return { rules: { userAgent: "*", allow: "/" }, sitemap: `${base}/sitemap.xml` }\n}\n')
 
 
-def compile_site(plan: BuildPlan, business_type: str | None = None, seed: str = "") -> dict[str, str]:
-    """The site's own files, by path. Overlaid on site_template/ and the catalogue by the build worker."""
+def compile_site(plan: BuildPlan, business_type: str | None = None, seed: str = "",
+                 written: dict | None = None) -> dict[str, str]:
+    """The site's own files, by path. Overlaid on site_template/ and the catalogue by the build worker. `written`
+    = the model-written parts that passed the gate (section id -> {"module", "export_name"}); their own files are
+    added by the caller."""
     from agents.build_worker import TEMPLATE
-    site = Site(plan, business_type, seed or business_type or "site")
+    site = Site(plan, business_type, seed or business_type or "site", written)
     files = {_page_path(p.route): _page(site, p) for p in plan.pages}
     files["app/layout.tsx"] = _layout(site)
     files["app/globals.css"] = _globals(site, (TEMPLATE / "app" / "globals.css").read_text(encoding="utf-8"))

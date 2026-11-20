@@ -29,6 +29,63 @@ Each entry:
 
 ---
 
+## 32. Custom parts written by the model (the rest of the Frontend Agent)
+**Symptom** The Frontend Agent compiled library parts by code, but every custom part (a feature our library cannot
+build) and showcase section showed a plain placeholder section. The report's Chapter 7 must describe the agent as
+built, and Chapter 9 needs real builder numbers.
+
+**Steps**
+1. Planned it (`C:/Users/umerc/.claude/plans/greedy-crafting-kurzweil.md`, approved): writer (D-228),
+   post-processors (D-229), gate with fix rounds (D-230), builder evaluation (Phase 3 item 3.8).
+2. Compiler: takes the written parts (section id → module, export name) and imports them with the props it already
+   builds; a missing part keeps its fallback. Old compiler tests still pass.
+3. Writer (`custom_writer.py`): code writes the props interface from the part's needs (all optional, so a missing
+   sample never breaks the build) and renders each prompt from the plan: spec, props, sample props, design
+   direction, a library section from the same page as a style reference, the real export list of the 9 interface
+   parts. A reply is accepted only inside the part's own folder and with the right export. Gateway tasks
+   `frontend_custom` and `frontend_fix` default to the planning model (gemini-2.5-pro).
+4. Post-processors (`postprocess.py`): imports, icons (3,756 real names read from the installed package), colours,
+   paths. While writing them, found that a renamed icon could end up imported twice (a TypeScript error); the lucide
+   import line is now de-duplicated. 4 seeded-mistake tests and 4 contract tests pass first time.
+5. Gate (`gate.py`): errors are attributed to the part that caused them (in its folder, or a page line that uses
+   it), code fixes "Did you mean" errors first, then one model fix round for every failing part, checked by one build;
+   a fix that does not lower that part's error count is thrown away; after 4 rounds the part falls back.
+   Self-review before testing found two weaknesses: each round built twice (a trial build, then the same build
+   again, about 30 s wasted) and code fixes had no limit (they could cycle). Fixed: one build per round, its result
+   reused, code fixes capped. 5 tests with fake builds and a fake model pass.
+6. Wired into the agent: model code only enters a site through the gate (gate off in tests: no model call);
+   model-written files are stored as written by the model; the run's cost now includes the parts (`build_site` gives
+   the agent `budget_left`, returns the usage). All 474 fast tests pass.
+7. First live test (`b-rest-02`, a cafe with a digital loyalty stamp card): the site built first time, but with no
+   custom part at all. Cause: clarification correctly ruled the card unsupported, because tracking each customer's
+   stamps needs customer accounts, which FORGE does not build; it went to "not built" with an alternative. The test
+   request was the problem, not the code. Kept as a refusal case (requests are never edited once they have results)
+   and added `b-rest-03`: a build-your-own-coffee price tool, which works inside the page.
+8. The four custom requests: 3 custom parts (price calculator, fee estimator, delivery-zone checker) written by the
+   model, all passing the type check and production build first time, about $0.004 each. `b-rest-03`'s coffee tool
+   was matched to the library's product-detail part (option pickers with a price), so it needed no custom code.
+9. Looked at the result, not just the numbers. The price calculator rendered, but its samples were useless:
+   "Service 1 service_name" and every price "Rs. 0", so a working calculator always totalled 0. Fix: rising round
+   amounts (Rs. 1,000, 2,000, 3,000) for price-like fields, still under the sample banner, and "Service 1" for name
+   fields. All 49 library parts still type-check.
+10. **New problem while re-testing:** the demo crashed with `FileExistsError`: an earlier demo process still held
+    the same preview folder name. Fix: every preview start gets its own folder.
+11. **Found by trying it in the browser:** the calculator worked with a mouse (Service 1 + Service 3 = Rs. 4,000),
+    but its rows were clickable `<div>`s that a keyboard cannot reach (`tabIndex` -1). Digging further showed a gap
+    in my own wiring: the agent threw away the post-processors' issues, so raw colours or bad imports were only
+    fixed if they happened to break the build. Fixes: a new check reports clickable divs; the gate gets a
+    "code checks" layer before the type check, which sends those issues to at most 2 fix rounds (a fix is kept only
+    if it lowers the count; these issues never drop a part, because the part still works); the writer's rules now
+    name the button rule. 4 new tests pass.
+
+12. Full builder evaluation (9 requests): all 9 sites built first time, none failed; 3 of 3 custom parts in
+    their sites; 97% of files written by code; 34 s and $0.0016 of model cost per site on average. Checked the parts
+    themselves: the calculator now uses real checkboxes, the fee estimator a labelled select, and no part has a
+    post-processor issue. Fix rounds and fallbacks were not needed, so they are verified only by tests (KI-34).
+
+**Status** Built: custom parts are written by the model and checked by the gate. Open: harder custom requests to
+exercise the fix rounds live (KI-34).
+
 ## 31. The frontend agent (building the site from the plan)
 **Symptom** Approving a plan saved `forge/plan.json` and stopped: every builder was an empty stub. The supervisor
 demo (2026-11-16) needs one live run from request to a running site.

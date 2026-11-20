@@ -11,3 +11,4 @@ plan shape, design direction and the model's direction changes).
 | `run05_phase2_correct100.json` | Run 5 (0e8a97f, Phase 2) | Correctness baseline: 100% correct, 72 runs |
 | `run06_group2_sameness83.json` | Run 6 (Group 2 variants) | First design-direction sameness measurement: 83% between different businesses (KI-29 found) |
 | `run09_d239_sameness44.json` | Run 9 (D-239) | Design variety fix: sameness down to 44%, near the ~40% random floor |
+| `builder01_first_baseline.json` | Builder B1 (D-228 - D-230) | 9 of 9 sites built first time; 3 model-written custom parts; 97% of files written by code |
