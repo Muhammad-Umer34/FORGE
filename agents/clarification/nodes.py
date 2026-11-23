@@ -144,6 +144,7 @@ def intake(state: GraphState) -> dict:
     c.detected_language, c.romanized = out.detected_language, out.romanized
     c.is_business, c.business_type, c.goal, c.style_hint = out.is_business, out.business_type, out.goal, out.style_hint
     c.audience = out.audience
+    c.visitor_details = [" ".join(d.split())[:60] for d in out.visitor_details if d.strip()][:10]   # D-246
     c.personality = out.personality if out.personality in theming.PERSONALITIES else None
     c.hue_family = out.hue_family if out.hue_family in theming.HUE_FAMILIES else None
     # A hex code in the user's own words wins over the model's reading of it (D-158).

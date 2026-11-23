@@ -67,6 +67,7 @@ each row (every try, wrong turns, how it was checked) is in `problem-journal.md`
 
 | # | Date | Issue | Found by | Cause | Fix | Decision |
 |---|---|---|---|---|---|---|
+| 38 | 2026-11-23 | The pet groomer plan had no field for the pet's name, breed or age | Data evaluation rerun | Clarification dropped details visitors give; the planner never saw them | `visitor_details` in the brief and summary, a planner rule, plan check 30 | D-246 |
 | 37 | 2026-11-23 | All 12 data evaluation requests reported "not planned" | First data evaluation | The runner stopped at the plan screen and read the run's state while the plan was still inside the paused planning step, then labelled this an outage | Read the plan from the planning step's own state (`subgraphs=True`); no outage guess in the message | - |
 | 36 | 2026-11-23 | The pet groomer plan failed check 29 twice | Data evaluation D1 | The model added the catalogue recipe renamed "services" next to the appointments recipe, which already has services | A clashing catalogue list gives way to the other recipe's own list; the prompt says booking recipes include their lists | D-242 |
 | 35 | 2026-11-22 | Evaluation runs took about 115 s instead of about 45 s | Live planning runs (D-242) | The runner used the API's settings, so every evaluated request also started a preview and a production build | Evaluations switch the preview, build gate and storage off | - |

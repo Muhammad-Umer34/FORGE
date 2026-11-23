@@ -183,6 +183,9 @@ def _data_model(plan: BuildPlan, brief: ClarifiedBrief, limits: Limits) -> list[
             out.append(f"27: '{e.name}' has {len(e.fields)} fields, at most {limits.max_fields_per_entity}")
         if len(e.rules) > limits.max_rules_per_entity:
             out.append(f"27: '{e.name}' has {len(e.rules)} rules, at most {limits.max_rules_per_entity}")
+    # 30. every detail the request says visitors give has a field (D-246)
+    out += [f"30: the request says visitors give '{d}', but no field holds it; add it to the record type they send"
+            for d in brief.visitor_details if not data_patterns.detail_covered(d, plan.data_entities)]
     custom = sum(1 for e in v2 if e.pattern == "custom")
     if custom > limits.max_custom_entities:
         out.append(f"27: {custom} custom record types, at most {limits.max_custom_entities}")

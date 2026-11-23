@@ -70,6 +70,9 @@ How to design (D-242):
   length), on a record type the recipes make (use the new name after a rename). Types: text, long_text, number,
   money, date, time, datetime, email, phone, url, boolean, choice (with 2-20 options), image, duration (minutes),
   reference (with the record type it links to). Give each a label the owner understands.
+- visitor_details in the brief: every detail there must become a field visitors fill in, as an extra field on
+  the record type they send (a pet's breed on appointments), or as fields of a custom record type linked to it
+  (pets: name, breed, age). Use the detail's words in the field's label.
 - entities: only for data no recipe can hold; at most {{max_custom}} such record types. Same field types; rules only
   from this menu, with the settings named: unique_together (fields), no_overlap (start, end, resource), capacity
   (parent and parent_capacity, or group_by and max_count; overflow refuse or waitlist), within_hours, lead_time

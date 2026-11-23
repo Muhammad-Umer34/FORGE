@@ -65,3 +65,26 @@ def test_compile_problems_are_reported_through_the_plan_checks():
     plan = _plan()
     plan.data_entities[0].fields.append(DataField(name="select", type="text"))
     assert "26" in _numbers(plan)
+
+
+def test_visitor_details_must_have_a_field():
+    """Live (pet groomer, D-246): the request named the pet's name, breed and age; the plan kept none of them."""
+    brief = ClarifiedBrief(visitor_details=["pet's name", "pet's breed", "pet's age"])
+    plan = _plan()
+    assert _numbers(plan, brief) == ["30"]
+    assert sum(p.startswith("30:") for p in _data_model(plan, brief, Limits())) == 3
+    appt = next(e for e in plan.data_entities if e.name == "appointments")
+    appt.fields += [DataField(name="pet_breed", label="Pet's breed", type="text"),
+                    DataField(name="pet_age", label="Age of your pet", type="number")]
+    assert [p for p in _data_model(plan, brief, Limits()) if p.startswith("30:")] == [
+        "30: the request says visitors give 'pet's name', but no field holds it; add it to the record type they send"]
+    plan.data_entities.append(DataEntity(name="pets", label="Pets", pattern="custom", role="catalogue",
+                                         fields=[DataField(name="name", type="text")]))
+    assert _data_model(plan, brief, Limits()) == []                 # "name" on "pets" holds "pet's name"
+
+
+def test_detail_matching_needs_every_word():
+    entities = _plan().data_entities
+    assert dp.detail_covered("phone", entities)                       # appointments.phone
+    assert not dp.detail_covered("pet's name", entities)              # client_name is not the pet's name
+    assert not dp.detail_covered("car model", entities)

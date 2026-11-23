@@ -99,6 +99,7 @@ def draft_brief(c: ClarificationState, cat: Catalogue, version: int = 1) -> Clar
         unsupported=unsupported,
         assumptions=list(c.assumptions),
         data_choices=dict(c.data_choices),
+        visitor_details=list(c.visitor_details),
     )
     brief.clarified_text = clarified_text(brief, c)
     return brief
@@ -159,6 +160,8 @@ def clarified_text(brief: ClarifiedBrief, c: ClarificationState) -> str:
         parts.append("It includes: " + ", ".join(names) + ".")
     if brief.theme:
         parts.append(f"Look: {brief.theme['label']}, with {brief.theme['fonts']['heading']} headings.")
+    if brief.visitor_details:                            # D-246
+        parts.append("Visitors also tell you: " + ", ".join(brief.visitor_details) + ".")
     for q in c.questions:                                # the owner's data answers (D-244)
         if q.kind == "F" and q.answer_kind == "option" and q.answer_option_ids:
             label = next((o.label for o in q.options if o.option_id == q.answer_option_ids[0]), "")

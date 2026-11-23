@@ -6,6 +6,20 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-23 · Details visitors give are kept (D-246)
+
+**What**
+- `IntakeOutput.visitor_details`, stored on the clarification state and the brief, with a summary line.
+- A planner rule; plan check 30 with `data_patterns.detail_covered`.
+
+**Why** The pet groomer's request named the pet's name, breed and age, and the plan had none of them: they were
+lost in clarification.
+
+**Checked** New tests for check 30, the matching and the summary line; 583 tests without the database pass. Live:
+the plan added `pet_name`, `breed` and `age`. The full data set is being rerun.
+
+---
+
 ## 2026-11-23 · Database Agent, day 7: data evaluation (D-242 - D-245)
 
 **What**

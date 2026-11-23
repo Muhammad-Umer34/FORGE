@@ -120,3 +120,13 @@ def test_a_style_reference_reaches_the_brief_without_the_page_itself():        #
     ref = briefs.draft_brief(c, CAT).style_reference
     assert ref == {"from": ["website"], "site": "example.com", "corner_radius": "1rem", "feel": "playful",
                    "dark": False, "heading_font": "Poppins"}
+
+
+def test_visitor_details_reach_the_summary_and_the_brief():
+    """D-246: details the request says visitors give are kept, so the planner can give each a field."""
+    from agents.clarification.brief import clarified_text
+    from agents.clarification.slots import init_slots
+    from agents.state import ClarificationState, ClarifiedBrief
+    c = ClarificationState(slots=init_slots(), visitor_details=["pet's name", "pet's breed", "pet's age"])
+    brief = ClarifiedBrief(business_type="pet grooming salon", visitor_details=list(c.visitor_details))
+    assert "Visitors also tell you: pet's name, pet's breed, pet's age." in clarified_text(brief, c)

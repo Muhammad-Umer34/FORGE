@@ -180,7 +180,20 @@ agent tests; the full suite incl. database tests passes (639).
     other recipe's list, plus one prompt line. The rerun of that request first hit a real Google rate limit,
     right after the 12-request run.
 
-**Status** Days 1-7 done; the pet groomer rerun is pending.
+28. The pet groomer rerun planned (the clash fix worked; 7 of 7 rule tests), but only 1 of its 3 must-haves was
+    there: no field for the pet's name, breed or age. A debug run printed what the planner was told: the brief
+    had no trace of them (no content notes, nothing on the booking feature). **The detail was lost in
+    clarification, not in planning.** Fix (D-246):
+    - the first reading of the request also lists the details visitors must give (`visitor_details`);
+    - they go into the brief and its summary ("Visitors also tell you: pet's name, breed, age.");
+    - the planner is told to give each one a field;
+    - plan check 30 refuses a plan where any of them has no field (matching every word of the detail against a
+      field read with its record type, so "name" on `pets` holds "pet's name" but `client_name` does not).
+
+    Live rerun: the brief carried the 3 details and the plan added `pet_name`, `breed` and `age` to the
+    appointments, with no fix round.
+
+**Status** Days 1-7 done; the full data set is being rerun with the fix.
 - Not yet tried on Supabase: `btree_gist` and `CREATE ROLE` there (KI-35).
 - Edits take about 10 s each (KI-39).
 - Next: the Backend Agent (forms to routes, KI-38).

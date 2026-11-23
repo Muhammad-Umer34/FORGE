@@ -59,6 +59,11 @@ class IntakeOutput(BaseModel):
     brand_colour: Optional[str] = Field(
         default=None, description="Only a hex code the user wrote, such as #1a7f5a. Never invent one. Otherwise null.")
     items: list[IntakeItem] = Field(default_factory=list)
+    visitor_details: list[str] = Field(
+        default_factory=list,
+        description="Details the request says visitors must give when they book, order or send something, a few "
+                    "words each in the user's terms (e.g. \"pet's name\", \"pet's breed\", \"car model\"). Only "
+                    "details the request names; not the usual name, phone and email. Otherwise empty.")
 
 
 class AnswerInterpretation(BaseModel):

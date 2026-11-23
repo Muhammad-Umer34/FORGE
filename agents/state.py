@@ -242,6 +242,7 @@ class ClarificationState(BaseModel):
     pending_question_id: Optional[str] = None
     questions_used: int = 0
     data_choices: dict[str, str] = Field(default_factory=dict)   # answers to data questions (D-244)
+    visitor_details: list[str] = Field(default_factory=list)     # details visitors must give, from the request (D-246)
     repairs_used: int = 0
     calls_used: int = 0                        # model calls made by this agent, checked against call_hard_cap
     risk_flags: list[str] = Field(default_factory=list)   # triggers for the model review (D-126)
@@ -316,6 +317,8 @@ class ClarifiedBrief(BaseModel):
     test_cases: list[AcceptanceTest] = Field(default_factory=list)
     data_choices: dict[str, str] = Field(default_factory=dict)  # the owner's answers to data questions (D-244),
     # "<pattern>.<switch>" -> option value; locked for the planner. "Let FORGE decide" stores nothing.
+    visitor_details: list[str] = Field(default_factory=list)  # what visitors must give, in the user's words; each
+    # becomes a field in the plan's data (D-246, plan check 30)
     frozen_at: Optional[datetime] = None       # set at freeze, after the user confirms
 
 

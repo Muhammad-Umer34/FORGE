@@ -231,6 +231,27 @@ def build(design, locked: dict[str, str]) -> tuple[list[DataEntity], list[dict],
     return entities, recipes, problems
 
 
+_STOP = {"the", "a", "an", "their", "your", "our", "his", "her", "its", "of", "for", "and", "or", "to", "with", "s"}
+
+
+def _words(text: str) -> list[str]:
+    return [w for w in re.findall(r"[a-z0-9]+", text.lower().replace("'s", " ")) if w not in _STOP]
+
+
+def detail_covered(detail: str, entities: list[DataEntity]) -> bool:
+    """A visitor detail ("pet's breed") is held when one field, read with its record type, has all its words:
+    "breed" on appointments, or "name" on pets. Plural record type names count ("pets" holds "pet")."""
+    wanted = _words(detail)
+    if not wanted:
+        return True
+    for e in entities:
+        for f in e.fields:
+            text = " ".join(_words(f"{e.name} {e.label} {f.name} {f.label}"))
+            if all(any(t.startswith(w) or w.startswith(t) for t in text.split()) for w in wanted):
+                return True
+    return False
+
+
 # ---------------------------------------------------------------- plain-English rule sentences
 def _field(e: DataEntity | None, name: str) -> DataField | None:
     return next((x for x in e.fields if x.name == name), None) if e else None
