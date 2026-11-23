@@ -1,12 +1,12 @@
 # D:\FYP\FORGE-1\agents\planning\checks.py
 """
-The 19 checks every Build Plan must pass (plan v2 §8). Each problem is one plain sentence, so the same list
+The checks every Build Plan must pass: 1-19 (plan v2 §8) and the data model checks 20-28 (D-242). Each problem is one plain sentence, so the same list
 is shown to the model in a fix round and written to the error log when planning stops.
 """
 import re
 
 from agents.catalogue import Catalogue
-from agents.planning import fixed, texts
+from agents.planning import data_patterns, fixed, texts
 from agents.planning.assemble import form_sections, live_sections
 from agents.planning.content_schema import needs_of, section_keys
 from agents.state import BuildPlan, ClarifiedBrief, Limits, RetrievalResult
@@ -156,6 +156,45 @@ def _data(plan: BuildPlan, limits: Limits) -> list[str]:
     return out
 
 
+def _data_model(plan: BuildPlan, brief: ClarifiedBrief, limits: Limits) -> list[str]:
+    """Checks 20-28 (D-242) on record types made from recipes: what the SQL compiler relies on, personal data,
+    statuses, size, and the owner's answers. Record types from before D-242 (no recipe) keep checks 8-12 only."""
+    v2 = [e for e in plan.data_entities if e.pattern]
+    out = [f"29: {p}" for p in plan.data_problems]                             # recipe choices code could not use
+    if not v2:
+        return out
+    out += data_patterns.problems_in(plan.data_entities)                       # 20-23, 26
+    children = {e.name for e in v2 if any(f.type == "reference" and f.required and f.on_delete == "cascade"
+                                           for f in e.fields)}
+    for e in v2:
+        # 24. names, emails, phones and addresses are personal
+        out += [f"24: '{e.name}.{f.name}' holds personal data but is not marked personal"
+                for f in e.fields if e.role == "submission" and data_patterns.personal_name(f.name, f.type)
+                and not f.personal]
+        # 25. visitor submissions have a status and the moves it can make
+        if e.role == "submission" and e.name not in children:
+            status = next((f for f in e.fields if f.name == "status"), None)
+            if not status or status.type != "choice":
+                out.append(f"25: '{e.name}' stores visitor submissions but has no status choice field")
+            elif not any(r.kind == "status_flow" and r.enabled for r in e.rules):
+                out.append(f"25: '{e.name}' has a status but no status_flow rule")
+        # 27. size
+        if len(e.fields) > limits.max_fields_per_entity:
+            out.append(f"27: '{e.name}' has {len(e.fields)} fields, at most {limits.max_fields_per_entity}")
+        if len(e.rules) > limits.max_rules_per_entity:
+            out.append(f"27: '{e.name}' has {len(e.rules)} rules, at most {limits.max_rules_per_entity}")
+    custom = sum(1 for e in v2 if e.pattern == "custom")
+    if custom > limits.max_custom_entities:
+        out.append(f"27: {custom} custom record types, at most {limits.max_custom_entities}")
+    # 28. the owner's answers are kept
+    for key, value in brief.data_choices.items():
+        pattern, _, switch = key.partition(".")
+        used = [r for r in plan.data_recipes if r.get("pattern") == pattern]
+        if used and any((r.get("switches") or {}).get(switch) != value for r in used):
+            out.append(f"28: the owner answered '{switch}' = '{value}' for {pattern}, but the plan differs")
+    return out
+
+
 def _safety(plan: BuildPlan, brief: ClarifiedBrief) -> list[str]:
     out = []
     targets = {c.section_id for c in plan.components} | {r.route_id for r in plan.api_routes}
@@ -242,4 +281,4 @@ def run_checks(plan: BuildPlan, brief: ClarifiedBrief, retrieval: RetrievalResul
     """All problems, each prefixed with its check number. Check 7 (text) runs once the text is written."""
     rules = texts.rules_for(brief, plan) if with_texts else None
     return (_structure(plan, brief, retrieval, cat, limits) + _completeness(plan, with_texts, rules)
-            + _data(plan, limits) + _safety(plan, brief) + _seo_and_access(plan, with_texts) + _variety(plan, limits))
+            + _data(plan, limits) + _data_model(plan, brief, limits) + _safety(plan, brief) + _seo_and_access(plan, with_texts) + _variety(plan, limits))

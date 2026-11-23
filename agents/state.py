@@ -143,11 +143,11 @@ class QuestionOption(BaseModel):
 class Question(BaseModel):
     """
     One question shown on its own screen (D-104). kind: A purpose, B visitor actions,
-    C ambiguity, D core unsupported item, E size limit (custom features or pages).
+    C ambiguity, D core unsupported item, E size limit (custom features or pages), F data choice (D-244).
     """
     question_id: str
     number: int                                # 1-based position among the questions of this request
-    kind: Literal["A", "B", "C", "D", "E"]
+    kind: Literal["A", "B", "C", "D", "E", "F"]   # F: a data question from a recipe switch (D-244)
     slot: str                                  # slot name, or "item:<item_id>", "custom_limit"
     text: str
     options: list[QuestionOption] = Field(default_factory=list)
@@ -241,6 +241,7 @@ class ClarificationState(BaseModel):
     questions: list[Question] = Field(default_factory=list)
     pending_question_id: Optional[str] = None
     questions_used: int = 0
+    data_choices: dict[str, str] = Field(default_factory=dict)   # answers to data questions (D-244)
     repairs_used: int = 0
     calls_used: int = 0                        # model calls made by this agent, checked against call_hard_cap
     risk_flags: list[str] = Field(default_factory=list)   # triggers for the model review (D-126)
@@ -313,6 +314,8 @@ class ClarifiedBrief(BaseModel):
     assumptions: list[Assumption] = Field(default_factory=list)
     clarified_text: str = ""                   # plain-language summary built by a code template (D-117)
     test_cases: list[AcceptanceTest] = Field(default_factory=list)
+    data_choices: dict[str, str] = Field(default_factory=dict)  # the owner's answers to data questions (D-244),
+    # "<pattern>.<switch>" -> option value; locked for the planner. "Let FORGE decide" stores nothing.
     frozen_at: Optional[datetime] = None       # set at freeze, after the user confirms
 
 
@@ -419,11 +422,41 @@ class TextSlot(BaseModel):
     alternatives: list[str] = Field(default_factory=list)    # other candidates (hero headline)
 
 
+# Data model v2 (D-242): what a generated site stores, chosen from fixed menus so code can compile it to SQL.
+# A field type the site's data may use: the content types plus a length of time and a link to another record type.
+DataFieldType = Literal["text", "long_text", "number", "money", "date", "time", "datetime", "email", "phone", "url",
+                        "boolean", "choice", "image", "duration", "reference"]
+RuleKind = Literal["unique_together", "no_overlap", "capacity", "within_hours", "lead_time", "max_advance",
+                   "status_flow", "range", "required_if", "end_from_duration", "date_order"]
+
+
 class DataField(BaseModel):
     name: str
-    type: FieldType
+    type: DataFieldType
     required: bool = True
     personal: bool = False                     # personal data: consent and careful handling
+    label: str = ""                            # what the owner sees ("Client phone")
+    options: list[str] = Field(default_factory=list)         # allowed values of a "choice" field
+    multiple: bool = False                     # several choices, or several links (a stylist does many services)
+    reference: Optional[str] = None            # the record type a "reference" field links to
+    on_delete: Literal["restrict", "cascade", "set_null"] = "restrict"
+    unique: bool = False
+    default: Optional[str] = None
+    min: Optional[float] = None                # number limits
+    max: Optional[float] = None
+    max_length: Optional[int] = None
+    locked: bool = False                       # set by the owner's answers; no model or edit may change it
+
+
+class DataRule(BaseModel):
+    """One rule from the fixed menu (D-242); code turns each kind into a constraint or trigger and writes its
+    plain-English sentence. `params` hold field names and numbers, checked per kind (planning check 22)."""
+    rule_id: str                               # "<entity>.<kind>[.<n>]", set by code
+    kind: RuleKind
+    params: dict[str, Any] = Field(default_factory=dict)
+    label: str = ""                            # the sentence the owner reads, written by code
+    enabled: bool = True                       # the owner may turn a rule off on the review screen
+    locked: bool = False                       # rules that keep links valid, or set by the owner's answers
 
 
 class DataEntity(BaseModel):
@@ -433,6 +466,11 @@ class DataEntity(BaseModel):
     fields: list[DataField] = Field(default_factory=list)
     feature_ids: list[str] = Field(default_factory=list)
     links: list[str] = Field(default_factory=list)           # names of entities it refers to
+    label: str = ""                            # "Appointments"
+    role: Literal["submission", "catalogue", "setting"] = "submission"   # visitors create / owner manages / settings
+    pattern: str = ""                          # the recipe it came from (components/data_patterns.json), or "custom"
+    rules: list[DataRule] = Field(default_factory=list)
+    sample_rows: int = 0                       # sample rows the preview gets, set by code
 
 
 class ApiRoute(BaseModel):
@@ -522,6 +560,9 @@ class BuildPlan(BaseModel):
     content_schema: list[ContentField] = Field(default_factory=list)  # drives the business details form
     texts: list[TextSlot] = Field(default_factory=list)
     data_entities: list[DataEntity] = Field(default_factory=list)
+    data_recipes: list[dict[str, Any]] = Field(default_factory=list)  # D-242: the recipes used, with their final
+    # switch values ({pattern, switches, names, labels, feature_ids}); code re-expands them after an edit
+    data_problems: list[str] = Field(default_factory=list)   # recipe choices code could not use (check 29)
     api_routes: list[ApiRoute] = Field(default_factory=list)
     form_rules: list[FormRule] = Field(default_factory=list)
     dashboard_views: list[DashboardView] = Field(default_factory=list)
@@ -550,6 +591,8 @@ class PlanningState(BaseModel):
     before_fix: Optional[dict[str, Any]] = None              # designs, plan and issues before a fix round
     pending_change: Optional[str] = None                     # the user's change, waiting to be applied
     notice: Optional[str] = None                             # plain message for the approval screen
+    data_base: Optional[list[dict[str, Any]]] = None          # record types as planned, before the owner's edits
+    data_edits: list[dict[str, Any]] = Field(default_factory=list)   # the owner's kept edits, replayed (D-244)
     failure: Optional[FailureInfo] = None
 
 
@@ -634,8 +677,13 @@ class Limits(BaseModel):
     max_plan_fix_rounds: int = 2               # plan v2: model fix rounds after the code checks
     max_plan_edits: int = 1                    # changes the user may make on the plan summary
     max_text_rewrites: int = 1                 # rewrite round for website text that fails the pitch rules
-    max_data_entities: int = 6                 # size caps on the generated backend (plan v2 §4)
-    max_api_routes: int = 10
+    max_data_entities: int = 12                # size caps on the generated backend (plan v2 §4; raised by D-242)
+    max_api_routes: int = 16
+    max_fields_per_entity: int = 25            # D-242: keeps forms usable
+    max_rules_per_entity: int = 10
+    max_custom_entities: int = 3               # record types the model adds outside the recipes
+    max_data_questions: int = 3                # kind-F questions, inside max_questions (D-244)
+    max_data_edits: int = 15                   # structured edits on the review screen, no model call (D-244)
     max_run_cost_usd: float = 1.00             # PLACEHOLDER: spending cap per run, checked before each call (D-216)
 
 
@@ -661,6 +709,7 @@ class RunConfig(BaseModel):
     limits: Limits = Field(default_factory=Limits)
     preview: bool = False                       # start the live preview while the site is built (D-240)
     build_gate: bool = False                    # type-check and build the site after writing it (D-240)
+    database: bool = False                      # gate and provision the site's own schema (D-243)
     state_version: int = STATE_VERSION          # code version that started the run; checked before a resume
     model_per_task: dict[str, str] = Field(default_factory=dict)   # task -> "provider/model"
     catalogue_version: Optional[str] = None     # which feature catalogue and component catalogue were used

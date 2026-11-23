@@ -27,7 +27,7 @@ export interface QuestionData {
   number: number;
   max_questions: number;
   reask: boolean; // the last answer did not answer this question
-  kind: "A" | "B" | "C" | "D" | "E";
+  kind: "A" | "B" | "C" | "D" | "E" | "F";
   slot: string;
   text: string;
   options: QuestionOption[];
@@ -142,11 +142,61 @@ export interface PlanData {
   assumptions: string[];
   changes_left: number;
   notice: string | null; // e.g. a change that could not be made
+  /** "What your site will keep" (D-244), written by code in the owner's words. */
+  data?: DataTable[];
+  data_edits_left?: number;
+  can_undo_data_edit?: boolean;
+  data_types?: string[];
+}
+
+export interface DataField {
+  name: string;
+  label: string;
+  kind: string;
+  options: string[];
+  required: boolean;
+  personal: boolean;
+  removable: boolean;
+  can_toggle_required: boolean;
+  why_fixed: string;
+}
+
+export interface DataRule {
+  rule_id: string;
+  label: string;
+  enabled: boolean;
+  locked: boolean;
+  can_toggle: boolean;
+  number: { value: number; unit: string; min: number; max: number } | null;
+}
+
+export interface DataTable {
+  name: string;
+  label: string;
+  role: "submission" | "catalogue" | "setting";
+  fields: DataField[];
+  rules: DataRule[];
+  can_add_field: boolean;
+}
+
+/** One owner edit on what the site keeps (agents/planning/data_edits.py DataEdit). */
+export interface DataEdit {
+  op: "add_field" | "remove_field" | "set_required" | "toggle_rule" | "set_number" | "undo";
+  entity?: string;
+  field?: string;
+  label?: string;
+  type?: string;
+  options?: string[];
+  required?: boolean;
+  rule_id?: string;
+  enabled?: boolean;
+  value?: number;
 }
 
 export interface PlanDecision {
-  decision: "approve" | "change" | "cancel";
+  decision: "approve" | "change" | "cancel" | "data_edit";
   change_text?: string;
+  edit?: DataEdit;
 }
 
 export type RequestEnvelope =

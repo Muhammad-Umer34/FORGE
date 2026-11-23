@@ -15,7 +15,7 @@ from langgraph.types import interrupt
 from agents.catalogue import load_catalogue
 from agents.clarification.prompts import sanitise
 from agents.gateway import SPENDING_LIMIT, SPENDING_LIMIT_MESSAGE, CallUsage, InvalidOutputError, call_structured
-from agents.planning import assemble, checks, direction, fixed, prompts, texts
+from agents.planning import assemble, checks, data_edits, data_patterns, direction, fixed, prompts, texts
 from agents.planning.schemas import DataDesign, PlanDecision, PlanPatch, SiteDesign, SiteTexts
 from agents.state import Assumption, BuildPlan, FailureInfo, GraphState, PlanningState, UsageSummary, budget_left
 
@@ -93,6 +93,10 @@ def plan_view(plan: BuildPlan, p: PlanningState, limits) -> dict:
         "hero_alternatives": hero.alternatives if hero else [],
         "custom_parts": [{"name": s.name, "purpose": s.purpose} for s in plan.custom_specs],
         "stored": [{"title": v.title, "columns": v.columns, "statuses": v.statuses} for v in plan.dashboard_views],
+        "data": data_edits.view(plan.data_entities),                # "What your site will keep" (D-244)
+        "data_edits_left": max(limits.max_data_edits - len(p.data_edits), 0),
+        "can_undo_data_edit": bool(p.data_edits),
+        "data_types": list(data_edits.SIMPLE_TYPES),
         "details_needed": [f.label for f in plan.content_schema],
         "not_built": [n.model_dump() for n in plan.not_built],
         "assumptions": [a.text for a in plan.assumptions],
@@ -136,11 +140,16 @@ def design_data(state: GraphState) -> dict:
     if not assemble.needs_data(draft):
         p.data_design = None
         return {"planning": p}
-    feature_ids = {s["feature_id"] for s in sections}
-    starters = {k: v for k, v in prompts.DATA_STARTERS.items() if k in feature_ids}
+    brief = state["brief"]
+    locked = brief.data_choices
+    candidates = []
+    for fid in dict.fromkeys(s["feature_id"] for s in sections):
+        candidates += [r for r in data_patterns.recipes_for(fid, brief.business_type)[:2] if r not in candidates]
+    recipes = [data_patterns.prompt_view(r, locked) for r in candidates]
+    others = [{"pattern": r["id"], "label": r["label"]} for r in data_patterns.load().values() if r["id"] not in candidates]
     try:
         out, usage = _call(state, p, "planning", DataDesign, prompts.data_system(state["run_config"].limits),
-                           prompts.data_user(_brief_view(state), sections, starters))
+                           prompts.data_user(_brief_view(state), sections, recipes, others))
     except InvalidOutputError as error:
         return {"planning": _fail(p, "design_data", str(error))}
     p.data_design = out.model_dump(mode="json")
@@ -148,7 +157,41 @@ def design_data(state: GraphState) -> dict:
 
 
 def assemble_plan(state: GraphState) -> dict:
-    return {"plan": _build(state, state["planning"])}
+    plan, p = _build(state, state["planning"]), _p(state)
+    p.data_base = [e.model_dump(mode="json") for e in plan.data_entities]
+    if p.data_edits:                                     # the owner's edits survive a plain-English change (D-244)
+        plan.data_entities, p.data_edits = data_edits.replay(p.data_base, p.data_edits, state["run_config"].limits)
+        assemble.route_fields(plan, _added(p.data_edits))
+    return {"plan": plan, "planning": p}
+
+
+def _added(edits: list[dict]) -> set[str]:
+    return {f"{e['entity']}.{data_edits._slug(e.get('label') or '')}" for e in edits if e.get("op") == "add_field"}
+
+
+def apply_data_edit(state: GraphState, p: PlanningState, edit) -> dict:
+    """One owner edit on the plan screen, by code; the screen comes back with the result or a notice."""
+    limits, plan = state["run_config"].limits, state["plan"].model_copy(deep=True)
+    if p.data_base is None:
+        p.data_base = [e.model_dump(mode="json") for e in plan.data_entities]
+    if edit is None:
+        p.notice = "Nothing to change."
+    elif edit.op == "undo":
+        if p.data_edits:
+            plan.data_entities, p.data_edits = data_edits.replay(p.data_base, p.data_edits[:-1], limits)
+    elif len(p.data_edits) >= limits.max_data_edits:
+        p.notice = "No more changes can be made to the data. Approve the plan, or undo one."
+    else:
+        entities, _ = data_edits.replay(p.data_base, p.data_edits, limits)
+        try:
+            data_edits.apply_one(entities, edit, limits)
+            plan.data_entities = entities
+            p.data_edits.append(edit.model_dump(mode="json"))
+        except data_edits.EditRefused as refused:
+            p.notice = str(refused)
+    assemble.route_fields(plan, _added(p.data_edits))
+    p.status = "awaiting_approval"
+    return {"planning": p, "plan": plan}
 
 
 # ---------------------------------------------------------------- step 6
@@ -326,6 +369,8 @@ def await_plan_approval(state: GraphState) -> dict:
     decision = PlanDecision.model_validate(raw if isinstance(raw, dict) else raw.model_dump())
     p = _p(state)
     p.notice = None
+    if decision.decision == "data_edit":
+        return apply_data_edit(state, p, decision.edit)
     if decision.decision == "approve":
         p.status = "done"
     elif decision.decision == "cancel":

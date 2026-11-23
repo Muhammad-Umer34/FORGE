@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { PlanData, PlanDecision } from "@/types/request";
+import { DataKeep } from "./DataKeep";
 
 interface PlanReviewProps {
   plan: PlanData;
@@ -92,6 +93,20 @@ export function PlanReview({ plan, approved, busy, error, onDecide, onStartOver 
                 </li>
               ))}
             </ul>
+          </Section>
+        )}
+
+        {plan.data && plan.data.length > 0 && (
+          <Section title="What your site will keep">
+            <DataKeep
+              tables={plan.data}
+              types={plan.data_types ?? []}
+              editsLeft={plan.data_edits_left ?? 0}
+              canUndo={!!plan.can_undo_data_edit}
+              readOnly={approved}
+              busy={busy}
+              onEdit={(edit) => onDecide({ decision: "data_edit", edit })}
+            />
           </Section>
         )}
 

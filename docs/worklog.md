@@ -6,6 +6,104 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-23 · Database Agent, day 7: data evaluation (D-242 - D-245)
+
+**What**
+- `scripts/data_briefs.json` (12 requests, six families) and `scripts/run_data_eval.py`, which plans each one,
+  stops at the plan screen and proves its data with the database gate.
+- Evaluations no longer start previews or builds (`run_eval.py`); the simulated owner answers data questions.
+- A catalogue list that clashes with another recipe's own list gives way (`data_patterns.expand`).
+
+**Why** The report needs evidence that owners get the data they need, with every rule enforced.
+
+**Checked** D1: 11 of 12 planned, 50 of 50 rule tests, 17 of 17 owner answers kept, 100% coverage
+(`docs/eval-runs/data01_first_baseline.json`). Full suite green.
+
+**Open** Pet groomer rerun after the rate limit; KI-35, KI-38, KI-39.
+
+---
+
+## 2026-11-22 · Database Agent, day 6: "What your site will keep" (D-244)
+
+**What**
+- `agents/planning/data_edits.py`: add or remove fields, required or optional, rules on or off, rule numbers, undo
+  (replayed edits), and the screen view.
+- `data_edit` decision on `POST /plan`; `assemble.route_fields` keeps routes and form rules in step with the edits.
+- `DataKeep.tsx` panel on the plan screen.
+- Locking only when every answer behind it is the owner's; settings lists not edited.
+
+**Checked** 21 tests; studio type check and lint; live Glow Salon run (questions, panel, add, number, undo, build
+with database files).
+
+**Open** KI-39 (edits about 10 s); day 7: data evaluation.
+
+---
+
+## 2026-11-22 · Database Agent, days 4-5: SQL compiler, gate, own schema per site (D-243, D-245)
+
+**What**
+- `agents/database_generator/`:
+  - `compile.py`: `schema.sql`, `schema.json` and a Mermaid ER diagram, by code only;
+  - `seed.py`: sample rows that pass every rule;
+  - `gate.py`: a scratch schema, one breaking attempt per rule, rolled back;
+  - `provision.py`: `site_<project>` and its role; a rebuild keeps real data; `drop`;
+  - `agent.py`: the build step.
+- `build_site` runs the Database Agent before the Frontend Agent.
+- `FORGE_DATABASE` / `RunConfig.database`; deleting a project drops its storage.
+- Planner: worked-out fields (`end_at`, `status`) are not asked of visitors.
+- Test database: local `forge_test` created; the dead `TEST_DATABASE_URL` line commented out; the old database
+  tests repaired (streaming fakes, background session).
+
+**Why** The Database Agent must turn the owner's data choices into real, safe storage, with proof.
+
+**Checked** 29 compiler, 17 gate (every recipe × every switch value on PostgreSQL), 7 provisioning and agent tests;
+full suite incl. database tests: 639 passed.
+
+**Open** KI-35 - KI-38. Day 6: review panel (journal #33).
+
+---
+
+## 2026-11-22 · Database Agent, days 2-3: data checks, data questions, planning call 2 (D-242, D-244)
+
+**What**
+- Plan checks 24-29 (`checks._data_model`); `BuildPlan.data_recipes` and `data_problems`.
+- Kind-F data questions (`slots.data_gap`), `data_choices`, and one summary line per answer.
+- Planning call 2 returns recipes, switches, renames, extra fields and custom record types (`planning/schemas.py`);
+  `data_patterns.build` and `prompt_view`; prompt rewritten; `DATA_STARTERS` removed.
+- Code sets the route fields of recipe record types, and a recipe's record types stay together.
+
+**Why** Owners shape the data; the model only picks from menus.
+
+**Checked** New tests for checks 24-29, data questions, a salon planned from the recipe, and check 29; the full
+fast suite passes (523). Live: 6 requests gave 5 of 6 planned; after the route-field fix, 3 of 3 planned with
+100% coverage (scripts/runs/eval_vertex_20261122_193714.json). Those runs were slow because evaluations
+also built the site after approval (fixed on day 7, journal #33 step 14).
+
+**Open** Day 4: SQL compiler (journal #33).
+
+---
+
+## 2026-11-22 · Database Agent, day 1: data model v2 and recipes (D-242)
+
+**What**
+- `agents/state.py`:
+  - data model v2: field options, links, on-delete, unique, default, min/max, locked;
+  - `DataRule` with 11 rule kinds; record type role, label and recipe;
+  - limits raised; `ClarifiedBrief.data_choices`; question kind F.
+- `components/data_patterns.json`: 14 recipes in 6 families, with switches and questions.
+- `agents/planning/data_patterns.py`: expansion, rule sentences, compile-safety checks (20-23, 26).
+
+**Why** Owners must shape complex data, and code must be able to enforce every rule. Plan:
+`D:\FYP\reports\FORGE Database Agent plan.md`.
+
+**Checked** `tests/test_data_patterns.py` (29 tests: every recipe with every combination of switch values);
+the full fast suite passes (513).
+
+**Open** Day 2: planner checks 24-28. Days 3-7: planning call 2, data questions, SQL compiler, gate, review
+panel, evaluation (journal #33).
+
+---
+
 ## 2026-11-20 · Frontend Agent: custom parts written by the model (D-228 - D-230, D-241)
 
 **What** The rest of the Frontend Agent (Phase 3 items 3.4 - 3.6, 3.8):

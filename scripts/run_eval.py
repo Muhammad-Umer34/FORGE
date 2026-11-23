@@ -58,6 +58,9 @@ def owner_answer(payload: dict, key: dict) -> dict:
         chosen = [key.get("continue_without_unsupported", "yes")]
     elif q.slot == "custom_limit":
         chosen = options[:q.max_selections or len(options)]
+    elif q.kind == "F":                                  # data questions (D-244): only what the key says
+        value = key.get("data", {}).get(q.slot.removeprefix("data:"))
+        chosen = [value] if value in options else []
     candidates = []
     if chosen:
         candidates.append(UserAnswer(question_id=q.question_id, kind="option", option_ids=chosen))
@@ -128,8 +131,8 @@ async def run_one(graph, brief: dict, n: int) -> dict:
     graph_input = initial_state(
         RequestInfo(request_id=request_id, user_id="eval", project_id="eval", prompt=brief["prompt"],
                     created_at=datetime.now(timezone.utc)),
-        config=_run_config(),
-    )
+        config=_run_config().model_copy(update={"preview": False, "build_gate": False, "database": False}),
+    )   # the evaluation measures clarification and planning; no dev servers or production builds after approval
     started, error, values = time.perf_counter(), None, {}
     try:
         for _ in range(MAX_TURNS):

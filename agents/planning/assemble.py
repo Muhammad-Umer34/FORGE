@@ -7,7 +7,7 @@ contract with consent rules, the work plan, the test map and the not-built list.
 import re
 
 from agents.catalogue import Catalogue
-from agents.planning import direction, fixed
+from agents.planning import data_patterns, direction, fixed
 from agents.planning.content_schema import derive_content_schema, load_needs, needs_of, sample_content
 from agents.planning.schemas import DataDesign, PlanPatch, SiteDesign
 from agents.state import (
@@ -76,11 +76,14 @@ def apply_patch(site: dict, data: dict | None, patch: PlanPatch) -> tuple[SiteDe
     s.custom_specs = _merge(s.custom_specs, patch.custom_specs, lambda x: x.spec_id)
     if patch.footer_links is not None:
         s.footer_links = patch.footer_links
+    d.recipes = _merge(d.recipes, patch.recipes, lambda r: r.pattern, patch.remove_recipes)
+    if patch.extra_fields is not None:
+        d.extra_fields = patch.extra_fields
     d.entities = _merge(d.entities, patch.entities, lambda e: e.name, patch.remove_entities)
     d.routes = _merge(d.routes, patch.routes, lambda r: r.route_id, patch.remove_route_ids)
     d.form_rules = _merge(d.form_rules, patch.form_rules, lambda r: r.section_id)
     d.dashboard_views = _merge(d.dashboard_views, patch.dashboard_views, lambda v: v.entity)
-    return tidy(s), (d if d.entities or d.routes else None)
+    return tidy(s), (d if d.recipes or d.entities or d.routes else None)
 
 
 def form_sections(plan: BuildPlan) -> list[str]:
@@ -218,6 +221,31 @@ def _link_name(link: str, names: set[str]) -> str:
     return target
 
 
+def route_fields(plan: BuildPlan, added: set[str] = frozenset()) -> None:
+    """D-242: the fields of routes on recipe record types come from code. POST: the model's valid fields plus every
+    required one and any field the owner added (`added`); GET: never a visitor's details. Form rules follow."""
+    entities = {e.name: e for e in plan.data_entities}
+    for r in plan.api_routes:
+        e = entities.get(r.entity or "")
+        if not e or not e.pattern:
+            continue
+        worked_out = {"status"} | {x.params.get("end") for x in e.rules if x.kind == "end_from_duration"}
+        names = [f.name for f in e.fields if f.name not in worked_out]          # code fills these, not the visitor
+        if r.method == "POST":
+            sent = [f for f in r.request_fields if f in names]
+            r.request_fields = sent + [f.name for f in e.fields if f.name in names and f.name not in sent
+                                       and ((f.required and f.default is None) or f"{e.name}.{f.name}" in added)]
+        elif r.method == "GET":
+            r.response_fields = [f.name for f in e.fields if not f.personal]
+    routes = {r.route_id: r for r in plan.api_routes}
+    for rule in plan.form_rules:
+        route = routes.get(rule.route_id)
+        e = entities.get(route.entity or "") if route else None
+        if e and e.pattern:
+            required = {f.name for f in e.fields if f.required}
+            rule.required_fields = [f for f in route.request_fields if f in required]
+
+
 def complete_data(plan: BuildPlan) -> None:
     """Code fixes for the data contract. Live runs left POST routes with no `used_by`, named sections by feature
     id, left out form rules and dashboard views, and added routes nothing calls; all of this follows from the
@@ -239,6 +267,7 @@ def complete_data(plan: BuildPlan) -> None:
     for r in plan.api_routes:
         r.route_id, r.used_by = f"{r.method} {r.path}", resolve(r.used_by)
     plan.api_routes = [r for r in plan.api_routes if r.entity in entities]   # a route must use a stored type
+    route_fields(plan)
     routes = {r.route_id: r for r in plan.api_routes}
     by_path = {(r.method, r.path): r.route_id for r in plan.api_routes}
     rules = []
@@ -277,18 +306,28 @@ def complete_data(plan: BuildPlan) -> None:
 
     plan.api_routes = [r for r in plan.api_routes if r.used_by]
     used = {r.entity for r in plan.api_routes}
-    while extra := {link for e in plan.data_entities if e.name in used for link in e.links} - used:
-        used |= extra                                         # booking -> class -> trainer keeps all three (KI-11)
+    while True:                                           # booking -> class -> trainer keeps all three (KI-11)
+        patterns = {e.pattern for e in plan.data_entities if e.name in used and e.pattern not in ("", "custom")}
+        extra = ({link for e in plan.data_entities if e.name in used for link in e.links}
+                 | {e.name for e in plan.data_entities if e.pattern in patterns}) - used  # a recipe stays whole
+        if not extra:
+            break
+        used |= extra
     plan.data_entities = [e for e in plan.data_entities if e.name in used]
     plan.form_rules = [r for r in plan.form_rules if r.route_id in {x.route_id for x in plan.api_routes}]
     kept = {e.name for e in plan.data_entities}
     plan.dashboard_views = [v for v in plan.dashboard_views if v.entity in kept]
     viewed = {v.entity for v in plan.dashboard_views}
     plan.dashboard_views += [
-        DashboardView(entity=e.name, title=e.name.replace("_", " ").capitalize(),
-                      columns=[f.name.replace("_", " ").capitalize() for f in e.fields], statuses=["New", "Done"],
-                      default_status="New")
+        DashboardView(entity=e.name, title=e.label or e.name.replace("_", " ").capitalize(),
+                      columns=[f.label or f.name.replace("_", " ").capitalize() for f in e.fields],
+                      statuses=_status(e).options if _status(e) else ["New", "Done"],
+                      default_status=(_status(e).default if _status(e) else None) or "New")
         for e in plan.data_entities if e.name not in viewed and any(f.personal for f in e.fields)]
+
+
+def _status(e):
+    return next((f for f in e.fields if f.name == "status" and f.type == "choice" and f.options), None)
 
 
 def _follow_reference(plan: BuildPlan, reference: dict | None) -> None:
@@ -332,7 +371,7 @@ def build_plan(brief: ClarifiedBrief, retrieval: RetrievalResult, site: SiteDesi
         brief_version=brief.version, pages=pages, footer_links=site.footer_links, components=comps,
         custom_specs=list(specs.values()), theme=dict(brief.theme or {}),
         content_schema=derive_content_schema(comps, specs), texts=_text_slots(comps, specs, old_texts or []),
-        data_entities=data.entities, api_routes=data.routes, dashboard_views=data.dashboard_views,
+        api_routes=data.routes, dashboard_views=data.dashboard_views,
         form_rules=[r.model_copy(deep=True) for r in data.form_rules],
         not_built=[NotBuilt(asked=u.asked, reason=u.reason, alternative=u.alternative_text) for u in brief.unsupported],
         direction=site.direction or DesignDirection(),
@@ -340,6 +379,7 @@ def build_plan(brief: ClarifiedBrief, retrieval: RetrievalResult, site: SiteDesi
         + [Assumption(text=u, reason="Chosen while planning the site") for u in site.unsure],
         accessibility=list(fixed.ACCESSIBILITY_RULES),
     )
+    plan.data_entities, plan.data_recipes, plan.data_problems = data_patterns.build(data, brief.data_choices)
     if start:                                            # code dealt the direction; the model only repaired fit (D-239)
         model = (site.direction or DesignDirection()).model_dump()
         chosen, plan.direction_changes = direction.settle(

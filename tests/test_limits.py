@@ -178,6 +178,11 @@ class SlowGraph(EmptyGraph):
         self.runs += 1
         await asyncio.sleep(0.5)
 
+    async def astream(self, graph_input, config, **kwargs):   # the API streams build progress (D-233)
+        await self.ainvoke(graph_input, config, **kwargs)
+        return
+        yield
+
     async def aget_state(self, config):
         await asyncio.sleep(0.3)
         return SimpleNamespace(values={"run": True}, interrupts=(SimpleNamespace(value=self.payload),), next=("agent",))

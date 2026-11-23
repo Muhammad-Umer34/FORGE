@@ -42,6 +42,17 @@ def pending(result) -> dict | None:
     return interrupts[0].value if interrupts else None
 
 
+def data_questions(graph, result, config, answer=None):
+    """Answer the owner's data questions (kind F, D-244): "Let FORGE decide", or the first option if `answer`."""
+    seen = []
+    while (q := pending(result)) and q.get("type") == "question" and q.get("kind") == "F":
+        seen.append(q)
+        resume = ({"question_id": q["question_id"], "kind": "option", "option_ids": [q["options"][0]["option_id"]]}
+                  if answer else {"question_id": q["question_id"], "kind": "you_decide"})
+        result = graph.invoke(Command(resume=resume), config)
+    return result, seen
+
+
 # ---------------------------------------------------------------- offline (fake model)
 def fake_model(responses: dict):
     def call(task, schema, system, user, budget_usd=None):
@@ -87,8 +98,12 @@ def test_vague_request_asks_then_confirms_then_freezes(graph, monkeypatch):
 
     result = graph.invoke(Command(resume={"question_id": q["question_id"], "kind": "option",
                                           "option_ids": ["order-request"]}), config)
+    result, asked = data_questions(graph, result, config, answer=True)         # D-244: orders recipe questions
+    assert [a["text"] for a in asked] == ["How do customers get their order?",
+                                          "Should customers choose when they need the order?"]
     screen = pending(result)
     assert screen["type"] == "confirmation" and "send an order request" in screen["summary"]   # TC-03
+    assert "How do customers get their order? They pick it up." in screen["summary"]
 
     themes = screen["themes"]
     assert len(themes) == 3 and sum(1 for th in themes if th["id"] == screen["theme_selected"]) == 1
@@ -116,7 +131,9 @@ def test_vague_request_asks_then_confirms_then_freezes(graph, monkeypatch):
     assert result["usage"].calls == 2 + 3                                      # intake + tests, then 3 planning calls
     # the build step: the frontend agent writes the site (D-240); progress events, files in the store, only the
     # manifest in the state. Preview and gate are off in tests (RunConfig defaults).
-    assert events[0]["message"].startswith("Frontend agent received the plan") and events[0]["input"]["pages"]
+    assert events[0]["agent"] == "database" and events[0]["message"].startswith("Database: designing")   # D-243
+    first = next(e for e in events if e["message"].startswith("Frontend agent received the plan"))
+    assert first["input"]["pages"]
     rid = result["request"].request_id
     saved = store.read(rid)
     assert '"status": "approved"' in saved["forge/plan.json"] and "app/layout.tsx" in saved and "app/page.tsx" in saved
@@ -133,6 +150,7 @@ def test_a_planning_failure_ends_the_run(graph, monkeypatch):
     q = pending(result)
     result = graph.invoke(Command(resume={"question_id": q["question_id"], "kind": "option",
                                           "option_ids": ["order-request"]}), config)
+    result, _ = data_questions(graph, result, config)
     result = graph.invoke(Command(resume={"decision": "confirm"}), config)
     assert pending(result) is None and result["planning"].status == "failed"
     assert result["control"].stage == Stage.FAILED and result["control"].failure_reason.startswith("We could not finish")
@@ -231,9 +249,11 @@ def test_review_never_flags_what_the_user_delegated(graph, monkeypatch):     # D
     result, config = start(graph, "a website for my shop")
     q = pending(result)
     result = graph.invoke(Command(resume={"question_id": q["question_id"], "kind": "option", "option_ids": ["catalog"]}), config)
+    result, _ = data_questions(graph, result, config)
     q = pending(result)
     assert q["kind"] == "B"
     result = graph.invoke(Command(resume={"question_id": q["question_id"], "kind": "you_decide"}), config)
+    result, _ = data_questions(graph, result, config)
     screen = pending(result)
     assert screen["type"] == "confirmation"
     assert screen["please_check"] == []

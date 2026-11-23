@@ -1,0 +1,543 @@
+{
+  "at": "2026-11-23T04:23:28.613547+00:00",
+  "rows": [
+    {
+      "id": "d-salon",
+      "family": "time_bookings",
+      "planned": true,
+      "error": null,
+      "seconds": 40.1,
+      "cost_usd": 0.0113,
+      "data_questions": [
+        "Do clients choose who serves them?",
+        "Can two clients book the same time?",
+        "How far ahead must people book?"
+      ],
+      "failure": null,
+      "recipes": [
+        "appointments",
+        "contact"
+      ],
+      "renames": {
+        "staff": "stylists"
+      },
+      "custom": [],
+      "extra_fields": [],
+      "recipes_ok": true,
+      "switches_kept": {
+        "appointments.choose_staff": true,
+        "appointments.double_booking": true,
+        "appointments.lead_time": true
+      },
+      "owner_answers_kept": {
+        "appointments.choose_staff": true,
+        "appointments.double_booking": true,
+        "appointments.lead_time": true
+      },
+      "must_fields": {
+        "appointments.staff_id": true,
+        "appointments.service_id": true,
+        "appointments.start_at": true
+      },
+      "must_rules": {
+        "appointments.no_overlap": true,
+        "appointments.within_hours": true,
+        "appointments.lead_time": true,
+        "appointments.end_from_duration": true
+      },
+      "must_coverage": 1.0,
+      "tables": 6,
+      "rules": 8,
+      "gate_ok": true,
+      "rule_tests": 8,
+      "rule_tests_passed": 8,
+      "gate_message": "6 tables, 8 rules, 8/8 rule tests passed",
+      "gate_seconds": 0.2,
+      "data_problems": [],
+      "fix_rounds": 0
+    },
+    {
+      "id": "d-clinic",
+      "family": "time_bookings",
+      "planned": true,
+      "error": null,
+      "seconds": 51.8,
+      "cost_usd": 0.0179,
+      "data_questions": [
+        "Do clients choose who serves them?",
+        "Can two clients book the same time?",
+        "How far ahead must people book?"
+      ],
+      "failure": null,
+      "recipes": [
+        "appointments"
+      ],
+      "renames": {
+        "staff": "dentists"
+      },
+      "custom": [],
+      "extra_fields": [],
+      "recipes_ok": true,
+      "switches_kept": {
+        "appointments.choose_staff": true,
+        "appointments.lead_time": true
+      },
+      "owner_answers_kept": {
+        "appointments.choose_staff": true,
+        "appointments.lead_time": true
+      },
+      "must_fields": {
+        "days_off.date": true,
+        "appointments.staff_id": true
+      },
+      "must_rules": {
+        "appointments.within_hours": true,
+        "appointments.lead_time": true
+      },
+      "must_coverage": 1.0,
+      "tables": 5,
+      "rules": 7,
+      "gate_ok": true,
+      "rule_tests": 7,
+      "rule_tests_passed": 7,
+      "gate_message": "5 tables, 7 rules, 7/7 rule tests passed",
+      "gate_seconds": 0.4,
+      "data_problems": [],
+      "fix_rounds": 0
+    },
+    {
+      "id": "d-car-rental",
+      "family": "time_bookings",
+      "planned": true,
+      "error": null,
+      "seconds": 73.3,
+      "cost_usd": 0.0291,
+      "data_questions": [
+        "Can the same item be booked twice for the same days?",
+        "Do you deliver the item, or do people collect it?"
+      ],
+      "failure": null,
+      "recipes": [
+        "rentals"
+      ],
+      "renames": {
+        "rental_items": "cars",
+        "rental_requests": "bookings"
+      },
+      "custom": [],
+      "extra_fields": [],
+      "recipes_ok": true,
+      "switches_kept": {
+        "rentals.no_overlap": true,
+        "rentals.delivery": true
+      },
+      "owner_answers_kept": {
+        "rentals.no_overlap": true,
+        "rentals.delivery": true
+      },
+      "must_fields": {
+        "rental_requests.item_id": true,
+        "rental_requests.start_date": true,
+        "rental_requests.address": true
+      },
+      "must_rules": {
+        "rental_requests.no_overlap": true,
+        "rental_requests.date_order": true,
+        "rental_requests.required_if": true
+      },
+      "must_coverage": 1.0,
+      "tables": 2,
+      "rules": 5,
+      "gate_ok": true,
+      "rule_tests": 5,
+      "rule_tests_passed": 5,
+      "gate_message": "2 tables, 5 rules, 5/5 rule tests passed",
+      "gate_seconds": 0.2,
+      "data_problems": [],
+      "fix_rounds": 0
+    },
+    {
+      "id": "d-restaurant",
+      "family": "time_bookings",
+      "planned": true,
+      "error": null,
+      "seconds": 38.6,
+      "cost_usd": 0.0101,
+      "data_questions": [
+        "What is the largest group one booking can be for?",
+        "How many guests can you seat at one time?",
+        "How far ahead must people book a table?"
+      ],
+      "failure": null,
+      "recipes": [
+        "table_reservations"
+      ],
+      "renames": {},
+      "custom": [],
+      "extra_fields": [],
+      "recipes_ok": true,
+      "switches_kept": {
+        "table_reservations.party_max": true,
+        "table_reservations.seats": true
+      },
+      "owner_answers_kept": {
+        "table_reservations.party_max": true,
+        "table_reservations.seats": true
+      },
+      "must_fields": {
+        "reservations.party_size": true,
+        "reservations.reserved_at": true
+      },
+      "must_rules": {
+        "reservations.capacity": true,
+        "reservations.lead_time": true
+      },
+      "must_coverage": 1.0,
+      "tables": 1,
+      "rules": 4,
+      "gate_ok": true,
+      "rule_tests": 4,
+      "rule_tests_passed": 4,
+      "gate_message": "1 tables, 4 rules, 4/4 rule tests passed",
+      "gate_seconds": 0.2,
+      "data_problems": [],
+      "fix_rounds": 0
+    },
+    {
+      "id": "d-yoga",
+      "family": "sessions",
+      "planned": true,
+      "error": null,
+      "seconds": 65.2,
+      "cost_usd": 0.0176,
+      "data_questions": [
+        "When a class is full, what should happen?",
+        "How many people fit in one class?"
+      ],
+      "failure": null,
+      "recipes": [
+        "classes"
+      ],
+      "renames": {},
+      "custom": [],
+      "extra_fields": [],
+      "recipes_ok": true,
+      "switches_kept": {
+        "classes.waitlist": true,
+        "classes.seats": true
+      },
+      "owner_answers_kept": {
+        "classes.waitlist": true,
+        "classes.seats": true
+      },
+      "must_fields": {
+        "registrations.session_id": true,
+        "sessions.capacity": true
+      },
+      "must_rules": {
+        "registrations.capacity": true,
+        "registrations.unique_together": true
+      },
+      "must_coverage": 1.0,
+      "tables": 3,
+      "rules": 5,
+      "gate_ok": true,
+      "rule_tests": 5,
+      "rule_tests_passed": 5,
+      "gate_message": "3 tables, 5 rules, 5/5 rule tests passed",
+      "gate_seconds": 0.5,
+      "data_problems": [],
+      "fix_rounds": 0
+    },
+    {
+      "id": "d-workshop",
+      "family": "sessions",
+      "planned": true,
+      "error": null,
+      "seconds": 52.7,
+      "cost_usd": 0.0165,
+      "data_questions": [
+        "When a class is full, what should happen?",
+        "How many people fit in one class?",
+        "Do clients choose who serves them?"
+      ],
+      "failure": null,
+      "recipes": [
+        "classes"
+      ],
+      "renames": {
+        "classes": "workshops",
+        "registrations": "workshop_registrations"
+      },
+      "custom": [],
+      "extra_fields": [],
+      "recipes_ok": true,
+      "switches_kept": {},
+      "owner_answers_kept": {},
+      "must_fields": {
+        "*place*": true
+      },
+      "must_rules": {},
+      "must_coverage": 1.0,
+      "tables": 3,
+      "rules": 5,
+      "gate_ok": true,
+      "rule_tests": 5,
+      "rule_tests_passed": 5,
+      "gate_message": "3 tables, 5 rules, 5/5 rule tests passed",
+      "gate_seconds": 0.2,
+      "data_problems": [],
+      "fix_rounds": 0
+    },
+    {
+      "id": "d-bakery",
+      "family": "orders_quotes",
+      "planned": true,
+      "error": null,
+      "seconds": 51.5,
+      "cost_usd": 0.0129,
+      "data_questions": [
+        "How do customers get their order?",
+        "Should customers choose when they need the order?"
+      ],
+      "failure": null,
+      "recipes": [
+        "catalogue",
+        "orders"
+      ],
+      "renames": {},
+      "custom": [],
+      "extra_fields": [],
+      "recipes_ok": true,
+      "switches_kept": {
+        "orders.fulfilment": true,
+        "orders.pickup_time": true
+      },
+      "owner_answers_kept": {
+        "orders.fulfilment": true,
+        "orders.pickup_time": true
+      },
+      "must_fields": {
+        "orders.needed_at": true,
+        "order_items.quantity": true,
+        "order_items.item_id": true
+      },
+      "must_rules": {
+        "orders.lead_time": true,
+        "orders.status_flow": true
+      },
+      "must_coverage": 1.0,
+      "tables": 3,
+      "rules": 3,
+      "gate_ok": true,
+      "rule_tests": 3,
+      "rule_tests_passed": 3,
+      "gate_message": "3 tables, 3 rules, 3/3 rule tests passed",
+      "gate_seconds": 0.2,
+      "data_problems": [],
+      "fix_rounds": 1
+    },
+    {
+      "id": "d-contractor",
+      "family": "orders_quotes",
+      "planned": true,
+      "error": null,
+      "seconds": 38.4,
+      "cost_usd": 0.0104,
+      "data_questions": [
+        "Should the quote form ask for a budget?",
+        "Should people say when they need the work done?"
+      ],
+      "failure": null,
+      "recipes": [
+        "quotes"
+      ],
+      "renames": {
+        "quote_requests": "renovation_requests"
+      },
+      "custom": [],
+      "extra_fields": [],
+      "recipes_ok": true,
+      "switches_kept": {},
+      "owner_answers_kept": {
+        "quotes.budget": true,
+        "quotes.needed_by": true
+      },
+      "must_fields": {
+        "*budget*": true,
+        "*needed*": true
+      },
+      "must_rules": {},
+      "must_coverage": 1.0,
+      "tables": 1,
+      "rules": 2,
+      "gate_ok": true,
+      "rule_tests": 2,
+      "rule_tests_passed": 2,
+      "gate_message": "1 tables, 2 rules, 2/2 rule tests passed",
+      "gate_seconds": 0.2,
+      "data_problems": [],
+      "fix_rounds": 0
+    },
+    {
+      "id": "d-property",
+      "family": "catalogues",
+      "planned": true,
+      "error": null,
+      "seconds": 45.0,
+      "cost_usd": 0.0146,
+      "data_questions": [
+        "Should the quote form ask for a budget?",
+        "Should people say when they need the work done?"
+      ],
+      "failure": null,
+      "recipes": [
+        "catalogue",
+        "contact"
+      ],
+      "renames": {
+        "listings": "properties"
+      },
+      "custom": [],
+      "extra_fields": [],
+      "recipes_ok": true,
+      "switches_kept": {},
+      "owner_answers_kept": {},
+      "must_fields": {
+        "contact_messages.message": true
+      },
+      "must_rules": {
+        "contact_messages.status_flow": true
+      },
+      "must_coverage": 1.0,
+      "tables": 2,
+      "rules": 1,
+      "gate_ok": true,
+      "rule_tests": 1,
+      "rule_tests_passed": 1,
+      "gate_message": "2 tables, 1 rules, 1/1 rule tests passed",
+      "gate_seconds": 0.4,
+      "data_problems": [],
+      "fix_rounds": 0
+    },
+    {
+      "id": "d-jobs",
+      "family": "applications",
+      "planned": true,
+      "error": null,
+      "seconds": 49.7,
+      "cost_usd": 0.0134,
+      "data_questions": [],
+      "failure": null,
+      "recipes": [
+        "contact",
+        "applications"
+      ],
+      "renames": {
+        "applications": "job_applications"
+      },
+      "custom": [],
+      "extra_fields": [],
+      "recipes_ok": true,
+      "switches_kept": {},
+      "owner_answers_kept": {},
+      "must_fields": {
+        "*cv*": true
+      },
+      "must_rules": {},
+      "must_coverage": 1.0,
+      "tables": 3,
+      "rules": 3,
+      "gate_ok": true,
+      "rule_tests": 3,
+      "rule_tests_passed": 3,
+      "gate_message": "3 tables, 3 rules, 3/3 rule tests passed",
+      "gate_seconds": 0.2,
+      "data_problems": [],
+      "fix_rounds": 0
+    },
+    {
+      "id": "d-tutor",
+      "family": "time_bookings",
+      "planned": true,
+      "error": null,
+      "seconds": 34.4,
+      "cost_usd": 0.0088,
+      "data_questions": [
+        "Do clients choose who serves them?",
+        "Can two clients book the same time?",
+        "How far ahead must people book?"
+      ],
+      "failure": null,
+      "recipes": [
+        "appointments",
+        "catalogue",
+        "contact"
+      ],
+      "renames": {
+        "items": "services_offered"
+      },
+      "custom": [],
+      "extra_fields": [],
+      "recipes_ok": true,
+      "switches_kept": {
+        "appointments.choose_staff": true,
+        "appointments.double_booking": true
+      },
+      "owner_answers_kept": {
+        "appointments.choose_staff": true,
+        "appointments.double_booking": true
+      },
+      "must_fields": {
+        "appointments.service_id": true,
+        "appointments.start_at": true
+      },
+      "must_rules": {
+        "appointments.no_overlap": true
+      },
+      "must_coverage": 1.0,
+      "tables": 4,
+      "rules": 7,
+      "gate_ok": true,
+      "rule_tests": 7,
+      "rule_tests_passed": 7,
+      "gate_message": "4 tables, 7 rules, 7/7 rule tests passed",
+      "gate_seconds": 0.5,
+      "data_problems": [],
+      "fix_rounds": 0
+    },
+    {
+      "id": "d-pet-groomer",
+      "family": "custom",
+      "planned": false,
+      "error": null,
+      "seconds": 42.6,
+      "cost_usd": 0.0377,
+      "data_questions": [
+        "Do clients choose who serves them?",
+        "Can two clients book the same time?",
+        "How far ahead must people book?"
+      ],
+      "failure": "29: two recipes both make 'services'; rename one"
+    }
+  ],
+  "summary": {
+    "requests": 12,
+    "planned": 11,
+    "recipes_right": 11,
+    "schema_applies_and_rules_hold": 11,
+    "rule_tests": 50,
+    "rule_tests_passed": 50,
+    "owner_answers_kept": "17/17",
+    "must_coverage": 1.0,
+    "avg_tables": 3.0,
+    "avg_rules": 4.5,
+    "avg_seconds": 48.6,
+    "avg_gate_seconds": 0.29,
+    "avg_cost_usd": 0.0167,
+    "custom_record_types": 0,
+    "not_planned": [
+      "d-pet-groomer"
+    ]
+  }
+}

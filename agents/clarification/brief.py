@@ -98,6 +98,7 @@ def draft_brief(c: ClarificationState, cat: Catalogue, version: int = 1) -> Clar
         integrations=[{"kind": _EMBED_FEATURES[fid], "feature_id": fid} for fid in feature_ids if fid in _EMBED_FEATURES],
         unsupported=unsupported,
         assumptions=list(c.assumptions),
+        data_choices=dict(c.data_choices),
     )
     brief.clarified_text = clarified_text(brief, c)
     return brief
@@ -158,6 +159,11 @@ def clarified_text(brief: ClarifiedBrief, c: ClarificationState) -> str:
         parts.append("It includes: " + ", ".join(names) + ".")
     if brief.theme:
         parts.append(f"Look: {brief.theme['label']}, with {brief.theme['fonts']['heading']} headings.")
+    for q in c.questions:                                # the owner's data answers (D-244)
+        if q.kind == "F" and q.answer_kind == "option" and q.answer_option_ids:
+            label = next((o.label for o in q.options if o.option_id == q.answer_option_ids[0]), "")
+            if label:
+                parts.append(f"{q.text} {label}.")
     for u in brief.unsupported:
         note = u.alternative_text or u.reason
         parts.append(f'Not included: "{u.asked}" ({note.rstrip(".")}).')

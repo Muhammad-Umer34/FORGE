@@ -1,5 +1,6 @@
 # D:\FYP\FORGE-1\agents\database_generator\__init__.py
-from agents.database_generator.schema import generate_database_artifacts
-from agents.database_generator.seed import generate_seed_data
+"""The Database Agent (D-242, D-245): code only. compile -> seed -> gate -> provision."""
+from agents.database_generator.compile import compile_schema
+from agents.database_generator.seed import seed_rows, seed_sql
 
-__all__ = ["generate_database_artifacts", "generate_seed_data"]
+__all__ = ["compile_schema", "seed_rows", "seed_sql"]

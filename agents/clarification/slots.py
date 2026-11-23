@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from agents.catalogue import Catalogue
 from agents.clarification import grounding
 from agents.clarification.schemas import NO_VISITOR_ACTION, VISITOR_ACTION_FEATURES, UserAnswer
+from agents.planning import data_patterns
 from agents.state import Assumption, ClarificationState, Limits, OutOfScopeInfo, Question, QuestionOption, Slot
 
 
@@ -46,7 +47,7 @@ def fill_slots_from_items(c: ClarificationState) -> None:
 
 @dataclass
 class Gap:
-    kind: str            # question kind A-E
+    kind: str            # question kind A-F
     key: str             # slot name, "item:<id>" or "custom_limit"
     missing: str         # plain words for a missing_info failure
     item_id: str | None = None
@@ -85,6 +86,12 @@ def build_question(gap: Gap, c: ClarificationState, cat: Catalogue, limits: Limi
     other = free_text_allowed(c, limits)
     common = dict(question_id=f"q{number}", number=number, kind=gap.kind, slot=gap.key)
 
+    if gap.kind == "F":
+        switch = gap.extra["switch"]
+        return Question(**common, text=switch["question"], allow_you_decide=True,
+                        options=[QuestionOption(option_id=o["value"], label=o["label"],
+                                                recommended=bool(o.get("recommended"))) for o in switch["options"]])
+
     if gap.kind == "A":
         return Question(**common, text="What is this website for?",
                         options=[QuestionOption(option_id=b.baseline_id, label=b.label) for b in cat.baselines],
@@ -117,14 +124,35 @@ def build_question(gap: Gap, c: ClarificationState, cat: Catalogue, limits: Limi
                     options=[QuestionOption(option_id=i.item_id, label=i.text) for i in grounding.custom_items(c)])
 
 
+def data_gap(c: ClarificationState, limits: Limits) -> Gap | None:
+    """The next data question (kind F, D-244): a recipe switch marked `ask`, for the recipe that best fits each data
+    feature the site has. Optional: asked only when nothing else is open and questions are left; an unasked switch
+    keeps its default and the planner may set it."""
+    if sum(1 for q in c.questions if q.kind == "F") >= limits.max_data_questions:
+        return None
+    asked = {q.slot for q in c.questions}
+    for fid in dict.fromkeys(m.feature_id for m in c.matches):
+        recipes = data_patterns.recipes_for(fid, c.business_type)
+        if not recipes:
+            continue
+        recipe = data_patterns.load()[recipes[0]]
+        for s in sorted((s for s in recipe["switches"] if s.get("ask")), key=lambda s: s.get("priority", 9)):
+            key = f"data:{recipe['id']}.{s['id']}"
+            if key not in asked and f"{recipe['id']}.{s['id']}" not in c.data_choices:
+                return Gap("F", key, s["question"], extra={"recipe": recipe["id"], "switch": s})
+    return None
+
+
 def select_next(c: ClarificationState, cat: Catalogue, limits: Limits) -> tuple[str, object]:
     """
     ("ask", Question) | ("draft", None) | ("defaults", None).
     When the questions run out with gaps left, the caller applies stated defaults (D-219, replaces D-112).
+    Data questions (kind F) come last and only while questions are left; they never block the draft.
     """
     gaps = open_gaps(c, cat, limits)
     if not gaps:
-        return "draft", None
+        gap = data_gap(c, limits) if c.questions_used < limits.max_questions else None
+        return ("ask", build_question(gap, c, cat, limits)) if gap else ("draft", None)
     gap = gaps[0]
     if c.questions_used >= limits.max_questions or times_asked(c, gap.key) > limits.max_reasks_per_slot:
         return "defaults", None
@@ -190,6 +218,9 @@ def apply_option_answer(c: ClarificationState, q: Question, option_ids: list[str
                 alternatives=[cap.alternative_text] if cap and cap.alternative_text else [],
             )
 
+    elif q.kind == "F":                                  # "<recipe>.<switch>" -> the owner's answer, locked (D-244)
+        c.data_choices[q.slot.removeprefix("data:")] = option_ids[0]
+
     elif q.slot == "custom_limit":
         for item in grounding.custom_items(c):
             if item.item_id not in option_ids:
@@ -240,6 +271,8 @@ def apply_defaults(c: ClarificationState, cat: Catalogue, limits: Limits) -> lis
 
 def apply_you_decide(c: ClarificationState, q: Question, cat: Catalogue) -> None:
     """'You decide': pick the default and log it as an Assumption the user will see (source user_delegated)."""
+    if q.kind == "F":                                    # nothing stored: the planner chooses (D-244)
+        return
     if q.kind == "B":
         choice = _DEFAULT_VISITOR_ACTION.get(grounding.choose_baseline(c, cat) or "", "contact-form")
     else:  # C

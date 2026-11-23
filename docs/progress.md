@@ -48,6 +48,18 @@ fallback section / failed.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | B1 | 2026-11-20 | uncommitted (D-228 - D-230, D-241) | gemini-2.5-pro | 9 | 9 | 9 | 0 | 0 | 0 | 3 / 3 | 0 | 97% (96 of 99 files) | 34 s | $0.0016 | First builder baseline. Custom parts: price calculator, fee estimator, delivery-zone checker; 2 small fixes by code (post-processors). The loyalty card (b-rest-02) was correctly refused as needing customer accounts; the coffee tool (b-rest-03) was matched to a library part. Fix rounds and fallbacks were not needed in this run, so they are verified by tests only (`tests/test_gate.py`) |
 
+### Data scoreboard (Database Agent)
+
+The data evaluation set (`scripts/data_briefs.json`): 12 requests across the six data families (time bookings,
+sessions with seats, orders and quotes, catalogues, applications, a custom record type). Run with
+`scripts/run_data_eval.py`: each request is clarified and planned with the strict simulated owner (data questions
+answered from its key), stopping at the plan screen; its data is then compiled and proved by the database gate on
+the test database.
+
+| # | Date | Commit | Requests | Planned | Right recipe | Schema applies, rules hold | Rule tests | Owner answers kept | Must-have coverage | Avg tables / rules | Avg time | Avg cost | What changed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| D1 | 2026-11-23 | D-242 - D-245 | 12 | 11 | 11 / 11 | 11 / 11 | 50 / 50 | 17 / 17 | 100% | 3.0 / 4.5 | 49 s | $0.017 | First data baseline. Gate 0.3 s per site. Not planned: d-pet-groomer, the model added the catalogue recipe renamed to "services", clashing with the appointments recipe's own services (check 29, issue 35); fixed by code after the run (a clashing catalogue list gives way), rerun pending |
+
 ## 2. Issues met and how they were fixed
 
 Newest first. **Found by**: how the issue showed up. Each fix links to its decision. The step-by-step path behind
@@ -55,6 +67,9 @@ each row (every try, wrong turns, how it was checked) is in `problem-journal.md`
 
 | # | Date | Issue | Found by | Cause | Fix | Decision |
 |---|---|---|---|---|---|---|
+| 37 | 2026-11-23 | All 12 data evaluation requests reported "not planned" | First data evaluation | The runner stopped at the plan screen and read the run's state while the plan was still inside the paused planning step, then labelled this an outage | Read the plan from the planning step's own state (`subgraphs=True`); no outage guess in the message | - |
+| 36 | 2026-11-23 | The pet groomer plan failed check 29 twice | Data evaluation D1 | The model added the catalogue recipe renamed "services" next to the appointments recipe, which already has services | A clashing catalogue list gives way to the other recipe's own list; the prompt says booking recipes include their lists | D-242 |
+| 35 | 2026-11-22 | Evaluation runs took about 115 s instead of about 45 s | Live planning runs (D-242) | The runner used the API's settings, so every evaluated request also started a preview and a production build | Evaluations switch the preview, build gate and storage off | - |
 | 34 | 2026-11-20 | A model-written price calculator could only be used with a mouse | Trying it in the browser | Clickable `<div>`s; and the agent discarded the post-processors' issues, so non-build problems were never sent back | A keyboard check, a "code checks" layer in the gate (at most 2 rounds), the rule named in the writer's prompt | D-241 |
 | 33 | 2026-11-20 | Calculator samples said "Service 1 service_name" and Rs. 0 for every price | Looking at the live part | Generic sample text for unknown fields; money samples of Rs. 0 | Rising round amounts for prices, "Service 1" for names | D-241 |
 | 32 | 2026-11-20 | A demo crashed with FileExistsError on the preview folder | Re-running the demo | Another process still held the same folder name | A fresh folder per preview start | D-240 |

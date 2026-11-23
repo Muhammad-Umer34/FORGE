@@ -50,6 +50,11 @@ Retr = Context Retrieval.
 | KI-32 | The live preview lives in the server's memory; after a restart it is started again from the saved files (`POST .../preview`) | Preview | Medium | Fixed (2026-11-15): reopen checks the right status (`planned`), always asks for a live preview; checked end to end |
 | KI-33 | A plan can give the home page only a hero section (seen in the restaurant demo run) | Plan | Medium (quality) | Open |
 | KI-34 | The builder evaluation has only 3 custom parts so far, all passing first time: the gate's fix rounds and fallbacks are verified by tests with a fake model, not yet by a live failure | Builder | Medium (evidence) | Open: add harder custom requests to the builder set |
+| KI-35 | The Database Agent is tested on local PostgreSQL 18 only. On Supabase, `CREATE EXTENSION btree_gist` and `CREATE ROLE` / `GRANT role TO current_user` are not yet tried (the code falls back to a trigger when the extension is missing) | Database | Medium | Open: one live build with `FORGE_DATABASE=on` |
+| KI-36 | Site storage has no migrations: a changed plan recreates the schema (real rows are kept in a renamed copy, not moved) | Database | Low (no published sites yet) | Open: migrations in FYP-2 |
+| KI-37 | One time zone (Asia/Karachi) for every site's working hours and notice rules | Database | Low | Open: ask the owner when FORGE serves other countries |
+| KI-38 | Library forms send camelCase fields (`fullName`, `serviceId`), and recipe tables use snake_case (`client_name`, `service_id`); nothing maps them yet, so forms still store nothing (KI-30) | Backend | High | Open: the Backend/Integration plan |
+| KI-39 | Each answer and each data edit on the plan screen takes about 10 s, although the edit itself is code only: the run is saved to Supabase on every step | Studio | Low | Open: measure where the time goes |
 
 ## Scope limits
 

@@ -7,8 +7,11 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from agents.planning.data_edits import DataEdit
+
 from agents.state import (
-    ApiRoute, DashboardView, DataEntity, DesignDirection, FieldType, FormRule, NeedKind, PlannedPage,
+    ApiRoute, DashboardView, DataEntity, DataField, DataFieldType, DataRule, DesignDirection, FieldType, FormRule,
+    NeedKind, PlannedPage, RuleKind,
 )
 
 
@@ -74,9 +77,125 @@ class SiteDesign(BaseModel):
     unsure: list[str] = Field(default_factory=list)         # choices made without enough information
 
 
+# ---------------------------------------------------------------- call 2: data, from recipes (D-242)
+class SwitchValue(BaseModel):
+    switch: str                                # a switch id of the recipe
+    value: str                                 # one of its option values
+
+
+class Rename(BaseModel):
+    entity: str                                # a record type the recipe makes, e.g. "staff"
+    name: str = ""                             # new snake_case plural name, e.g. "stylists"; empty keeps it
+    label: str = ""                            # what the owner sees, e.g. "Stylists"
+
+
+class RecipeChoice(BaseModel):
+    pattern: str                               # a recipe id
+    feature_ids: list[str] = Field(default_factory=list)      # brief features it serves
+    switches: list[SwitchValue] = Field(default_factory=list)  # only switches the owner did not answer
+    renames: list[Rename] = Field(default_factory=list)
+
+
+class DataFieldOut(BaseModel):
+    name: str                                  # snake_case
+    label: str = ""
+    type: DataFieldType = "text"
+    required: bool = True
+    personal: bool = False
+    options: list[str] = Field(default_factory=list)          # for "choice"
+    multiple: bool = False
+    reference: Optional[str] = None            # for "reference": the record type it links to
+    on_delete: Literal["restrict", "cascade", "set_null"] = "restrict"
+    unique: bool = False
+    default: Optional[str] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
+    max_length: Optional[int] = None
+
+    def to_field(self) -> DataField:
+        return DataField(**self.model_dump())
+
+
+class StatusMove(BaseModel):
+    from_status: str
+    to: list[str] = Field(default_factory=list)
+
+
+class DataRuleOut(BaseModel):
+    """A rule from the fixed menu, its settings flat (no free dictionaries). Only the settings its kind uses are set:
+    unique_together: fields | no_overlap: start, end, resource?, ignore_statuses | capacity: parent +
+    parent_capacity, or group_by + max_count; sum?, overflow, count_statuses | within_hours: start, end, hours,
+    days_off, resource? | lead_time: start, hours, via? | max_advance: start, days, via? | status_flow: field, moves |
+    range: field, min_value, max_value | required_if: field, when_field, when_value | end_from_duration: start, end,
+    via, duration | date_order: start, end, min_days?"""
+    kind: RuleKind
+    fields: list[str] = Field(default_factory=list)
+    field: Optional[str] = None
+    start: Optional[str] = None
+    end: Optional[str] = None
+    resource: Optional[str] = None
+    via: Optional[str] = None
+    duration: Optional[str] = None
+    parent: Optional[str] = None
+    parent_capacity: Optional[str] = None
+    group_by: list[str] = Field(default_factory=list)
+    sum: Optional[str] = None
+    max_count: Optional[int] = None
+    overflow: Optional[Literal["refuse", "waitlist"]] = None
+    count_statuses: list[str] = Field(default_factory=list)
+    ignore_statuses: list[str] = Field(default_factory=list)
+    hours: Optional[float] = None
+    days: Optional[float] = None
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    when_field: Optional[str] = None
+    when_value: Optional[str] = None
+    min_days: Optional[float] = None
+    moves: list[StatusMove] = Field(default_factory=list)
+
+    def to_rule(self) -> DataRule:
+        raw = self.model_dump(exclude={"kind", "moves", "max_count", "min_value", "max_value"}, exclude_none=True)
+        params = {k: v for k, v in raw.items() if v != []}
+        if self.max_count is not None:
+            params["max"] = self.max_count
+        if self.min_value is not None:
+            params["min"] = self.min_value
+        if self.max_value is not None:
+            params["max"] = self.max_value
+        if self.moves:
+            params["moves"] = {m.from_status: m.to for m in self.moves}
+        return DataRule(rule_id="", kind=self.kind, params=params)
+
+
+class DataEntityOut(BaseModel):
+    """A record type the model writes itself when no recipe fits (pattern "custom")."""
+    name: str
+    label: str = ""
+    role: Literal["submission", "catalogue", "setting"] = "submission"
+    purpose: str = ""
+    feature_ids: list[str] = Field(default_factory=list)
+    fields: list[DataFieldOut] = Field(default_factory=list)
+    rules: list[DataRuleOut] = Field(default_factory=list)
+    links: list[str] = Field(default_factory=list)
+
+    def to_entity(self) -> DataEntity:
+        return DataEntity(name=self.name, label=self.label, role=self.role, purpose=self.purpose,
+                          feature_ids=list(self.feature_ids), fields=[f.to_field() for f in self.fields],
+                          rules=[r.to_rule() for r in self.rules], links=list(self.links), pattern="custom",
+                          sample_rows=3)
+
+
+class ExtraField(BaseModel):
+    entity: str                                # a record type made by a recipe (after renames)
+    field: DataFieldOut
+
+
 class DataDesign(BaseModel):
-    """Call 2: what the site stores and the contract between its frontend and backend."""
-    entities: list[DataEntity] = Field(default_factory=list)
+    """Call 2: what the site stores and the contract between its frontend and backend. Recipes first (D-242):
+    code expands them; `entities` only for record types no recipe makes."""
+    recipes: list[RecipeChoice] = Field(default_factory=list)
+    extra_fields: list[ExtraField] = Field(default_factory=list)
+    entities: list[DataEntityOut] = Field(default_factory=list)       # custom record types
     routes: list[ApiRoute] = Field(default_factory=list)
     form_rules: list[FormRule] = Field(default_factory=list)
     dashboard_views: list[DashboardView] = Field(default_factory=list)
@@ -103,7 +222,10 @@ class PlanPatch(BaseModel):
     section_order: list[PageOrder] = Field(default_factory=list)
     custom_specs: list[CustomSpecOut] = Field(default_factory=list)   # added or changed, by spec_id
     footer_links: Optional[list[str]] = None                         # the whole new list, only when it changes
-    entities: list[DataEntity] = Field(default_factory=list)          # added or changed, by name
+    recipes: list[RecipeChoice] = Field(default_factory=list)         # added or changed, by pattern
+    remove_recipes: list[str] = Field(default_factory=list)
+    extra_fields: Optional[list[ExtraField]] = None                   # the whole new list, only when it changes
+    entities: list[DataEntityOut] = Field(default_factory=list)       # custom record types, added or changed, by name
     remove_entities: list[str] = Field(default_factory=list)
     routes: list[ApiRoute] = Field(default_factory=list)              # added or changed, by route_id
     remove_route_ids: list[str] = Field(default_factory=list)
@@ -123,6 +245,7 @@ class SiteTexts(BaseModel):
 
 
 class PlanDecision(BaseModel):
-    """The user's answer on the plan screen."""
-    decision: Literal["approve", "change", "cancel"]
+    """The user's answer on the plan screen. "data_edit" changes what the site keeps, by code (D-244)."""
+    decision: Literal["approve", "change", "cancel", "data_edit"]
     change_text: Optional[str] = None
+    edit: Optional[DataEdit] = None

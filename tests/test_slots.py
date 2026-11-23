@@ -38,6 +38,41 @@ def test_clear_request_asks_nothing():
     answered(c, "purpose", ["bakery"])
     grounding.add_match(c, CAT, "order-request", "user_stated")
     slots.fill_slots_from_items(c)
+    assert slots.open_gaps(c, CAT, LIMITS) == []                     # nothing blocks the draft
+    assert slots.select_next(c, CAT, Limits(max_data_questions=0)) == ("draft", None)
+
+
+def test_data_questions_come_last_and_are_capped():
+    c = state()
+    answered(c, "purpose", ["salon"])
+    c.business_type = "hair salon"
+    grounding.add_match(c, CAT, "booking", "user_stated")
+    slots.fill_slots_from_items(c)
+    action, q = slots.select_next(c, CAT, LIMITS)
+    assert action == "ask" and q.kind == "F" and q.slot == "data:appointments.choose_staff"
+    assert q.text == "Do clients choose who serves them?" and q.allow_you_decide and not q.allow_other_text
+    assert [o.recommended for o in q.options] == [True, False]
+    c.questions.append(q)
+    slots.apply_option_answer(c, q, ["no"], CAT)
+    assert c.data_choices == {"appointments.choose_staff": "no"}
+    for _ in range(2):                                          # two more, then the cap of 3 is reached
+        action, q = slots.select_next(c, CAT, LIMITS)
+        assert action == "ask" and q.kind == "F"
+        c.questions.append(q)
+        slots.apply_you_decide(c, q, CAT)                      # "Let FORGE decide" stores nothing
+    assert c.data_choices == {"appointments.choose_staff": "no"} and c.assumptions == []
+    assert slots.select_next(c, CAT, LIMITS) == ("draft", None)
+
+
+def test_restaurant_bookings_ask_about_tables_and_no_questions_when_out_of_budget():
+    c = state()
+    answered(c, "purpose", ["restaurant"])
+    c.business_type = "Italian restaurant"
+    grounding.add_match(c, CAT, "booking", "user_stated")
+    slots.fill_slots_from_items(c)
+    _, q = slots.select_next(c, CAT, LIMITS)
+    assert q.slot == "data:table_reservations.party_max"
+    c.questions_used = LIMITS.max_questions
     assert slots.select_next(c, CAT, LIMITS) == ("draft", None)
 
 

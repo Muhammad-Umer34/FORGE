@@ -56,7 +56,8 @@ def _after_finish(state: GraphState) -> str:
 
 
 def _after_decision(state: GraphState) -> str:
-    return {"done": "freeze", "changing": "apply_change"}.get(_status(state), END)
+    return {"done": "freeze", "changing": "apply_change",
+            "awaiting_approval": "await_plan_approval"}.get(_status(state), END)    # a data edit shows the plan again
 
 
 def _after_change(state: GraphState) -> str:

@@ -55,22 +55,38 @@ How to design:
 
 DATA_SYSTEM = f"""You are the Planning Agent of FORGE. The pages and sections are fixed. Now design what the
 generated website stores and the API contract between its frontend and backend, so both can be built at the
-same time.
+same time. Code builds the database from your choices; you never write SQL.
 
-How to design:
-- Start from the standard designs you are given and adapt them to this business (a gym booking may add a class
-  and a trainer). Keep them small: at most {{max_entities}} stored types and {{max_routes}} routes.
-- entities: snake_case plural names; feature_ids: the brief's feature ids the entity serves; fields with an allowed type; personal=true for names, emails, phones and
-  any detail about a person. links name other entities.
-- routes: route_id is "METHOD /api/path". Each route uses one entity, lists request_fields from that entity,
-  the response_fields, plain validation rules, and used_by: the section ids that call it.
+How to design (D-242):
+- recipes: pick the recipe that fits each feature that sends or shows data, from the recipes you are given (best
+  matches first, with what each makes under its current switch values). Give the brief's feature_ids it serves.
+  One recipe per kind of data; never two recipes that make the same record type. Booking, class, order and rental
+  recipes already include the lists they book or sell (services, staff, items); do not add "catalogue" for those.
+- switches: set only switches the owner did not answer; owner answers are locked and shown as "owner". Leave a
+  switch out to keep its default. Values must be one of the switch's options.
+- renames: rename a record type only when this business has a clear word for it (staff -> stylists, rental_items
+  -> cars), with a label the owner understands. Names are snake_case plural.
+- extra_fields: fields this business needs that the recipe does not have (a car model, a pet's breed, a hair
+  length), on a record type the recipes make (use the new name after a rename). Types: text, long_text, number,
+  money, date, time, datetime, email, phone, url, boolean, choice (with 2-20 options), image, duration (minutes),
+  reference (with the record type it links to). Give each a label the owner understands.
+- entities: only for data no recipe can hold; at most {{max_custom}} such record types. Same field types; rules only
+  from this menu, with the settings named: unique_together (fields), no_overlap (start, end, resource), capacity
+  (parent and parent_capacity, or group_by and max_count; overflow refuse or waitlist), within_hours, lead_time
+  (start, hours), max_advance (start, days), status_flow (field, moves), range (field, min_value, max_value),
+  required_if (field, when_field, when_value), end_from_duration, date_order (start, end). Visitor submissions need
+  a "status" choice field and a status_flow rule.
+- At most {{max_entities}} record types in total and {{max_routes}} routes.
+- routes: route_id is "METHOD /api/path". Each route uses one record type, lists request_fields from that record
+  type's fields (as listed for the recipe), the response_fields, plain validation rules, and used_by: the section
+  ids that call it.
 - used_by holds section ids exactly as given (e.g. "order.order-request"), never feature ids. Every form section
   posts to exactly one POST route, and that route lists the form's section id in used_by. Every section with live
   data gets a GET route that lists it. Do not add routes no section calls.
-- form_rules: one per form section, with its route, required fields and plain rules (e.g. "no two bookings for
-  the same date and time").
-- dashboard_views: for each entity that stores visitor submissions, the columns the owner sees in the FORGE
-  project dashboard and the statuses an entry moves through, e.g. New -> Confirmed -> Done.
+- form_rules: one per form section, with its route and required fields. Rules about the data itself (no double
+  booking, capacity, lead time) come from the recipe; do not repeat them here.
+- dashboard_views: for each record type that stores visitor submissions, the columns the owner sees in the FORGE
+  project dashboard and the statuses an entry moves through (the record type's status options).
 {_RULES_SHARED}"""
 
 FIX_SYSTEM = f"""You are the Planning Agent of FORGE. Code checked your plan and found the problems listed.
@@ -106,31 +122,6 @@ REWRITE_SYSTEM = TEXT_SYSTEM + """
 
 Some texts broke the rules. Rewrite only the slots listed, fixing each problem."""
 
-# Standard starting designs for known forms (plan v2 step 4); the model adapts them to the business.
-DATA_STARTERS = {
-    "booking": {"entity": "booking_requests",
-                "fields": ["full_name:text:personal", "email:email:personal", "phone:phone:personal",
-                           "service:text", "date:date", "time:time", "notes:long_text:optional", "status:choice"],
-                "routes": ["POST /api/bookings", "GET /api/availability"],
-                "statuses": ["New", "Confirmed", "Done", "Cancelled"]},
-    "contact-form": {"entity": "contact_messages",
-                     "fields": ["name:text:personal", "email:email:personal", "subject:text", "message:long_text",
-                                "status:choice"],
-                     "routes": ["POST /api/contact"], "statuses": ["New", "Replied"]},
-    "order-request": {"entity": "order_requests",
-                      "fields": ["full_name:text:personal", "phone:phone:personal", "email:email:personal",
-                                 "items:long_text", "notes:long_text:optional", "status:choice"],
-                      "routes": ["POST /api/orders"], "statuses": ["New", "Confirmed", "Ready", "Done"]},
-    "newsletter": {"entity": "newsletter_signups", "fields": ["email:email:personal"],
-                   "routes": ["POST /api/newsletter"], "statuses": ["Subscribed"]},
-    "lead-capture": {"entity": "leads", "fields": ["name:text:personal", "email:email:personal"],
-                     "routes": ["POST /api/leads"], "statuses": ["New", "Contacted"]},
-    "blog": {"entity": "posts", "fields": ["title:text", "slug:text", "date:date", "content:long_text",
-                                           "image:image:optional"],
-             "routes": ["GET /api/posts", "GET /api/posts/{slug}"], "statuses": []},
-    "events": {"entity": "events", "fields": ["title:text", "date:datetime", "location:text", "description:long_text"],
-               "routes": ["GET /api/events"], "statuses": []},
-}
 
 
 def _dump(value) -> str:
@@ -152,12 +143,14 @@ def site_system(cat: Catalogue, limits) -> str:
 
 
 def data_system(limits) -> str:
-    return DATA_SYSTEM.format(max_entities=limits.max_data_entities, max_routes=limits.max_api_routes)
+    return DATA_SYSTEM.format(max_entities=limits.max_data_entities, max_routes=limits.max_api_routes,
+                              max_custom=limits.max_custom_entities)
 
 
-def data_user(brief: dict, sections: list[dict], starters: dict) -> str:
+def data_user(brief: dict, sections: list[dict], recipes: list[dict], others: list[dict]) -> str:
     return (f"Brief:\n{_dump(brief)}\n\nSections that send or show data:\n{_dump(sections)}\n\n"
-            f"Standard starting designs:\n{_dump(starters)}")
+            f"Recipes for these features, best match first:\n{_dump(recipes)}\n\n"
+            f"Other recipes you may use:\n{_dump(others)}")
 
 
 def fix_user(design: dict, problems: list[str], change: str | None = None) -> str:

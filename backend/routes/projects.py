@@ -4,17 +4,21 @@ Projects API (D-174): list, create (at most 3 per user) and delete for good. All
 backend/services/projects.py; this file only maps its results to HTTP answers. Deleting a project
 also deletes its website requests and their paused runs (D-180).
 """
+import asyncio
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.core.config import settings
 from backend.core.deps import get_current_user_id, get_verified_user_id
 from backend.db.session import get_session
 from backend.models.projects import CreateProject, ProjectOut
 from backend.services import projects as service
 from backend.services import requests as request_service
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
 
@@ -52,4 +56,10 @@ async def delete_project(project_id: uuid.UUID, http: Request, user_id: uuid.UUI
     if request_ids is None:
         raise _problem(status.HTTP_404_NOT_FOUND, "project_not_found", "Project not found.")
     await request_service.delete_runs(http.app.state.forge_graph.checkpointer, request_ids)
+    if settings.FORGE_DATABASE:                          # the site's own storage goes with it (D-243)
+        try:
+            from agents.database_generator import provision
+            await asyncio.to_thread(provision.drop, settings.SUPABASE_DB_URL, str(project_id))
+        except Exception:                                # the project is gone either way; the schema can be dropped later
+            logger.exception("Could not drop the storage of project %s", project_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

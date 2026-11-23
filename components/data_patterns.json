@@ -1,0 +1,498 @@
+{
+  "_about": "Data recipes (D-242). Each recipe lists record types, fields and rules, some switched on or off by the recipe's switches. Code (agents/planning/data_patterns.py) expands a recipe plus switch values into the plan's data model; the model only picks recipes, switch values, extra fields and names. 'when' = all listed switches must have one of the listed values. '$switch' in params or defaults = that switch's number (or value). Field shorthand: personal names, emails, phones and addresses are marked personal by code too.",
+  "version": 1,
+  "patterns": [
+    {
+      "id": "contact",
+      "family": "messages",
+      "label": "Contact messages",
+      "features": ["contact-form"],
+      "switches": [
+        {"id": "ask_phone", "ask": false, "default": "yes", "question": "Should the contact form ask for a phone number?",
+         "options": [{"value": "yes", "label": "Yes"}, {"value": "no", "label": "No, email is enough"}]},
+        {"id": "subjects", "ask": false, "default": "no", "question": "Should visitors pick a subject for their message?",
+         "options": [{"value": "yes", "label": "Yes, from a short list"}, {"value": "no", "label": "No"}]}
+      ],
+      "entities": [
+        {"name": "contact_messages", "label": "Contact messages", "role": "submission", "purpose": "Messages sent from the contact form",
+         "fields": [
+           {"name": "name", "type": "text", "label": "Name", "personal": true},
+           {"name": "email", "type": "email", "label": "Email", "personal": true},
+           {"name": "phone", "type": "phone", "label": "Phone", "personal": true, "required": false, "when": {"ask_phone": "yes"}},
+           {"name": "subject", "type": "choice", "label": "Subject", "options": ["General question", "Booking", "Feedback", "Other"], "when": {"subjects": "yes"}},
+           {"name": "message", "type": "long_text", "label": "Message", "max_length": 4000},
+           {"name": "status", "type": "choice", "label": "Status", "options": ["New", "Replied", "Closed"], "default": "New"}
+         ]}
+      ],
+      "rules": [
+        {"entity": "contact_messages", "kind": "status_flow", "params": {"field": "status", "moves": {"New": ["Replied", "Closed"], "Replied": ["Closed"]}}}
+      ]
+    },
+    {
+      "id": "callback",
+      "family": "messages",
+      "label": "Call-back requests",
+      "features": [],
+      "switches": [],
+      "entities": [
+        {"name": "callback_requests", "label": "Call-back requests", "role": "submission", "purpose": "Visitors asking to be called back",
+         "fields": [
+           {"name": "name", "type": "text", "label": "Name", "personal": true},
+           {"name": "phone", "type": "phone", "label": "Phone", "personal": true},
+           {"name": "preferred_time", "type": "choice", "label": "Best time to call", "options": ["Morning", "Afternoon", "Evening"]},
+           {"name": "reason", "type": "long_text", "label": "What it is about", "required": false, "max_length": 1000},
+           {"name": "status", "type": "choice", "label": "Status", "options": ["New", "Called", "Closed"], "default": "New"}
+         ]}
+      ],
+      "rules": [
+        {"entity": "callback_requests", "kind": "status_flow", "params": {"field": "status", "moves": {"New": ["Called", "Closed"], "Called": ["Closed"]}}}
+      ]
+    },
+    {
+      "id": "lead_capture",
+      "family": "messages",
+      "label": "Leads",
+      "features": ["lead-capture"],
+      "switches": [],
+      "entities": [
+        {"name": "leads", "label": "Leads", "role": "submission", "purpose": "People who asked to hear more",
+         "fields": [
+           {"name": "name", "type": "text", "label": "Name", "personal": true},
+           {"name": "email", "type": "email", "label": "Email", "personal": true},
+           {"name": "phone", "type": "phone", "label": "Phone", "personal": true, "required": false},
+           {"name": "interest", "type": "text", "label": "Interested in", "required": false, "max_length": 200},
+           {"name": "status", "type": "choice", "label": "Status", "options": ["New", "Contacted", "Won", "Lost"], "default": "New"}
+         ]}
+      ],
+      "rules": [
+        {"entity": "leads", "kind": "status_flow", "params": {"field": "status", "moves": {"New": ["Contacted", "Lost"], "Contacted": ["Won", "Lost"]}}}
+      ]
+    },
+    {
+      "id": "newsletter",
+      "family": "messages",
+      "label": "Newsletter sign-ups",
+      "features": ["newsletter"],
+      "switches": [],
+      "entities": [
+        {"name": "newsletter_signups", "label": "Newsletter sign-ups", "role": "submission", "purpose": "Emails of people who want the newsletter",
+         "fields": [
+           {"name": "email", "type": "email", "label": "Email", "personal": true, "unique": true},
+           {"name": "consent", "type": "boolean", "label": "Agreed to receive emails"},
+           {"name": "status", "type": "choice", "label": "Status", "options": ["Subscribed", "Unsubscribed"], "default": "Subscribed"}
+         ]}
+      ],
+      "rules": [
+        {"entity": "newsletter_signups", "kind": "required_if", "params": {"field": "consent", "equals": true, "when_field": "status", "when_value": "Subscribed"}},
+        {"entity": "newsletter_signups", "kind": "status_flow", "params": {"field": "status", "moves": {"Subscribed": ["Unsubscribed"], "Unsubscribed": ["Subscribed"]}}}
+      ]
+    },
+    {
+      "id": "appointments",
+      "family": "time_bookings",
+      "label": "Appointments",
+      "features": ["booking"],
+      "business_words": ["salon", "spa", "barber", "clinic", "dental", "doctor", "tutor", "consult", "repair", "therapy", "beauty", "nail", "physio", "lawyer", "law"],
+      "switches": [
+        {"id": "choose_staff", "ask": true, "priority": 1, "default": "yes", "question": "Do clients choose who serves them?",
+         "options": [{"value": "yes", "label": "Yes, they pick a person", "recommended": true}, {"value": "no", "label": "No, any free person"}]},
+        {"id": "double_booking", "ask": true, "priority": 2, "default": "one", "question": "Can two clients book the same time?",
+         "options": [{"value": "one", "label": "No, one client at a time", "recommended": true}, {"value": "many", "label": "Yes, several at once"}]},
+        {"id": "lead_time", "ask": true, "priority": 3, "default": "2h", "question": "How far ahead must people book?",
+         "options": [{"value": "1h", "label": "At least 1 hour ahead", "number": 1}, {"value": "2h", "label": "At least 2 hours ahead", "number": 2, "recommended": true}, {"value": "24h", "label": "At least 1 day ahead", "number": 24}, {"value": "none", "label": "Any time"}]},
+        {"id": "max_advance", "ask": false, "default": "60d", "question": "How far into the future can people book?",
+         "options": [{"value": "30d", "label": "Up to 30 days", "number": 30}, {"value": "60d", "label": "Up to 60 days", "number": 60}, {"value": "90d", "label": "Up to 90 days", "number": 90}]},
+        {"id": "hours_check", "ask": false, "default": "yes", "question": "Should bookings be allowed only during working hours?",
+         "options": [{"value": "yes", "label": "Yes"}, {"value": "no", "label": "No"}]}
+      ],
+      "entities": [
+        {"name": "services", "label": "Services", "role": "catalogue", "purpose": "What clients can book",
+         "fields": [
+           {"name": "name", "type": "text", "label": "Service name", "max_length": 120},
+           {"name": "duration", "type": "duration", "label": "Length", "min": 5, "max": 720, "default": "30"},
+           {"name": "price", "type": "money", "label": "Price", "required": false, "min": 0},
+           {"name": "description", "type": "long_text", "label": "Description", "required": false, "max_length": 1000}
+         ]},
+        {"name": "staff", "label": "Staff", "role": "catalogue", "purpose": "People clients can book with", "when": {"choose_staff": "yes"},
+         "fields": [
+           {"name": "name", "type": "text", "label": "Name", "max_length": 120},
+           {"name": "role", "type": "text", "label": "Role", "required": false, "max_length": 120},
+           {"name": "services", "type": "reference", "reference": "services", "multiple": true, "label": "Services they do", "required": false}
+         ]},
+        {"name": "working_hours", "label": "Working hours", "role": "setting", "purpose": "When bookings are possible", "when": {"hours_check": "yes"},
+         "fields": [
+           {"name": "day", "type": "choice", "label": "Day", "options": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]},
+           {"name": "opens", "type": "time", "label": "Opens"},
+           {"name": "closes", "type": "time", "label": "Closes"},
+           {"name": "staff_id", "type": "reference", "reference": "staff", "on_delete": "cascade", "label": "Staff member (empty = everyone)", "required": false, "when": {"choose_staff": "yes"}}
+         ]},
+        {"name": "days_off", "label": "Days off", "role": "setting", "purpose": "Dates when no bookings are taken", "when": {"hours_check": "yes"},
+         "fields": [
+           {"name": "date", "type": "date", "label": "Date"},
+           {"name": "staff_id", "type": "reference", "reference": "staff", "on_delete": "cascade", "label": "Staff member (empty = everyone)", "required": false, "when": {"choose_staff": "yes"}},
+           {"name": "reason", "type": "text", "label": "Reason", "required": false, "max_length": 200}
+         ]},
+        {"name": "appointments", "label": "Appointments", "role": "submission", "purpose": "Clients booking a service",
+         "fields": [
+           {"name": "client_name", "type": "text", "label": "Your name", "personal": true, "max_length": 120},
+           {"name": "phone", "type": "phone", "label": "Phone", "personal": true},
+           {"name": "email", "type": "email", "label": "Email", "personal": true, "required": false},
+           {"name": "service_id", "type": "reference", "reference": "services", "label": "Service"},
+           {"name": "staff_id", "type": "reference", "reference": "staff", "label": "With", "when": {"choose_staff": "yes"}},
+           {"name": "start_at", "type": "datetime", "label": "Date and time"},
+           {"name": "end_at", "type": "datetime", "label": "Ends at"},
+           {"name": "notes", "type": "long_text", "label": "Notes", "required": false, "max_length": 1000},
+           {"name": "status", "type": "choice", "label": "Status", "options": ["New", "Confirmed", "Done", "Cancelled", "No-show"], "default": "New"}
+         ]}
+      ],
+      "rules": [
+        {"entity": "appointments", "kind": "end_from_duration", "params": {"start": "start_at", "end": "end_at", "via": "service_id", "duration": "duration"}},
+        {"entity": "appointments", "kind": "no_overlap", "when": {"double_booking": "one", "choose_staff": "yes"}, "params": {"resource": "staff_id", "start": "start_at", "end": "end_at", "ignore_statuses": ["Cancelled", "No-show"]}},
+        {"entity": "appointments", "kind": "no_overlap", "when": {"double_booking": "one", "choose_staff": "no"}, "params": {"start": "start_at", "end": "end_at", "ignore_statuses": ["Cancelled", "No-show"]}},
+        {"entity": "appointments", "kind": "within_hours", "when": {"hours_check": "yes", "choose_staff": "yes"}, "params": {"start": "start_at", "end": "end_at", "hours": "working_hours", "days_off": "days_off", "resource": "staff_id"}},
+        {"entity": "appointments", "kind": "within_hours", "when": {"hours_check": "yes", "choose_staff": "no"}, "params": {"start": "start_at", "end": "end_at", "hours": "working_hours", "days_off": "days_off"}},
+        {"entity": "appointments", "kind": "lead_time", "when": {"lead_time": ["1h", "2h", "24h"]}, "params": {"start": "start_at", "hours": "$lead_time"}},
+        {"entity": "appointments", "kind": "max_advance", "params": {"start": "start_at", "days": "$max_advance"}},
+        {"entity": "appointments", "kind": "status_flow", "params": {"field": "status", "moves": {"New": ["Confirmed", "Cancelled"], "Confirmed": ["Done", "Cancelled", "No-show"]}}},
+        {"entity": "working_hours", "kind": "date_order", "when": {"hours_check": "yes"}, "params": {"start": "opens", "end": "closes"}}
+      ]
+    },
+    {
+      "id": "table_reservations",
+      "family": "time_bookings",
+      "label": "Table reservations",
+      "features": ["booking"],
+      "business_words": ["restaurant", "cafe", "café", "bistro", "diner", "grill", "dhaba", "eatery", "bar", "lounge"],
+      "switches": [
+        {"id": "party_max", "ask": true, "priority": 1, "default": "10", "question": "What is the largest group one booking can be for?",
+         "options": [{"value": "6", "label": "Up to 6 people", "number": 6}, {"value": "10", "label": "Up to 10 people", "number": 10, "recommended": true}, {"value": "20", "label": "Up to 20 people", "number": 20}]},
+        {"id": "seats", "ask": true, "priority": 2, "default": "40", "question": "How many guests can you seat at one time?",
+         "options": [{"value": "20", "label": "About 20", "number": 20}, {"value": "40", "label": "About 40", "number": 40, "recommended": true}, {"value": "80", "label": "About 80", "number": 80}, {"value": "none", "label": "Don't limit it"}]},
+        {"id": "lead_time", "ask": true, "priority": 3, "default": "2h", "question": "How far ahead must people book a table?",
+         "options": [{"value": "1h", "label": "At least 1 hour ahead", "number": 1}, {"value": "2h", "label": "At least 2 hours ahead", "number": 2, "recommended": true}, {"value": "24h", "label": "At least 1 day ahead", "number": 24}, {"value": "none", "label": "Any time"}]},
+        {"id": "max_advance", "ask": false, "default": "30d", "question": "How far into the future can people book?",
+         "options": [{"value": "30d", "label": "Up to 30 days", "number": 30}, {"value": "60d", "label": "Up to 60 days", "number": 60}, {"value": "90d", "label": "Up to 90 days", "number": 90}]}
+      ],
+      "entities": [
+        {"name": "reservations", "label": "Table reservations", "role": "submission", "purpose": "Guests booking a table",
+         "fields": [
+           {"name": "guest_name", "type": "text", "label": "Your name", "personal": true, "max_length": 120},
+           {"name": "phone", "type": "phone", "label": "Phone", "personal": true},
+           {"name": "email", "type": "email", "label": "Email", "personal": true, "required": false},
+           {"name": "party_size", "type": "number", "label": "Number of guests", "min": 1, "max": "$party_max", "default": "2"},
+           {"name": "reserved_at", "type": "datetime", "label": "Date and time"},
+           {"name": "notes", "type": "long_text", "label": "Notes", "required": false, "max_length": 1000},
+           {"name": "status", "type": "choice", "label": "Status", "options": ["New", "Confirmed", "Seated", "Cancelled", "No-show"], "default": "New"}
+         ]}
+      ],
+      "rules": [
+        {"entity": "reservations", "kind": "capacity", "when": {"seats": ["20", "40", "80"]}, "params": {"group_by": ["reserved_at"], "sum": "party_size", "max": "$seats", "overflow": "refuse", "count_statuses": ["New", "Confirmed", "Seated"]}},
+        {"entity": "reservations", "kind": "lead_time", "when": {"lead_time": ["1h", "2h", "24h"]}, "params": {"start": "reserved_at", "hours": "$lead_time"}},
+        {"entity": "reservations", "kind": "max_advance", "params": {"start": "reserved_at", "days": "$max_advance"}},
+        {"entity": "reservations", "kind": "status_flow", "params": {"field": "status", "moves": {"New": ["Confirmed", "Cancelled"], "Confirmed": ["Seated", "Cancelled", "No-show"]}}}
+      ]
+    },
+    {
+      "id": "rentals",
+      "family": "time_bookings",
+      "label": "Rentals",
+      "features": ["booking"],
+      "business_words": ["rent", "rental", "hire", "car", "vehicle", "equipment", "venue", "hall", "room", "camera", "bike", "tool"],
+      "switches": [
+        {"id": "no_overlap", "ask": true, "priority": 1, "default": "yes", "question": "Can the same item be booked twice for the same days?",
+         "options": [{"value": "yes", "label": "No, one booking per item at a time", "recommended": true}, {"value": "no", "label": "Yes, I have several of each"}]},
+        {"id": "delivery", "ask": true, "priority": 2, "default": "no", "question": "Do you deliver the item, or do people collect it?",
+         "options": [{"value": "no", "label": "People collect it", "recommended": true}, {"value": "yes", "label": "Both, delivery is possible"}]},
+        {"id": "min_days", "ask": false, "default": "1", "question": "What is the shortest rental?",
+         "options": [{"value": "1", "label": "1 day", "number": 1}, {"value": "2", "label": "2 days", "number": 2}, {"value": "7", "label": "1 week", "number": 7}]}
+      ],
+      "entities": [
+        {"name": "rental_items", "label": "Items for rent", "role": "catalogue", "purpose": "What can be rented",
+         "fields": [
+           {"name": "name", "type": "text", "label": "Name", "max_length": 120},
+           {"name": "category", "type": "text", "label": "Category", "required": false, "max_length": 80},
+           {"name": "daily_price", "type": "money", "label": "Price per day", "required": false, "min": 0},
+           {"name": "description", "type": "long_text", "label": "Description", "required": false, "max_length": 2000},
+           {"name": "image", "type": "image", "label": "Photo", "required": false}
+         ]},
+        {"name": "rental_requests", "label": "Rental requests", "role": "submission", "purpose": "People asking to rent an item",
+         "fields": [
+           {"name": "customer_name", "type": "text", "label": "Your name", "personal": true, "max_length": 120},
+           {"name": "phone", "type": "phone", "label": "Phone", "personal": true},
+           {"name": "email", "type": "email", "label": "Email", "personal": true, "required": false},
+           {"name": "item_id", "type": "reference", "reference": "rental_items", "label": "Item"},
+           {"name": "start_date", "type": "date", "label": "From"},
+           {"name": "end_date", "type": "date", "label": "Until"},
+           {"name": "fulfilment", "type": "choice", "label": "Collect or deliver", "options": ["Collect", "Deliver"], "default": "Collect", "when": {"delivery": "yes"}},
+           {"name": "address", "type": "long_text", "label": "Delivery address", "personal": true, "required": false, "max_length": 500, "when": {"delivery": "yes"}},
+           {"name": "notes", "type": "long_text", "label": "Notes", "required": false, "max_length": 1000},
+           {"name": "status", "type": "choice", "label": "Status", "options": ["New", "Confirmed", "Out", "Returned", "Cancelled"], "default": "New"}
+         ]}
+      ],
+      "rules": [
+        {"entity": "rental_requests", "kind": "date_order", "params": {"start": "start_date", "end": "end_date", "min_days": "$min_days"}},
+        {"entity": "rental_requests", "kind": "no_overlap", "when": {"no_overlap": "yes"}, "params": {"resource": "item_id", "start": "start_date", "end": "end_date", "ignore_statuses": ["Cancelled", "Returned"]}},
+        {"entity": "rental_requests", "kind": "required_if", "when": {"delivery": "yes"}, "params": {"field": "address", "when_field": "fulfilment", "when_value": "Deliver"}},
+        {"entity": "rental_requests", "kind": "lead_time", "params": {"start": "start_date", "hours": 0}},
+        {"entity": "rental_requests", "kind": "status_flow", "params": {"field": "status", "moves": {"New": ["Confirmed", "Cancelled"], "Confirmed": ["Out", "Cancelled"], "Out": ["Returned"]}}}
+      ]
+    },
+    {
+      "id": "classes",
+      "family": "sessions",
+      "label": "Classes",
+      "features": ["booking", "events"],
+      "business_words": ["yoga", "gym", "fitness", "class", "dance", "martial", "pilates", "cooking", "academy", "school", "course", "coaching", "swim"],
+      "switches": [
+        {"id": "waitlist", "ask": true, "priority": 1, "default": "yes", "question": "When a class is full, what should happen?",
+         "options": [{"value": "yes", "label": "Put people on a waitlist", "recommended": true}, {"value": "no", "label": "Refuse new bookings"}]},
+        {"id": "seats", "ask": true, "priority": 2, "default": "15", "question": "How many people fit in one class?",
+         "options": [{"value": "10", "label": "10", "number": 10}, {"value": "15", "label": "15", "number": 15, "recommended": true}, {"value": "25", "label": "25", "number": 25}, {"value": "40", "label": "40", "number": 40}]},
+        {"id": "one_per_person", "ask": false, "default": "yes", "question": "Can one person book the same class twice?",
+         "options": [{"value": "yes", "label": "No, once per class"}, {"value": "no", "label": "Yes"}]},
+        {"id": "lead_time", "ask": false, "default": "1h", "question": "How far ahead must people book a class?",
+         "options": [{"value": "1h", "label": "At least 1 hour ahead", "number": 1}, {"value": "24h", "label": "At least 1 day ahead", "number": 24}, {"value": "none", "label": "Any time"}]}
+      ],
+      "entities": [
+        {"name": "classes", "label": "Classes", "role": "catalogue", "purpose": "The kinds of class on offer",
+         "fields": [
+           {"name": "name", "type": "text", "label": "Class name", "max_length": 120},
+           {"name": "description", "type": "long_text", "label": "Description", "required": false, "max_length": 1000},
+           {"name": "level", "type": "choice", "label": "Level", "options": ["All levels", "Beginner", "Intermediate", "Advanced"], "required": false}
+         ]},
+        {"name": "sessions", "label": "Class times", "role": "catalogue", "purpose": "When each class takes place",
+         "fields": [
+           {"name": "class_id", "type": "reference", "reference": "classes", "on_delete": "cascade", "label": "Class"},
+           {"name": "starts_at", "type": "datetime", "label": "Starts"},
+           {"name": "ends_at", "type": "datetime", "label": "Ends"},
+           {"name": "capacity", "type": "number", "label": "Places", "min": 1, "max": 500, "default": "$seats"},
+           {"name": "instructor", "type": "text", "label": "Instructor", "required": false, "max_length": 120}
+         ]},
+        {"name": "registrations", "label": "Class bookings", "role": "submission", "purpose": "People booking a place in a class",
+         "fields": [
+           {"name": "name", "type": "text", "label": "Your name", "personal": true, "max_length": 120},
+           {"name": "email", "type": "email", "label": "Email", "personal": true},
+           {"name": "phone", "type": "phone", "label": "Phone", "personal": true, "required": false},
+           {"name": "session_id", "type": "reference", "reference": "sessions", "label": "Class time"},
+           {"name": "status", "type": "choice", "label": "Status", "options": ["Registered", "Waitlist", "Cancelled", "Attended"], "default": "Registered"}
+         ]}
+      ],
+      "rules": [
+        {"entity": "sessions", "kind": "date_order", "params": {"start": "starts_at", "end": "ends_at"}},
+        {"entity": "registrations", "kind": "capacity", "when": {"waitlist": "yes"}, "params": {"parent": "session_id", "parent_capacity": "capacity", "overflow": "waitlist", "count_statuses": ["Registered", "Attended"]}},
+        {"entity": "registrations", "kind": "capacity", "when": {"waitlist": "no"}, "params": {"parent": "session_id", "parent_capacity": "capacity", "overflow": "refuse", "count_statuses": ["Registered", "Attended"]}},
+        {"entity": "registrations", "kind": "unique_together", "when": {"one_per_person": "yes"}, "params": {"fields": ["session_id", "email"], "ignore_statuses": ["Cancelled"]}},
+        {"entity": "registrations", "kind": "lead_time", "when": {"lead_time": ["1h", "24h"]}, "params": {"via": "session_id", "start": "starts_at", "hours": "$lead_time"}},
+        {"entity": "registrations", "kind": "status_flow", "params": {"field": "status", "moves": {"Registered": ["Cancelled", "Attended"], "Waitlist": ["Registered", "Cancelled"]}}}
+      ]
+    },
+    {
+      "id": "events",
+      "family": "sessions",
+      "label": "Events",
+      "features": ["events"],
+      "switches": [
+        {"id": "limit_seats", "ask": true, "priority": 1, "default": "yes", "question": "Do your events have a limited number of places?",
+         "options": [{"value": "yes", "label": "Yes, stop when full", "recommended": true}, {"value": "no", "label": "No limit"}]},
+        {"id": "max_tickets", "ask": false, "default": "6", "question": "How many places can one person book?",
+         "options": [{"value": "1", "label": "1", "number": 1}, {"value": "6", "label": "Up to 6", "number": 6}, {"value": "10", "label": "Up to 10", "number": 10}]}
+      ],
+      "entities": [
+        {"name": "events", "label": "Events", "role": "catalogue", "purpose": "Upcoming events",
+         "fields": [
+           {"name": "title", "type": "text", "label": "Title", "max_length": 160},
+           {"name": "starts_at", "type": "datetime", "label": "Starts"},
+           {"name": "location", "type": "text", "label": "Location", "required": false, "max_length": 200},
+           {"name": "capacity", "type": "number", "label": "Places", "min": 1, "max": 5000, "default": "50", "when": {"limit_seats": "yes"}},
+           {"name": "description", "type": "long_text", "label": "Description", "required": false, "max_length": 4000}
+         ]},
+        {"name": "event_registrations", "label": "Event registrations", "role": "submission", "purpose": "People registering for an event",
+         "fields": [
+           {"name": "name", "type": "text", "label": "Your name", "personal": true, "max_length": 120},
+           {"name": "email", "type": "email", "label": "Email", "personal": true},
+           {"name": "phone", "type": "phone", "label": "Phone", "personal": true, "required": false},
+           {"name": "event_id", "type": "reference", "reference": "events", "label": "Event"},
+           {"name": "places", "type": "number", "label": "Number of places", "min": 1, "max": "$max_tickets", "default": "1"},
+           {"name": "status", "type": "choice", "label": "Status", "options": ["Registered", "Cancelled", "Attended"], "default": "Registered"}
+         ]}
+      ],
+      "rules": [
+        {"entity": "event_registrations", "kind": "capacity", "when": {"limit_seats": "yes"}, "params": {"parent": "event_id", "parent_capacity": "capacity", "sum": "places", "overflow": "refuse", "count_statuses": ["Registered", "Attended"]}},
+        {"entity": "event_registrations", "kind": "lead_time", "params": {"via": "event_id", "start": "starts_at", "hours": 0}},
+        {"entity": "event_registrations", "kind": "status_flow", "params": {"field": "status", "moves": {"Registered": ["Cancelled", "Attended"]}}}
+      ]
+    },
+    {
+      "id": "orders",
+      "family": "orders_quotes",
+      "label": "Orders",
+      "features": ["order-request"],
+      "business_words": ["bakery", "cake", "restaurant", "cafe", "shop", "store", "boutique", "food", "kitchen", "catering", "florist", "sweets"],
+      "switches": [
+        {"id": "fulfilment", "ask": true, "priority": 1, "default": "both", "question": "How do customers get their order?",
+         "options": [{"value": "pickup", "label": "They pick it up"}, {"value": "delivery", "label": "We deliver it"}, {"value": "both", "label": "Both", "recommended": true}]},
+        {"id": "pickup_time", "ask": true, "priority": 2, "default": "yes", "question": "Should customers choose when they need the order?",
+         "options": [{"value": "yes", "label": "Yes, they pick a date and time", "recommended": true}, {"value": "no", "label": "No"}]},
+        {"id": "prep_hours", "ask": false, "default": "24", "question": "How much notice do you need for an order?",
+         "options": [{"value": "2", "label": "2 hours", "number": 2}, {"value": "24", "label": "1 day", "number": 24}, {"value": "48", "label": "2 days", "number": 48}]},
+        {"id": "item_options", "ask": false, "default": "no", "question": "Do items have options such as size or flavour?",
+         "options": [{"value": "yes", "label": "Yes"}, {"value": "no", "label": "No"}]}
+      ],
+      "entities": [
+        {"name": "catalogue_items", "label": "Items you sell", "role": "catalogue", "purpose": "What customers can order",
+         "fields": [
+           {"name": "name", "type": "text", "label": "Name", "max_length": 120},
+           {"name": "category", "type": "text", "label": "Category", "required": false, "max_length": 80},
+           {"name": "price", "type": "money", "label": "Price", "required": false, "min": 0},
+           {"name": "description", "type": "long_text", "label": "Description", "required": false, "max_length": 1000},
+           {"name": "options", "type": "text", "label": "Options (for example Small, Medium, Large)", "required": false, "max_length": 300, "when": {"item_options": "yes"}},
+           {"name": "available", "type": "boolean", "label": "Available", "default": "true"}
+         ]},
+        {"name": "orders", "label": "Orders", "role": "submission", "purpose": "Orders customers send",
+         "fields": [
+           {"name": "customer_name", "type": "text", "label": "Your name", "personal": true, "max_length": 120},
+           {"name": "phone", "type": "phone", "label": "Phone", "personal": true},
+           {"name": "email", "type": "email", "label": "Email", "personal": true, "required": false},
+           {"name": "fulfilment", "type": "choice", "label": "Pickup or delivery", "options": ["Pickup", "Delivery"], "default": "Pickup", "when": {"fulfilment": "both"}},
+           {"name": "address", "type": "long_text", "label": "Delivery address", "personal": true, "required": false, "max_length": 500, "when": {"fulfilment": "both"}},
+           {"name": "address", "type": "long_text", "label": "Delivery address", "personal": true, "max_length": 500, "when": {"fulfilment": "delivery"}},
+           {"name": "needed_at", "type": "datetime", "label": "Needed on", "when": {"pickup_time": "yes"}},
+           {"name": "notes", "type": "long_text", "label": "Notes", "required": false, "max_length": 1000},
+           {"name": "status", "type": "choice", "label": "Status", "options": ["New", "Confirmed", "Ready", "Done", "Cancelled"], "default": "New"}
+         ]},
+        {"name": "order_items", "label": "Items in an order", "role": "submission", "purpose": "Each item and how many",
+         "fields": [
+           {"name": "order_id", "type": "reference", "reference": "orders", "on_delete": "cascade", "label": "Order"},
+           {"name": "item_id", "type": "reference", "reference": "catalogue_items", "label": "Item"},
+           {"name": "quantity", "type": "number", "label": "Quantity", "min": 1, "max": 100, "default": "1"},
+           {"name": "chosen_option", "type": "text", "label": "Option", "required": false, "max_length": 80, "when": {"item_options": "yes"}}
+         ]}
+      ],
+      "rules": [
+        {"entity": "orders", "kind": "required_if", "when": {"fulfilment": "both"}, "params": {"field": "address", "when_field": "fulfilment", "when_value": "Delivery"}},
+        {"entity": "orders", "kind": "lead_time", "when": {"pickup_time": "yes"}, "params": {"start": "needed_at", "hours": "$prep_hours"}},
+        {"entity": "orders", "kind": "status_flow", "params": {"field": "status", "moves": {"New": ["Confirmed", "Cancelled"], "Confirmed": ["Ready", "Cancelled"], "Ready": ["Done"]}}},
+        {"entity": "order_items", "kind": "unique_together", "params": {"fields": ["order_id", "item_id"]}, "when": {"item_options": "no"}}
+      ]
+    },
+    {
+      "id": "quotes",
+      "family": "orders_quotes",
+      "label": "Quote requests",
+      "features": ["order-request", "contact-form"],
+      "business_words": ["contractor", "construction", "builder", "plumb", "electric", "print", "event planner", "design", "agency", "renovation", "interior", "cleaning", "moving", "solar"],
+      "switches": [
+        {"id": "budget", "ask": true, "priority": 1, "default": "yes", "question": "Should the quote form ask for a budget?",
+         "options": [{"value": "yes", "label": "Yes, as a price range", "recommended": true}, {"value": "no", "label": "No"}]},
+        {"id": "needed_by", "ask": true, "priority": 2, "default": "yes", "question": "Should people say when they need the work done?",
+         "options": [{"value": "yes", "label": "Yes, a date", "recommended": true}, {"value": "no", "label": "No"}]},
+        {"id": "line_items", "ask": false, "default": "no", "question": "Do people list several items in one quote request?",
+         "options": [{"value": "yes", "label": "Yes"}, {"value": "no", "label": "No, one description is enough"}]}
+      ],
+      "entities": [
+        {"name": "quote_requests", "label": "Quote requests", "role": "submission", "purpose": "People asking for a price",
+         "fields": [
+           {"name": "name", "type": "text", "label": "Your name", "personal": true, "max_length": 120},
+           {"name": "phone", "type": "phone", "label": "Phone", "personal": true},
+           {"name": "email", "type": "email", "label": "Email", "personal": true, "required": false},
+           {"name": "service", "type": "text", "label": "What you need", "max_length": 200},
+           {"name": "details", "type": "long_text", "label": "Details", "max_length": 4000},
+           {"name": "budget", "type": "choice", "label": "Budget", "options": ["Under Rs. 50,000", "Rs. 50,000 - 200,000", "Rs. 200,000 - 1,000,000", "Over Rs. 1,000,000", "Not sure"], "required": false, "when": {"budget": "yes"}},
+           {"name": "needed_by", "type": "date", "label": "Needed by", "required": false, "when": {"needed_by": "yes"}},
+           {"name": "site_address", "type": "long_text", "label": "Address of the work", "personal": true, "required": false, "max_length": 500},
+           {"name": "status", "type": "choice", "label": "Status", "options": ["New", "Quoted", "Accepted", "Declined"], "default": "New"}
+         ]},
+        {"name": "quote_items", "label": "Items in a quote request", "role": "submission", "purpose": "Each item asked about", "when": {"line_items": "yes"},
+         "fields": [
+           {"name": "quote_request_id", "type": "reference", "reference": "quote_requests", "on_delete": "cascade", "label": "Quote request"},
+           {"name": "description", "type": "text", "label": "Item", "max_length": 200},
+           {"name": "quantity", "type": "number", "label": "Quantity", "min": 1, "max": 10000, "default": "1"}
+         ]}
+      ],
+      "rules": [
+        {"entity": "quote_requests", "kind": "lead_time", "when": {"needed_by": "yes"}, "params": {"start": "needed_by", "hours": 0}},
+        {"entity": "quote_requests", "kind": "status_flow", "params": {"field": "status", "moves": {"New": ["Quoted", "Declined"], "Quoted": ["Accepted", "Declined"]}}}
+      ]
+    },
+    {
+      "id": "catalogue",
+      "family": "catalogues",
+      "label": "Listings",
+      "features": ["product-grid", "menu-catalog", "services-price-list", "portfolio", "team", "search-filter", "product-detail"],
+      "switches": [
+        {"id": "categories", "ask": false, "default": "yes", "question": "Are your listings grouped into categories?",
+         "options": [{"value": "yes", "label": "Yes"}, {"value": "no", "label": "No"}]},
+        {"id": "prices", "ask": false, "default": "yes", "question": "Do your listings show a price?",
+         "options": [{"value": "yes", "label": "Yes"}, {"value": "no", "label": "No"}]}
+      ],
+      "entities": [
+        {"name": "categories", "label": "Categories", "role": "catalogue", "purpose": "Groups of listings", "when": {"categories": "yes"},
+         "fields": [
+           {"name": "name", "type": "text", "label": "Name", "max_length": 80, "unique": true},
+           {"name": "position", "type": "number", "label": "Order on the page", "required": false, "min": 0, "max": 1000}
+         ]},
+        {"name": "listings", "label": "Listings", "role": "catalogue", "purpose": "What the site lists",
+         "fields": [
+           {"name": "name", "type": "text", "label": "Name", "max_length": 160},
+           {"name": "category_id", "type": "reference", "reference": "categories", "on_delete": "set_null", "label": "Category", "required": false, "when": {"categories": "yes"}},
+           {"name": "price", "type": "money", "label": "Price", "required": false, "min": 0, "when": {"prices": "yes"}},
+           {"name": "description", "type": "long_text", "label": "Description", "required": false, "max_length": 4000},
+           {"name": "image", "type": "image", "label": "Photo", "required": false},
+           {"name": "visible", "type": "boolean", "label": "Shown on the site", "default": "true"}
+         ]}
+      ],
+      "rules": []
+    },
+    {
+      "id": "posts",
+      "family": "catalogues",
+      "label": "Blog posts",
+      "features": ["blog"],
+      "switches": [],
+      "entities": [
+        {"name": "posts", "label": "Blog posts", "role": "catalogue", "purpose": "Articles on the blog",
+         "fields": [
+           {"name": "title", "type": "text", "label": "Title", "max_length": 160},
+           {"name": "slug", "type": "text", "label": "Web address name", "max_length": 160, "unique": true},
+           {"name": "published_on", "type": "date", "label": "Published on"},
+           {"name": "content", "type": "long_text", "label": "Text", "max_length": 50000},
+           {"name": "image", "type": "image", "label": "Photo", "required": false}
+         ]}
+      ],
+      "rules": []
+    },
+    {
+      "id": "applications",
+      "family": "applications",
+      "label": "Applications",
+      "features": [],
+      "business_words": ["job", "career", "hiring", "recruit", "admission", "enrol", "enroll", "volunteer", "membership", "school", "university", "internship"],
+      "switches": [
+        {"id": "position_list", "ask": true, "priority": 1, "default": "yes", "question": "Do people apply for a specific opening?",
+         "options": [{"value": "yes", "label": "Yes, from a list of openings", "recommended": true}, {"value": "no", "label": "No, one general form"}]}
+      ],
+      "entities": [
+        {"name": "openings", "label": "Openings", "role": "catalogue", "purpose": "Jobs or places people can apply for", "when": {"position_list": "yes"},
+         "fields": [
+           {"name": "title", "type": "text", "label": "Title", "max_length": 160},
+           {"name": "description", "type": "long_text", "label": "Description", "required": false, "max_length": 4000},
+           {"name": "open", "type": "boolean", "label": "Open for applications", "default": "true"}
+         ]},
+        {"name": "applications", "label": "Applications", "role": "submission", "purpose": "People applying",
+         "fields": [
+           {"name": "name", "type": "text", "label": "Your name", "personal": true, "max_length": 120},
+           {"name": "email", "type": "email", "label": "Email", "personal": true},
+           {"name": "phone", "type": "phone", "label": "Phone", "personal": true},
+           {"name": "opening_id", "type": "reference", "reference": "openings", "label": "Applying for", "when": {"position_list": "yes"}},
+           {"name": "cover_note", "type": "long_text", "label": "About you", "required": false, "max_length": 4000},
+           {"name": "cv_link", "type": "url", "label": "Link to your CV", "required": false},
+           {"name": "status", "type": "choice", "label": "Status", "options": ["New", "Shortlisted", "Accepted", "Rejected"], "default": "New"}
+         ]}
+      ],
+      "rules": [
+        {"entity": "applications", "kind": "unique_together", "when": {"position_list": "yes"}, "params": {"fields": ["opening_id", "email"]}},
+        {"entity": "applications", "kind": "status_flow", "params": {"field": "status", "moves": {"New": ["Shortlisted", "Rejected"], "Shortlisted": ["Accepted", "Rejected"]}}}
+      ]
+    }
+  ]
+}

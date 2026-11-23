@@ -29,6 +29,164 @@ Each entry:
 
 ---
 
+## 33. Sites need complex data the owner can shape (the Database Agent)
+**Symptom** The plan's data model was flat. A `choice` field had no options, links were names with no foreign
+keys, and rules were free English ("no two bookings for the same slot"). D-227 put every site's data into one
+shared JSON table, so nothing could stop a double booking. Umar asked for owners to keep the data their business
+really needs, for example appointments with staff, durations, working hours and no double booking, and to be
+able to shape it.
+
+**Steps**
+1. Read the existing contract: `DataEntity`, `DataField`, 7 `DATA_STARTERS`, checks 8-10, `lib/store.ts` (D-227).
+   Seen: the planner already designs entities, routes, form rules and statuses, so the gap is the vocabulary, not
+   the pipeline.
+2. Umar chose: its own PostgreSQL schema per site; owner control both ways (data questions and a review step);
+   all cases (appointments, classes, orders and quotes, catalogues, anything else in scope).
+3. Chose the same split that fixed sameness and built the frontend: the model picks recipes and switches from
+   menus, and code expands and compiles them. The model never writes SQL (plan:
+   `D:\FYP\reports\FORGE Database Agent plan.md`).
+4. Day 1, data model v2 (`agents/state.py`):
+   - field options, links, on-delete, unique, default, min/max, locked;
+   - `DataRule` with 11 rule kinds;
+   - `role`, `label`, `pattern` on record types;
+   - limits raised (12 record types, 16 routes);
+   - `data_choices` on the brief;
+   - question kind F.
+
+   A separate `DataFieldType`, so the custom-part props types did not change.
+5. Wrote `components/data_patterns.json`: 14 recipes in 6 families with switches and ready-made questions.
+   Wrote `agents/planning/data_patterns.py`: expansion with owner answers locked, then the model's values, then
+   defaults; renaming record types; rule sentences by code; a check of everything the compiler will rely on.
+6. A test expands **every recipe with every combination of switch values** and checks the result. It passed
+   first time except one thing: "yoga studio" picked the salon recipe, because "studio" was in the salon's words.
+   Fix: drop the generic word.
+7. The first rule sentences read badly ("Each class times takes at most its places in people", "Until must be
+   after from"). Fix: field labels in quotes, plural labels read as one item, and the start field named in time
+   rules. Now: `"Date and time" must be at least 2 hours ahead`.
+8. The new check numbers 11-19 clashed with the existing plan checks 1-19, so they became 20-28. One old test
+   assumed the 10-route limit, so it was updated to the new 16.
+
+9. Day 2: plan checks 24-28 (personal data, a status on submissions, size, the owner's answers) and a
+   `data_recipes` list on the plan, so the answers can be compared with what was planned. They apply only to
+   record types from recipes, so plans made before D-242 keep passing.
+10. Day 3, data questions (kind F): asked last, at most 3, only while questions are left, with "Let FORGE
+    decide". 4 clarification tests failed because they expected the confirmation right after the visitor-actions
+    question. The behaviour was intended, so the tests now answer the data questions, and one checks the exact
+    questions and the summary line ("How do customers get their order? They pick it up.").
+11. Planning call 2 now returns recipes, switch values, renames, extra fields and custom record types. Gemini's
+    output schema cannot take free dictionaries, so rule settings became flat optional fields (`DataRuleOut`).
+    The fake planner in the tests made record types without a status, and its form fields were camelCase
+    (`fullName`), which check 26 refuses. A test helper now makes them like the real model must.
+12. A catalogue item's "name" was marked personal (so the menu got a consent box and a dashboard view). Fix:
+    names, emails and phones count as personal only on visitor submissions.
+13. First live run (6 booking and form requests): 5 of 6 planned. forms-01 failed check 9 twice: the route sent
+    `needed_at`, which the planned orders did not have, and 2 fix rounds did not repair it. Fix (model decides,
+    code writes): code sets a recipe record type's POST fields (the model's valid ones plus every required one)
+    and its GET fields (never personal data). Rerun: 3 of 3 planned, coverage 100%, no fix rounds.
+14. Runs took 115-137 s against about 50 s in run 9, with the same calls and output tokens. Two requests that
+    store no data took 112 s against 31-49 s. **First (wrong) conclusion:** the provider was slow that day.
+    **Corrected on day 7:** the evaluation runner takes its run settings from the API (`_run_config`), and `.env`
+    turns on the live preview and the build gate, so since D-240 every evaluated request also started a dev
+    server and a production build after approval. With both switched off for evaluations, the same two requests
+    took 38 s and 39 s. Lesson 4 again: check what a run actually did before blaming the environment.
+
+15. Day 4, the SQL compiler:
+    - every identifier passes the plan-check pattern and is quoted, and every value goes through one `literal`
+      function;
+    - tables are made first and linked afterwards, so order never matters;
+    - each rule becomes a named constraint or trigger raising `FORGE_RULE:<rule_id>`.
+
+    29 unit tests, including hostile names and values, passed first time.
+16. Testing on a real database was blocked. Local PostgreSQL needed a password, and FORGE must not enter
+    passwords. Umar put a local `TEST_DATABASE_URL` in `.env`; the database did not exist yet. Two active
+    `TEST_DATABASE_URL` lines were found: the first still pointed at the deleted Supabase test project. That line
+    was commented out, and `forge_test` was created from the new one (`btree_gist` available).
+17. With a test database again, the ~60 database tests that had been skipped since the old project was deleted
+    ran: 7 failed, none from this work. Since D-233 the API streams the run (`graph.astream`), and the test fakes
+    had only `ainvoke`. After that fix, one more failed: approval starts the build in the background, and the
+    background step wrote with the app's real database session, not the test one, so the lock stayed held.
+    Fixes: the fakes stream; the test harness gives the background step its session (restored after the test);
+    the plan test waits for the background build.
+18. Day 4-5, the database gate (`gate.py`) on the local database:
+    - apply the schema and the sample rows in a scratch schema;
+    - try to break every rule;
+    - roll back.
+
+    The first run passed 13 of 14 recipes. events failed: the "can't be in the past" test used a time 5
+    minutes ahead, which that rule allows. Fix: such rules are tested with yesterday.
+19. A test of **every recipe with every combination of switch values** found two gate bugs, not schema bugs:
+    - a capacity test's change (capacity lowered to 1) stayed for the next rule's test, because a released
+      savepoint keeps its changes;
+    - a test copy of a rental overlapped the sample row, so "no double booking" refused it before the date
+      check could.
+
+    Fixes: each rule test runs in its own savepoint that is always rolled back, and test copies move a week
+    later (same weekday and time) unless the test is about overlaps. Now every rule holds in every combination.
+20. A parallel test proved the capacity lock: two bookings sent at the same moment for the last place gave
+    exactly one place and one waitlist.
+21. Day 5, provisioning: its own schema and a NOLOGIN role per site. A test proved one site's role cannot read
+    another site's schema or delete its own rows, and a rebuild keeps real rows (renamed schema, never dropped).
+    Site roles from early test runs were left behind (roles belong to the whole server), so `drop` now removes
+    the role too.
+22. Wiring into the build: a flow test failed because the first progress line is now the Database Agent's
+    ("Database: designing 1 tables..."). The test was updated and the plural fixed. A plan from before recipes
+    could crash the compiler (a choice with no options), so the agent checks the model first and skips storage
+    with a plain message.
+
+**Checked** 29 compiler tests, 17 gate tests on PostgreSQL (all recipes × all switch values), 7 provisioning and
+agent tests; the full suite incl. database tests passes (639).
+
+23. Day 6, the review panel "What your site will keep":
+    - owner edits are replayed on the planned record types, so undo is "replay all but the last" and edits survive
+      a later plain-English change;
+    - refused edits come back as the screen's notice;
+    - a new edit decision on the plan screen sends the screen back after each edit.
+
+    One existing test expected the old decision shape and was updated (`edit: null`).
+24. Live in the studio (Glow Salon):
+    - the questions appeared ("Do clients choose who serves them?");
+    - "Let FORGE decide" stored nothing, and the two answers showed in the summary;
+    - the plan renamed staff to stylists;
+    - the panel showed 5 lists and their rules; adding "Hair length" (choice), changing 60 -> 30 days and undoing
+      all worked;
+    - the build ran the Database Agent first, and its saved `db/` files hold the new column.
+
+    Each edit took about 10 s (the run is saved to Supabase on every step).
+25. Seen live and fixed:
+    - **Too much was locked.** The "no double booking" rule showed "(your answer)" because it also depends on the
+      stylist answer, though the owner let FORGE decide on double booking. Now locked only when every answer
+      behind it is the owner's.
+    - **Settings lists were editable.** "Working hours" offered "Make optional"; settings lists are filled by FORGE
+      and are now not edited field by field.
+    - **Rule checkboxes had no name** for screen readers ("on"); they are now named after their rule.
+
+**Checked** 21 data-edit tests; type check and lint of the studio; live run above.
+
+26. Day 7, the data evaluation (12 requests, `scripts/run_data_eval.py`). The first two full runs reported
+    "not planned" for every request. The runner guessed an outage, and a debug run did show a real 429 from
+    Google, so 2 more runs were made with waits (15 min, then 90 s between requests): still 0 of 12. Comparing
+    with a direct step-by-step run that planned fine showed the real cause: the runner stopped at the plan screen
+    and read the run's state while the plan was still inside the paused planning step. Fix: read the planning
+    step's own state. **Lesson:** a guess written into an error message ("outage") hid a bug for three runs.
+27. D1 result:
+    - 11 of 12 planned;
+    - on all 11 the schema applied and 50 of 50 rule tests passed;
+    - 17 of 17 owner answers kept;
+    - 100% must-have coverage;
+    - 49 s and $0.017 per request; the gate took 0.3 s.
+
+    The pet groomer failed check 29 twice: the model added the catalogue recipe renamed "services" beside
+    appointments' own services. Fix (in code, not only the prompt): a clashing catalogue list gives way to the
+    other recipe's list, plus one prompt line. The rerun of that request first hit a real Google rate limit,
+    right after the 12-request run.
+
+**Status** Days 1-7 done; the pet groomer rerun is pending.
+- Not yet tried on Supabase: `btree_gist` and `CREATE ROLE` there (KI-35).
+- Edits take about 10 s each (KI-39).
+- Next: the Backend Agent (forms to routes, KI-38).
+
+---
+
 ## 32. Custom parts written by the model (the rest of the Frontend Agent)
 **Symptom** The Frontend Agent compiled library parts by code, but every custom part (a feature our library cannot
 build) and showcase section showed a plain placeholder section. The report's Chapter 7 must describe the agent as

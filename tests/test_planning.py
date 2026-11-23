@@ -3,6 +3,7 @@ The Planning Agent subgraph (plan v2, D-204, D-205) with a fake model: the salon
 plan-approval pause, the skipped data call, every plan check, fix rounds, the text pitch rules and plan changes.
 """
 import json
+import re
 from datetime import datetime, timezone
 
 import pytest
@@ -14,7 +15,7 @@ from agents.catalogue import load_catalogue
 from agents.gateway import CallUsage
 from agents.planning import assemble, build_planning_graph, checks, nodes, texts
 from agents.planning.schemas import (
-    CustomSpecOut, DataDesign, NeedOut, PlanPatch, SectionKey, SectionOut, SettingOut, SiteDesign, SiteTexts, TextOut,
+    CustomSpecOut, DataDesign, DataEntityOut, DataFieldOut, DataRuleOut, ExtraField, NeedOut, PlanPatch, RecipeChoice, Rename, SectionKey, SectionOut, SettingOut, SiteDesign, SiteTexts, StatusMove, SwitchValue, TextOut,
 )
 from agents.retrieval.ranker import rank_and_retrieve_components
 from agents.state import (
@@ -27,6 +28,21 @@ THEME = {"theme_id": "t-1", "params": {"personality": "elegant"}, "tokens": {"li
 
 
 # ---------------------------------------------------------------- fixtures
+
+def snake(name: str) -> str:
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+def _custom(name: str, fields: list, feature_ids=(), links=(), **_) -> DataEntityOut:
+    """A record type the fake model writes itself (pattern "custom", D-242): visitor submissions get a status."""
+    out = [DataFieldOut.model_validate({**f.model_dump(exclude={"locked"}), "name": snake(f.name)}) for f in fields]
+    role = "submission" if any(f.personal for f in fields) else "catalogue"
+    rules = []
+    if role == "submission":
+        out.append(DataFieldOut(name="status", label="Status", type="choice", options=["New", "Done"], default="New"))
+        rules.append(DataRuleOut(kind="status_flow", field="status", moves=[StatusMove(from_status="New", to=["Done"])]))
+    return DataEntityOut(name=name, role=role, fields=out, rules=rules, feature_ids=list(feature_ids), links=list(links))
+
 def feature(fid, priority="must", tier="catalogued", name=None):
     return BriefFeature(id=fid, name=name or fid.replace("-", " "), priority=priority, source="user_stated", tier=tier)
 
@@ -90,10 +106,10 @@ def salon_data() -> DataDesign:
     person = [DataField(name="full_name", type="text", personal=True), DataField(name="email", type="email", personal=True),
               DataField(name="phone", type="phone", personal=True)]
     return DataDesign(
-        entities=[DataEntity(name="booking_requests", fields=person + [DataField(name="service", type="text"),
+        entities=[_custom(name="booking_requests", fields=person + [DataField(name="service", type="text"),
                                                                         DataField(name="date", type="date"),
                                                                         DataField(name="time", type="time")]),
-                  DataEntity(name="time_slots", fields=[DataField(name="date", type="date"),
+                  _custom(name="time_slots", fields=[DataField(name="date", type="date"),
                                                         DataField(name="time", type="time")])],
         routes=[ApiRoute(route_id="POST /api/bookings", method="POST", path="/api/bookings", entity="booking_requests",
                          request_fields=["full_name", "email", "phone", "service", "date", "time"],
@@ -159,15 +175,15 @@ def any_brief_planner(heroes: tuple[str, ...]) -> FakeModel:
 
     def data(user):
         out = DataDesign()
-        for s in _section(user, "Sections that send or show data:", "Standard"):
+        for s in _section(user, "Sections that send or show data:", "Recipes"):
             name = s["feature_id"].replace("-", "_") + "_records"
-            fields = [DataField(name=f, type="text", personal=f in ("name", "fullName", "email", "phone"))
+            fields = [DataField(name=snake(f), type="text", personal=f in ("name", "fullName", "email", "phone"))
                       for f in s["sends"] or ["name"]]
-            out.entities.append(DataEntity(name=name, fields=fields))
+            out.entities.append(_custom(name=name, fields=fields))
             if s["is_form"]:
                 route = f"POST /api/{name}"
                 out.routes.append(ApiRoute(route_id=route, method="POST", path=f"/api/{name}", entity=name,
-                                           request_fields=s["sends"], used_by=[s["section_id"]]))
+                                           request_fields=[snake(f) for f in s["sends"]], used_by=[s["section_id"]]))
                 out.form_rules.append(FormRule(section_id=s["section_id"], route_id=route))
             if s["shows_live"]:
                 out.routes.append(ApiRoute(route_id=f"GET /api/{name}", method="GET", path=f"/api/{name}",
@@ -308,7 +324,7 @@ def _no_form_field(p): p.content_schema = [f for f in p.content_schema if f.key 
 def _form_without_route(p): p.form_rules = []
 def _unknown_entity(p): p.api_routes[0].entity = "orders"
 def _no_consent(p): p.form_rules[0].consent_required = False
-def _too_many_routes(p): p.api_routes += [p.api_routes[1].model_copy(update={"route_id": f"GET /api/x{i}", "path": f"/api/x{i}"}) for i in range(9)]
+def _too_many_routes(p): p.api_routes += [p.api_routes[1].model_copy(update={"route_id": f"GET /api/x{i}", "path": f"/api/x{i}"}) for i in range(15)]
 def _test_unlinked(p): p.test_map[0].targets = []
 def _theme_changed(p): p.theme = {"theme_id": "other"}
 def _real_phone(p): p.pages[3].purpose = "Call 0300 1234567"
@@ -366,8 +382,8 @@ def test_the_live_bakery_design_passes_without_a_fix_round():
                                          ("contact", "location-map", "location-map"),
                                          ("contact", "contact-info", "contact-info-block")))
     data = DataDesign(
-        entities=[DataEntity(name="cake_items", fields=[DataField(name="name", type="text")]),
-                  DataEntity(name="order_requests", feature_ids=["order-request"],
+        entities=[_custom(name="cake_items", fields=[DataField(name="name", type="text")]),
+                  _custom(name="order_requests", feature_ids=["order-request"],
                              fields=_person() + [DataField(name="items", type="long_text")])],
         routes=[ApiRoute(route_id="GET /api/menu", method="GET", path="/api/menu", entity="cake_items",
                          used_by=["menu.menu-catalog"]),
@@ -394,8 +410,8 @@ def test_the_live_salon_design_passes_without_a_fix_round():
                                          ("services", "services-price-list", "services-price-list"),
                                          ("booking", "booking", "booking-form"), ("contact", "contact-info", "contact-info-block")))
     data = DataDesign(
-        entities=[DataEntity(name="services", feature_ids=["services-price-list"], fields=[DataField(name="name", type="text")]),
-                  DataEntity(name="booking_requests", feature_ids=["booking"],
+        entities=[_custom(name="services", feature_ids=["services-price-list"], fields=[DataField(name="name", type="text")]),
+                  _custom(name="booking_requests", feature_ids=["booking"],
                              fields=_person() + [DataField(name="date", type="date"), DataField(name="time", type="time")])],
         routes=[ApiRoute(route_id="GET /api/services", method="GET", path="/api/services", entity="services",
                          used_by=["services-price-list"]),
@@ -554,8 +570,8 @@ def test_data_links_are_kept_all_the_way_down():                      # KI-11
     data = salon_data()
     data.entities[0].links = ["time_slots"]
     data.entities[1].links = ["trainers"]
-    data.entities += [DataEntity(name="trainers", fields=[DataField(name="name", type="text")], links=["studios"]),
-                      DataEntity(name="studios", fields=[DataField(name="name", type="text")])]
+    data.entities += [_custom(name="trainers", fields=[DataField(name="name", type="text")], links=["studios"]),
+                      _custom(name="studios", fields=[DataField(name="name", type="text")])]
     _, plan = built_plan(data=data)
     assert {"booking_requests", "time_slots", "trainers", "studios"} <= {e.name for e in plan.data_entities}
 
@@ -801,3 +817,50 @@ def test_measured_corners_of_the_reference_site_win_over_the_model():
     _, plan = built_plan(brief)
     assert plan.direction.corners == "sharp" and plan.direction.images == "square"
     assert plan.direction.hero_variant == CHOSEN.hero_variant                # the rest stays the model's choice
+
+
+def test_a_salon_planned_from_the_appointments_recipe():
+    """D-242: the model picks a recipe, renames staff, adds a field and a custom record type; code builds the rest."""
+    brief = _live_brief("hair salon", [("booking", "must"), ("services-price-list", "must"), ("contact-info", "should")],
+                        ["home", "booking", "contact", "services"], ["booking", "services-price-list", "contact-info"])
+    brief.data_choices = {"appointments.choose_staff": "yes", "appointments.lead_time": "24h"}
+    site = SiteDesign(direction=CHOSEN, pages=[page("home", "/", "Home"), page("services", "/services", "Services"),
+                                               page("booking", "/booking", "Book"), page("contact", "/contact", "Contact")],
+                      sections=_sections(("services", "services-price-list", "services-price-list"),
+                                         ("booking", "booking", "booking-form"), ("contact", "contact-info", "contact-info-block")))
+    data = DataDesign(
+        recipes=[RecipeChoice(pattern="appointments", feature_ids=["booking"],
+                              switches=[SwitchValue(switch="lead_time", value="1h"),        # the owner said a day
+                                        SwitchValue(switch="max_advance", value="90d")],
+                              renames=[Rename(entity="staff", name="stylists", label="Stylists")])],
+        extra_fields=[ExtraField(entity="appointments", field=DataFieldOut(
+            name="hair_length", label="Hair length", type="choice", options=["Short", "Medium", "Long"], required=False))],
+        entities=[DataEntityOut(name="loyalty_notes", role="catalogue", label="Loyalty notes",
+                                fields=[DataFieldOut(name="note", type="text")])],
+        routes=[ApiRoute(route_id="POST /api/appointments", method="POST", path="/api/appointments", entity="appointments",
+                         request_fields=["client_name", "phone", "service_id", "staff_id", "start_at", "hair_length"],
+                         used_by=["booking.booking"])])
+    _, plan = built_plan(brief, site, data)
+    assert _issues(brief, plan) == []
+    names = {e.name for e in plan.data_entities}
+    assert names == {"services", "stylists", "working_hours", "days_off", "appointments"}   # unused custom type dropped
+    appt = next(e for e in plan.data_entities if e.name == "appointments")
+    lead = next(r for r in appt.rules if r.kind == "lead_time")
+    assert lead.params["hours"] == 24 and lead.locked                       # the owner's answer won
+    assert next(r for r in appt.rules if r.kind == "max_advance").params["days"] == 90
+    assert any(f.name == "hair_length" and f.options == ["Short", "Medium", "Long"] for f in appt.fields)
+    assert plan.data_recipes[0]["switches"]["lead_time"] == "24h" and plan.data_problems == []
+    post = next(r for r in plan.api_routes if r.route_id == "POST /api/appointments")
+    assert "end_at" not in post.request_fields and "status" not in post.request_fields   # worked out by code
+    assert {"client_name", "phone", "service_id", "staff_id", "start_at", "hair_length"} <= set(post.request_fields)
+    view = next(v for v in plan.dashboard_views if v.entity == "appointments")
+    assert view.statuses == ["New", "Confirmed", "Done", "Cancelled", "No-show"]
+
+
+def test_recipe_mistakes_become_check_29():
+    brief, plan = built_plan(data=DataDesign(
+        recipes=[RecipeChoice(pattern="no_such_recipe"), RecipeChoice(pattern="contact",
+                                                                      switches=[SwitchValue(switch="ask_phone", value="maybe")])],
+        extra_fields=[ExtraField(entity="nowhere", field=DataFieldOut(name="x"))]))
+    problems = [p for p in _issues(brief, plan) if p.startswith("29:")]
+    assert len(problems) == 3, problems

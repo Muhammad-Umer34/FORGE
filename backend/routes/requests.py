@@ -71,6 +71,7 @@ def _run_config() -> RunConfig:
         prompt_versions={f"clarification.{k}": v for k, v in PROMPT_VERSIONS.items()},
         preview=settings.FORGE_PREVIEW,
         build_gate=settings.FORGE_BUILD_GATE,
+        database=settings.FORGE_DATABASE,
     )
 
 

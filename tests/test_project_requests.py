@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
 import httpx
+from backend.db.session import make_sessionmaker
 import pytest
 from fastapi import FastAPI, Header
 from sqlalchemy import text
@@ -48,6 +49,11 @@ class FakeGraph:
         if self.during_run:
             await self.during_run()
         self.threads[thread] = self.next_outcome
+
+    async def astream(self, graph_input, config, **kwargs):   # the API streams build progress (D-233)
+        await self.ainvoke(graph_input, config, **kwargs)
+        return
+        yield
 
     async def aget_state(self, config):
         thread = config["configurable"]["thread_id"]
@@ -111,6 +117,9 @@ async def harness():
     app.include_router(requests_router)
     app.state.forge_graph = graph
     app.dependency_overrides[get_session] = session_dependency(engine)
+    import backend.routes.requests as request_routes           # background builds record with their own session
+    original_maker = request_routes.app_sessionmaker
+    request_routes.app_sessionmaker = lambda: make_sessionmaker(engine)
     app.dependency_overrides[get_current_user_id] = test_user
     app.dependency_overrides[get_verified_user_id] = test_user
     transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
@@ -119,6 +128,7 @@ async def harness():
         try:
             yield h
         finally:
+            request_routes.app_sessionmaker = original_maker
             if h.users:
                 async with engine.begin() as conn:
                     await conn.execute(text("DELETE FROM users WHERE id = ANY(:ids)"), {"ids": h.users})
@@ -250,10 +260,14 @@ def test_the_plan_screen_is_approved_or_changed_through_its_own_route():
                                  json={"question_id": "q1", "kind": "you_decide"})).status_code == 409
             assert (await h.start(uid, pid, "Another website")).status_code == 409   # one website per project
             response = await h.call("POST", uid, plan, json={"decision": "approve"})
-            assert response.status_code == 200 and h.graph.inputs[rid].resume == {"decision": "approve", "change_text": None}
+            assert response.status_code == 200 and h.graph.inputs[rid].resume == {"decision": "approve", "change_text": None, "edit": None}
             PLAN["changes_left"] = 0
             try:
-                refused = await h.call("POST", uid, plan, json={"decision": "change", "change_text": "Add a blog"})
+                for _ in range(100):                 # approval starts the build in the background (D-233)
+                    refused = await h.call("POST", uid, plan, json={"decision": "change", "change_text": "Add a blog"})
+                    if refused.status_code != 409:
+                        break
+                    await asyncio.sleep(0.05)
                 assert refused.status_code == 422
             finally:
                 PLAN["changes_left"] = 1

@@ -24,6 +24,8 @@ class Settings:
     # so tests and evaluation runs never start dev servers or real builds.
     FORGE_PREVIEW: bool = os.getenv("FORGE_PREVIEW", "off").lower() == "on"
     FORGE_BUILD_GATE: bool = os.getenv("FORGE_BUILD_GATE", "off").lower() == "on"
+    # Database Agent (D-243): create each site's own schema in FORGE's database. Off unless set "on".
+    FORGE_DATABASE: bool = os.getenv("FORGE_DATABASE", "off").lower() == "on"
 
 
     # PostgreSQL (Supabase). App database and a separate one for the integration tests (D-172).
