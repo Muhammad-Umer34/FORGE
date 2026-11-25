@@ -252,6 +252,32 @@ def detail_covered(detail: str, entities: list[DataEntity]) -> bool:
     return False
 
 
+
+def hold_details(plan, details: list[str]) -> set[str]:
+    """D-251: a detail the request says visitors give, with no field holding it, gets an optional text field with the
+    visitor's own words as its label, on the record type their form sends (D2: the model named a field "Guests" for
+    "number of people", and fix rounds did not add one). Returns the fields added, as "<entity>.<field>"."""
+    posted = [r.entity for r in plan.api_routes if r.method == "POST"]
+    targets = [e for e in plan.data_entities if e.role == "submission" and e.name in posted]
+    if not targets:
+        return set()
+    target, added = next((e for e in targets if e.pattern), targets[0]), set()
+    for detail in details:
+        if detail_covered(detail, plan.data_entities):
+            continue
+        name = "_".join(_words(detail))[:41].strip("_")
+        if not name:
+            continue
+        if not name[0].isalpha() or name in RESERVED:
+            name = f"visitor_{name}"[:41].strip("_")
+        if not NAME.match(name) or any(f.name == name for f in target.fields):
+            continue
+        label = detail.strip()[:1].upper() + detail.strip()[1:]
+        target.fields.append(DataField(name=name, type="text", required=False, label=label[:80], max_length=500,
+                                       personal=personal_name(name, "text")))
+        added.add(f"{target.name}.{name}")
+    return added
+
 # ---------------------------------------------------------------- plain-English rule sentences
 def _field(e: DataEntity | None, name: str) -> DataField | None:
     return next((x for x in e.fields if x.name == name), None) if e else None

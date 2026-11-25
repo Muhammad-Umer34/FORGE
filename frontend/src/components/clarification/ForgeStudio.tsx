@@ -252,6 +252,7 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
         projectName={projectName}
         onStartOver={envelope && envelope.status !== "processing" ? requestStartOver : undefined}
         busy={busy !== null}
+        dataHref={`/projects/${projectId}/data`}
       />
 
       <main id="main" className="relative z-[1] mx-auto w-full max-w-3xl flex-1 px-5 pt-12 pb-16 sm:px-8 sm:pt-16">

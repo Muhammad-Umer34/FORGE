@@ -95,6 +95,8 @@ class Site:
         self.plan = plan
         self.written = written or {}              # section id -> {"module", "export_name"} of a model-written part
         self.modules: dict[str, str] = {}         # export name -> import path, for parts outside components/
+        from agents.backend_generator.agent import form_specs
+        self.forms = form_specs(plan)             # section id -> its DataForm spec (D-248)
         self.sample = plan.sample_content or {}
         self.business = self.sample.get("business_name") or f"Your {(business_type or 'business').title()}"
         self.texts = {(t.section_id, t.prop): t.text for t in plan.texts if t.text}
@@ -320,6 +322,8 @@ class Site:
         """(component name, JSX line) for one section. A model-written part (custom part or showcase section) gets
         the same props the compiler builds for it; without one, a custom part shows its fallback (D-228, D-230)."""
         part = self.written.get(section.section_id)
+        if section.section_id in self.forms:          # a form on a recipe table: the code-built form (D-248)
+            return "DataForm", f"<DataForm {{...{_js({'spec': self.forms[section.section_id]})}}} />"
         if part:
             name, props = part["export_name"], self.props(section)
             self.modules[name] = part["module"]
@@ -459,6 +463,9 @@ def compile_site(plan: BuildPlan, business_type: str | None = None, seed: str = 
     files["app/not-found.tsx"] = _not_found(site)
     files["app/sitemap.ts"] = _sitemap(site)
     files["app/robots.ts"] = ROBOTS
+    if site.forms:                                       # what each form may send, checked by the site's routes (D-248)
+        from agents.backend_generator.agent import schemas_ts
+        files["lib/schemas.ts"] = schemas_ts(site.forms)
     files["content/site.json"] = _js({"business_name": site.business, "sample_content": True,
                                       "menu": site.nav_links(), "direction_preset": plan.direction_preset}) + "\n"
     return dict(sorted(files.items()))

@@ -19,12 +19,18 @@ class DatabaseBuildError(RuntimeError):
 
 
 def database_url() -> str:
+    """Where sites keep their data: SITE_DB_URL, else FORGE's own database (D-247)."""
+    from backend.core.config import settings
+    return settings.SITE_DB_URL or settings.SUPABASE_DB_URL
+
+
+def app_url() -> str:
     from backend.core.config import settings
     return settings.SUPABASE_DB_URL
 
 
 def run(plan: BuildPlan, request_id: str, project_id: str, config: RunConfig, progress: Callable[[dict], None],
-        url: str | None = None, report: dict | None = None) -> AgentArtifacts:
+        url: str | None = None, report: dict | None = None, registry_url: str | None = None) -> AgentArtifacts:
     def say(message: str, **extra) -> None:
         progress({"agent": "database", "message": message, **extra})
 
@@ -54,8 +60,14 @@ def run(plan: BuildPlan, request_id: str, project_id: str, config: RunConfig, pr
         say(f"Database: {result.message}. This is a FORGE bug, not yours.")
         raise DatabaseBuildError(result.message)
     made = provision.provision(plan.data_entities, url, project_id, TIME_ZONE)
+    if report is not None:                               # the Backend Agent's gate runs on this storage (D-247)
+        report.update(db_role=made["role"], db_contract=made["contract"])
     if made["kept_old_schema"]:
         say(f"Database: your earlier data was kept in {made['kept_old_schema']}")
+    key = provision.register(registry_url or app_url(), project_id, made, request_id)
+    if key:                                              # the live preview's server talks to FORGE with it (D-247)
+        from agents import preview
+        preview.set_site_key(request_id, key)
     say("Database: site storage ready")
     return _save(request_id, {**made["files"], "db/seed.sql": made["seed"]}, "done", report, made["schema"])
 

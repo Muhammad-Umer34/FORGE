@@ -8,11 +8,14 @@ Rebuilds recreate the schema. A schema holding real (non-sample) rows is never d
 site_<project>_old_<time> and kept.
 shortcut: no migrations between plan versions yet; add them when sites are published with live data (FYP-2).
 """
+import hashlib
 import re
+import secrets
 import uuid
 from datetime import datetime, timezone
 
 import psycopg
+from psycopg.types.json import Jsonb
 
 from agents.database_generator.compile import compile_schema, ident, literal
 from agents.database_generator.seed import seed_sql
@@ -72,10 +75,49 @@ def provision(entities: list[DataEntity], url: str, project_id: str, tz: str = "
             conn.execute(f"GRANT {ident(role)} TO current_user")             # so FORGE can SET LOCAL ROLE to it
             conn.execute(f"GRANT USAGE ON SCHEMA {ident(schema)} TO {ident(role)}")
             conn.execute(f"GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA {ident(schema)} TO {ident(role)}")
+            for e in entities:                           # the owner may remove rows of their own lists (D-249)
+                if e.role in ("catalogue", "setting"):
+                    conn.execute(f"GRANT DELETE ON {ident(schema)}.{ident(e.name)} TO {ident(role)}")
             conn.execute(f"GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA {ident(schema)} TO {ident(role)}")
             conn.execute(f"COMMENT ON SCHEMA {ident(schema)} IS {literal('FORGE site storage for project ' + str(project_id))}")
     return {"schema": schema, "role": role, "kept_old_schema": kept, "files": compiled.files(),
+            "contract": compiled.schema_json,
             "seed": seed_sql(entities, schema, tz), "rules": compiled.rules}
+
+
+def new_key() -> tuple[str, str]:
+    """(key, its SHA-256): the key goes to the site's server only; FORGE keeps the hash (D-247)."""
+    key = "fsk_" + secrets.token_urlsafe(32)
+    return key, hashlib.sha256(key.encode()).hexdigest()
+
+
+def register(app_url: str, project_id: str, made: dict, request_id: str) -> str | None:
+    """Record the site's storage in FORGE's own database and return a fresh preview key, or None when the project
+    is not a real one (tests, evaluations)."""
+    try:
+        project = uuid.UUID(str(project_id))
+    except ValueError:
+        return None
+    key, digest = new_key()
+    with connect(app_url) as conn, conn.transaction():
+        if not conn.execute("SELECT 1 FROM projects WHERE id = %s", (project,)).fetchone():
+            return None
+        conn.execute(
+            "INSERT INTO site_storage (project_id, schema_name, role_name, contract, preview_key_hash, request_id) "
+            "VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (project_id) DO UPDATE SET schema_name = EXCLUDED.schema_name, "
+            "role_name = EXCLUDED.role_name, contract = EXCLUDED.contract, preview_key_hash = EXCLUDED.preview_key_hash, "
+            "request_id = EXCLUDED.request_id, updated_at = now()",
+            (project, made["schema"], made["role"], Jsonb(made["contract"]), digest, request_id[:32]))
+    return key
+
+
+def new_preview_key(app_url: str, project_id: str) -> str | None:
+    """A fresh preview key for a project that has storage (reopening a project starts a new preview)."""
+    key, digest = new_key()
+    with connect(app_url) as conn, conn.transaction():
+        done = conn.execute("UPDATE site_storage SET preview_key_hash = %s, updated_at = now() WHERE project_id = %s",
+                            (digest, uuid.UUID(str(project_id)))).rowcount
+    return key if done else None
 
 
 def drop(url: str, project_id: str) -> None:

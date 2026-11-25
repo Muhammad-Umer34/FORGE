@@ -60,7 +60,7 @@ def test_contract_lists_rules_with_their_error_names():
     assert next(c for c in appt["columns"] if c["name"] == "phone")["personal"] is True
 
 
-@pytest.mark.parametrize("name", ["order", "user", "x; DROP TABLE y", 'a"b', "Bad", "", "a" * 50])
+@pytest.mark.parametrize("name", ["order", "user", "x; DROP TABLE y", 'a"b', "Bad", "", "a" * 64])   # over PostgreSQL's 63
 def test_unsafe_identifiers_are_refused(name):
     with pytest.raises(UnsafeName):
         ident(name)
@@ -108,3 +108,15 @@ def test_custom_record_type_with_its_own_rules():
     sql = compile_schema([pets], "site_x").schema_sql
     assert '"age" BETWEEN 0 AND 30' in sql and '"age" >= 0' in sql and '"age" <= 40' in sql
     assert "FORGE_RULE:pets.status_flow" in sql
+
+
+def test_a_long_table_name_still_gets_its_rules():
+    """Live eval (journal #34): 'grooming_appointments' + 'end_from_duration' made a 42-character rule name, which
+    the 41-character name check refused."""
+    entities, _ = dp.expand([{"pattern": "appointments", "names": {"appointments": "grooming_appointments"}}])
+    out = compile_schema(entities, "site_abc123")
+    assert '"r_grooming_appointments__end_from_duration"' in out.schema_sql
+    # triggers fire by name, so the end time (a_) must still come before the opening-hours check (c_)
+    assert '"a_r_grooming_appointments__end_from_duration"' in out.schema_sql
+    with pytest.raises(UnsafeName):
+        ident("r_" + "x" * 62)          # 64 characters

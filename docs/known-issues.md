@@ -55,6 +55,10 @@ Retr = Context Retrieval.
 | KI-37 | One time zone (Asia/Karachi) for every site's working hours and notice rules | Database | Low | Open: ask the owner when FORGE serves other countries |
 | KI-38 | Library forms send camelCase fields (`fullName`, `serviceId`), and recipe tables use snake_case (`client_name`, `service_id`); nothing maps them yet, so forms still store nothing (KI-30) | Backend | High | Open: the Backend/Integration plan |
 | KI-39 | Each answer and each data edit on the plan screen takes about 10 s, although the edit itself is code only: the run is saved to Supabase on every step | Studio | Low | Open: measure where the time goes |
+| KI-40 | A preview key lives only in memory: a backend restart (or its automatic reload in development) stops every preview and its key; reopening the project makes a new one | Backend | Low | Open: fine for previews; published sites use their own key (FYP-2) |
+| KI-41 | Site keys are cached for 60 s and rate limits are counted in memory, per server process | Backend | Low | Open: move to a shared store if FORGE runs on several servers |
+| KI-42 | A new connection to Supabase took about 7 s from this machine (2026-11-24); requests that open one are slow | Backend | Medium | Open: measure again; keep connections warm |
+| KI-43 | Plan check 30 matches a visitor detail by its exact words, so a field with other words ("number of people" against "Guests") does not count; fix rounds did not add a field, and 4 of 12 data evaluation requests stopped there (D2) | Planning | High | Fixed (D-251): code adds the field; D3 12 of 12 planned |
 
 ## Scope limits
 

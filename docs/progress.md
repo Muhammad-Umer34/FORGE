@@ -54,11 +54,16 @@ The data evaluation set (`scripts/data_briefs.json`): 12 requests across the six
 sessions with seats, orders and quotes, catalogues, applications, a custom record type). Run with
 `scripts/run_data_eval.py`: each request is clarified and planned with the strict simulated owner (data questions
 answered from its key), stopping at the plan screen; its data is then compiled and proved by the database gate on
-the test database.
+the test database. From D2, a backend stage (D-247) makes the storage for a throwaway project and calls FORGE's real
+site-data routes with its key: each form's sample submission saved, a wrong key refused (401), one rule-breaking
+submission refused with the right code (a repeat on a no-overlap or once-only table, 409; else a missing required
+field, 422).
 
-| # | Date | Commit | Requests | Planned | Right recipe | Schema applies, rules hold | Rule tests | Owner answers kept | Must-have coverage | Avg tables / rules | Avg time | Avg cost | What changed |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| D1 | 2026-11-23 | D-242 - D-245 | 12 | 11 | 11 / 11 | 11 / 11 | 50 / 50 | 17 / 17 | 100% | 3.0 / 4.5 | 49 s | $0.017 | First data baseline. Gate 0.3 s per site. Not planned: d-pet-groomer, the model added the catalogue recipe renamed to "services", clashing with the appointments recipe's own services (check 29, issue 35); fixed by code after the run (a clashing catalogue list gives way), rerun pending |
+| # | Date | Commit | Requests | Planned | Right recipe | Schema applies, rules hold | Rule tests | Owner answers kept | Must-have coverage | Avg tables / rules | Avg time | Avg cost | Backend sites / checks | What changed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| D1 | 2026-11-23 | D-242 - D-245 | 12 | 11 | 11 / 11 | 11 / 11 | 50 / 50 | 17 / 17 | 100% | 3.0 / 4.5 | 49 s | $0.017 | - | First data baseline. Gate 0.3 s per site. Not planned: d-pet-groomer, the model added the catalogue recipe renamed to "services", clashing with the appointments recipe's own services (check 29, issue 35); fixed by code after the run (a clashing catalogue list gives way), rerun pending |
+| D2 | 2026-11-25 | D-246 - D-250 (uncommitted) | 12 | 7 | 7 / 7 | 7 / 7 | 36 / 36 | 8 / 8 | 100% | 4.0 / 5.1 | 63 s | $0.027 | 6 / 7 sites, 23 / 24 checks | First run with check 30 (D-246) and the backend stage. Not planned: d-restaurant, d-contractor, d-tutor, d-car-rental (check 30: a detail's words not in any field, e.g. 'number of people' against a guests field; issue 41, open); d-clinic (check 9: the free-times route 'sent' date, issue 40, fixed after the run). Backend: d-pet-groomer's sample booking refused as closed (issue 39, fixed after the run, 3/3 offline). A first run crashed on the groomer's 42-character rule name (issue 39) |
+| D3 | 2026-11-25 | D-246 - D-251 (uncommitted) | 12 | 12 | 12 / 12 | 12 / 12 | 60 / 60 | 18 / 18 | 100% | 3.2 / 5.0 | 48 s | $0.015 | 12 / 12 sites, 42 / 42 checks | After the D2 fixes: long rule names and trigger order (issue 39), free-times routes take no visitor fields (issue 40), code adds a field for a visitor detail no field holds (issue 41, D-251). Every request planned; every site saves a booking or form, refuses a wrong key and refuses a broken rule in plain words. Gate 0.18 s per site |
 
 ## 2. Issues met and how they were fixed
 
@@ -67,6 +72,9 @@ each row (every try, wrong turns, how it was checked) is in `problem-journal.md`
 
 | # | Date | Issue | Found by | Cause | Fix | Decision |
 |---|---|---|---|---|---|---|
+| 41 | 2026-11-25 | Four data requests stopped at plan check 30 | Data evaluation D2 | The check wants the detail's own words in a field ('number of people' is not found in a guests field) and fix rounds did not add one | Code adds an optional text field with the visitor's words on the record type their form sends; D3 planned 12 of 12 | D-251 |
+| 40 | 2026-11-25 | The clinic plan failed check 9: the free-times route 'sends date' | Data evaluation D2 | The model's GET route on bookings listed its query value as a field; code owns that route since D-248 but left the model's fields | GET routes on recipe tables take no visitor fields | D-248 |
+| 39 | 2026-11-25 | The groomer's booking was refused as "closed" at 13:00 on a Thursday; a first run crashed on its rule name | Data evaluation D2, backend stage | Names over 41 characters were refused, and shortened trigger names got an f_ prefix, so the hours check (c_) fired before the end time was worked out (a_) | Names code builds may run to PostgreSQL's 63 characters, with no prefix; tests for both | D-243 |
 | 38 | 2026-11-23 | The pet groomer plan had no field for the pet's name, breed or age | Data evaluation rerun | Clarification dropped details visitors give; the planner never saw them | `visitor_details` in the brief and summary, a planner rule, plan check 30 | D-246 |
 | 37 | 2026-11-23 | All 12 data evaluation requests reported "not planned" | First data evaluation | The runner stopped at the plan screen and read the run's state while the plan was still inside the paused planning step, then labelled this an outage | Read the plan from the planning step's own state (`subgraphs=True`); no outage guess in the message | - |
 | 36 | 2026-11-23 | The pet groomer plan failed check 29 twice | Data evaluation D1 | The model added the catalogue recipe renamed "services" next to the appointments recipe, which already has services | A clashing catalogue list gives way to the other recipe's own list; the prompt says booking recipes include their lists | D-242 |

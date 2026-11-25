@@ -29,6 +29,167 @@ Each entry:
 
 ---
 
+## 34. Forms that really save (the Backend Agent)
+**Symptom** The Database Agent gave each site its own tested database, but nothing used it:
+- the site's forms saved nothing (KI-30);
+- their field names did not match the tables (`fullName` against `client_name`, KI-38);
+- the owner could not see a single booking.
+
+**Steps**
+1. Umar chose: one code-built form (`DataForm`); sites reach their data only through FORGE with a secret site key;
+   a simple owner dashboard. His concern: "every website will have different routes". Answer: FORGE needs a few
+   fixed routes for all sites, because each site's `schema.json` (its contract) says what exists, the way Supabase
+   or Firebase serve many databases through one API. Plan: `D:\FYP\reports\FORGE Backend Agent plan.md`.
+2. Day 1:
+   - `site_storage` registry (migration 0009): schema, role, contract and key hashes only;
+   - the contract marks visitor fields (not status, not worked-out fields like `end_at`);
+   - the data service `backend/services/site_data.py`: values checked against the contract, saved as the site's
+     own role, the database's refusals turned into plain messages;
+   - routes `POST /api/site-data/{table}`, `GET /api/site-data/{table}` with the key in a header and a per-site
+     rate limit;
+   - provisioning registers the site and gives the preview a fresh key, kept only in memory.
+3. First test run: 11 of 14 passed. Three bugs, all mine:
+   - **Friendly messages crashed for "working hours".** The table of messages was built for every rule at once,
+     and "within_hours" has a setting also called `hours` that names a table, so it could not become a number.
+     Now each message is built only for its own rule.
+   - **An order's items were refused** because their link to the order was required before the order existed.
+     The link is now set by code and skipped in the check.
+   - **A reply field `status` clashed** with the helper's HTTP status argument.
+
+   After the fixes: 14 of 14.
+
+**Checked** 14 tests on the local PostgreSQL:
+- a booking is saved as New, even if the visitor sends "Done";
+- a double booking gets "That time is already taken";
+- notice and closing-time rules come back in plain words;
+- every value kind is checked;
+- an order and its items are saved together or not at all;
+- a full class gives a waitlist place;
+- public lists never show personal data or hidden items;
+- a wrong or missing key gets 401;
+- a site's key cannot reach another site's tables.
+
+Full suite: 679 passed.
+
+4. Day 2:
+   - **availability:** free start times from working hours, days off, bookings that still count, the service's
+     length and the notice rules; the database still re-checks every booking;
+   - **the Backend Agent** (`agents/backend_generator/`, code only) writes `lib/forms.json` (one form spec per
+     form section), `lib/schemas.ts` (a strict zod schema per form, in the owner's words) and `api/contract.json`;
+   - **site template:** gets the generic route files (`app/api/data/[table]/route.ts`, `.../availability`) and
+     `lib/forge.ts`; the old memory store is gone;
+   - **the backend gate** runs FORGE's real data service on the site's storage in one rolled-back transaction.
+
+   Route params are a Promise in this Next.js version (read in its bundled docs first, as `AGENTS.md` asks).
+5. **Route paths: code owns them now.** The plan's route paths are made the real ones (`/api/data/{table}`; a GET
+   on a booking table becomes its availability). 4 planning tests expected the model's paths (`/api/bookings`) and
+   were updated.
+6. **A plan with no routes had no forms.** The first Backend Agent tests found no forms at all. Cause: a form only
+   got a route if the model had written one. Fix: code makes the missing POST route when a recipe table serves
+   the form. Children such as order items are excluded because they have no status.
+7. **A `consent` tick was going to be refused.** The zod schema sends a `consent` tick, which FORGE would refuse
+   as an unknown field. It is now accepted as a form control and never stored.
+
+**Checked** availability test; `tests/test_backend_agent.py`:
+- specs for a salon and a bakery;
+- strict zod with the owner's labels;
+- the generated schemas type-check in a real site build;
+- the gate passes on real storage and leaves nothing behind.
+
+Full suite 687 passed.
+
+8. Day 3: `site_template/components/DataForm.tsx`, one form drawn from its spec:
+   - every field kind;
+   - lists filled from the site's own routes;
+   - free-time buttons for booking tables;
+   - an order's item rows;
+   - the consent box;
+   - errors next to the fields and in plain words from the server;
+   - labels, `aria-invalid`/`aria-describedby`, focus moved to the result.
+
+   The compiler draws `DataForm` for every form section on a recipe table and writes `lib/schemas.ts`. Old plans
+   keep the library forms. A whole salon site with `DataForm` type-checked and built for production first time.
+
+9. Day 4, with Umar's OK:
+   - migration 0009 run on Supabase (0008 -> 0009; nothing existing touched);
+   - a new local database `forge_sites` for site storage;
+   - `.env`: `SITE_DB_URL` and `FORGE_DATABASE=on`;
+   - reopening a project now makes a fresh preview key.
+
+   Found on the way: `.env` again had two active `TEST_DATABASE_URL` lines; the local one, in effect, names no
+   database, so the tests use the server's default `postgres` database. It works, so it was left alone.
+10. **First live build: the database part worked, but no forms.** "Database: 7/7 rule tests passed", then "Backend:
+    no forms send anything". The planner had put the appointment slot picker (no submit of its own) on the booking
+    page. The booking POST route listed that section, but form detection only counted parts with a submit. Fix:
+    any section a recipe table's POST route serves gets `DataForm`. Rebuilt: "Backend: 1 form on 3 routes", "7/7
+    checks passed".
+11. **Free times stuck on "Looking…"**, then 502. The site's call to FORGE never finished. A direct call hung
+    too, but at *connecting to Supabase*: a new connection there took about 7 s. Every site request made two
+    Supabase round trips (the key lookup and a rate-limit count), which could pass the site's 10 s timeout; the
+    lists only worked on already-open connections. Fix:
+    - keys are remembered for a minute;
+    - the per-site rate limit is counted in memory (noted as a shortcut);
+    - the site waits up to 20 s.
+12. **Then "No free times".** The backend's automatic reload after the edit had stopped every preview, and the
+    in-memory key went with it. Reopening the project gave a fresh preview and key, and free times appeared.
+13. **Live result** (Glow Salon preview, local storage):
+    - free times 09:00-17:30 for 2 December;
+    - booked 15:00 with "Sample name 2": "Your appointment request has been received.";
+    - the row is in `site_<id>.appointments` as New, 15:00-15:30 (end worked out by the database);
+    - a second booking at 15:15 gets "That time is already taken. Please pick another." (409);
+    - a Sunday booking gets "We're closed at that time..." (409).
+
+    A booking without a phone got zod's own words ("expected string, received undefined"). Fix: the generated
+    schemas give every field the owner's wording when it is missing.
+
+14. **The owner's dashboard (day 5, D-250).** Owner-only routes under `/api/projects/{id}/data` and a "Site data"
+    page in the studio. The owner routes answer `{ok, message, field}`, which the studio's error reader did not
+    know, so every refusal would have read "FORGE returned an error". Fix: the reader also takes a top-level
+    `message`.
+15. **Live check, two bugs.**
+    - The add-stylist form showed two empty dropdowns and no Name box. The contract sends `options: []` for
+      plain fields, and an empty list counts as true in JavaScript. Fix: test the list's length.
+    - "Remove sample rows" removed nothing. Ayesha's real booking uses a sample stylist and a sample service, so
+      those two could not go; the function then raised inside its one transaction, undoing every other delete.
+      Fix: a table blocked as a whole is cleared row by row; only rows still in use stay, and the reply says how
+      many (new test).
+    - The backend's automatic reload did not pick up the fix (it still sent the old message); a restart did, and
+      signed the studio out.
+16. **Live result** (Glow Salon, local storage):
+    - the real booking shows with its stylist and service names; New → Confirmed, after which New is no longer
+      offered (Done, Cancelled, No-show are);
+    - "Sara Ahmed, Senior stylist" added;
+    - "Removed 14 sample rows. 2 stay because your own rows still use them";
+    - the site's public stylist list now reads `Sample name 2`, `Sara Ahmed`.
+
+17. **The evaluation's backend stage (day 6).** `run_data_eval.py` now makes each planned site's storage for a
+    throwaway project and calls the real site-data routes with its key: the sample submission saved, a wrong key
+    refused, one rule-breaking submission refused with the right code. Tried offline on the salon and bakery test
+    plans first: 201, 401, 409 "That time is already taken", 422 "Please fill in 'Your name'".
+18. **First full run crashed** on the pet groomer: `unsafe identifier 'r_grooming_appointments__end_from_duration'`.
+    Plain names may have 41 characters; a rule name joins two of them. Fix: names code builds may run to
+    PostgreSQL's 63. The run writes its file only at the end, so it was run again.
+19. **D2: 7 of 12 planned; backend 6 of 7 sites, 23 of 24 checks.**
+    - **Groomer:** its sample booking (Thursday 13:00) was refused as "closed". PostgreSQL fires triggers in name
+      order; FORGE relies on `a_` (work out the end time) before `c_` (check opening hours). A long name was
+      shortened to `f_a_...`, which sorts after `c_...`, so the hours check saw no end time. The database gate's
+      7/7 missed it because it tries rules one at a time. Fix: no prefix on a valid name. Offline: 3/3. The
+      repeat check also "passed" on the closed message; it now passes only after a saved first submission.
+    - **Clinic, check 9:** the model's free-times route listed `date` (a query value) as a field. Fix: GET routes
+      on recipe tables take no visitor fields (test).
+    - **Check 30, four requests:** a detail's words were not found in any field ("number of people" against a
+      guests field, "when they need the work done" against a date). Fix rounds did not add a field. Open.
+
+20. **Check 30 by code (D-251, Umar's choice).** A detail no field holds gets an optional text field, labelled with
+    the visitor's words ("Number of people"), on the record type their form sends, and the form sends it. Test:
+    "number of people" and "pet's breed" added, "phone" not doubled, check 30 clear.
+21. **D3: 12 of 12 planned**, 60/60 rule tests, 18/18 owner answers, backend 12/12 sites and 42/42 checks; 48 s
+    and $0.015 per request.
+
+**Status** Done: the Backend Agent's six days. Not committed yet.
+
+---
+
 ## 33. Sites need complex data the owner can shape (the Database Agent)
 **Symptom** The plan's data model was flat. A `choice` field had no options, links were names with no foreign
 keys, and rules were free English ("no two bookings for the same slot"). D-227 put every site's data into one

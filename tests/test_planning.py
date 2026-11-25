@@ -249,8 +249,8 @@ def test_salon_plan_end_to_end_through_approval(monkeypatch):
     assert {"stamps_for_reward", "services", "whatsapp", "business_name"} <= keys      # custom part asks too
     assert next(f for f in plan.content_schema if f.key == "services").needed_by == ["home.services-price-list", "booking.booking"]   # one list, two sections
     assert plan.form_rules[0].consent_required and plan.form_rules[0].success_slot == "booking.booking.successMessage"
-    assert {t.test_id: t.targets for t in plan.test_map}["T01"] == ["booking.booking", "POST /api/bookings",
-                                                                    "GET /api/availability"]
+    assert {t.test_id: t.targets for t in plan.test_map}["T01"] == ["booking.booking", "POST /api/data/booking_requests",
+                                                                    "GET /api/data/time_slots"]   # real paths (D-247)
     assert plan.custom_specs[0].needs[0].type == "number" and plan.theme == THEME
     assert [c.section_id for c in plan.components if c.page == "all"] == ["all.navbar", "all.footer", "all.not-found",
                                                                          "all.whatsapp-chat"]
@@ -393,8 +393,8 @@ def test_the_live_bakery_design_passes_without_a_fix_round():
     _, plan = built_plan(brief, site, data)
     assert _issues(brief, plan) == []
     assert [(r.section_id, r.route_id, r.consent_required) for r in plan.form_rules] == [
-        ("order.order-request", "POST /api/orders", True)]
-    assert "GET /api/orders" not in {r.route_id for r in plan.api_routes}
+        ("order.order-request", "POST /api/data/order_requests", True)]
+    assert "GET /api/data/order_requests/availability" not in {r.route_id for r in plan.api_routes}
     assert [v.entity for v in plan.dashboard_views] == ["order_requests"]
 
 
@@ -423,8 +423,8 @@ def test_the_live_salon_design_passes_without_a_fix_round():
     _, plan = built_plan(brief, site, data)
     assert _issues(brief, plan) == []
     routes = {r.route_id: r.used_by for r in plan.api_routes}
-    assert routes["GET /api/services"] == ["services.services-price-list"] and "GET /api/contact" not in routes
-    assert routes["POST /api/bookings"] == ["booking.booking"]
+    assert routes["GET /api/data/services"] == ["services.services-price-list"] and "GET /api/contact" not in routes
+    assert routes["POST /api/data/booking_requests"] == ["booking.booking"]
 
 
 def test_a_fix_that_makes_the_plan_worse_is_thrown_away(monkeypatch):
@@ -850,7 +850,7 @@ def test_a_salon_planned_from_the_appointments_recipe():
     assert next(r for r in appt.rules if r.kind == "max_advance").params["days"] == 90
     assert any(f.name == "hair_length" and f.options == ["Short", "Medium", "Long"] for f in appt.fields)
     assert plan.data_recipes[0]["switches"]["lead_time"] == "24h" and plan.data_problems == []
-    post = next(r for r in plan.api_routes if r.route_id == "POST /api/appointments")
+    post = next(r for r in plan.api_routes if r.route_id == "POST /api/data/appointments")
     assert "end_at" not in post.request_fields and "status" not in post.request_fields   # worked out by code
     assert {"client_name", "phone", "service_id", "staff_id", "start_at", "hair_length"} <= set(post.request_fields)
     view = next(v for v in plan.dashboard_views if v.entity == "appointments")
@@ -864,3 +864,35 @@ def test_recipe_mistakes_become_check_29():
         extra_fields=[ExtraField(entity="nowhere", field=DataFieldOut(name="x"))]))
     problems = [p for p in _issues(brief, plan) if p.startswith("29:")]
     assert len(problems) == 3, problems
+
+
+def test_a_free_times_route_takes_no_visitor_fields():
+    """Live data eval (clinic, journal #34): the model's GET route on bookings sent 'date', a query value, not a field
+    of the table, so check 9 stopped the plan. Code owns that route's query."""
+    brief = _live_brief("clinic", [("booking", "must")], ["home", "booking"], ["booking"])
+    site = SiteDesign(direction=CHOSEN, pages=[page("home", "/", "Home"), page("booking", "/booking", "Book")],
+                      sections=_sections(("booking", "booking", "booking-form")))
+    data = DataDesign(recipes=[RecipeChoice(pattern="appointments", feature_ids=["booking"])],
+                      routes=[ApiRoute(route_id="GET /api/slots", method="GET", path="/api/slots",
+                                       entity="appointments", request_fields=["date"], used_by=["booking.booking"])])
+    _, plan = built_plan(brief, site, data)
+    route = next(r for r in plan.api_routes if r.route_id == "GET /api/data/appointments/availability")
+    assert route.request_fields == [] and not [i for i in _issues(brief, plan) if i.startswith("9:")]
+
+
+def test_a_detail_visitors_give_gets_a_field_by_code():
+    """D2 (KI-43): 'number of people' was in no field and fix rounds did not add one; code adds it with the visitor's
+    words, and the booking form sends it."""
+    brief = _live_brief("restaurant", [("booking", "must")], ["home", "booking"], ["booking"])
+    brief.visitor_details = ["number of people", "pet's breed", "phone"]          # phone is already held
+    site = SiteDesign(direction=CHOSEN, pages=[page("home", "/", "Home"), page("booking", "/booking", "Book")],
+                      sections=_sections(("booking", "booking", "booking-form")))
+    data = DataDesign(recipes=[RecipeChoice(pattern="appointments", feature_ids=["booking"])], routes=[])
+    _, plan = built_plan(brief, site, data)
+    appt = next(e for e in plan.data_entities if e.name == "appointments")
+    added = {f.name: f for f in appt.fields if f.name in ("number_people", "pet_breed")}
+    assert set(added) == {"number_people", "pet_breed"} and added["number_people"].label == "Number of people"
+    assert not added["pet_breed"].required and [f.name for f in appt.fields].count("phone") == 1
+    post = next(r for r in plan.api_routes if r.route_id == "POST /api/data/appointments")
+    assert {"number_people", "pet_breed"} <= set(post.request_fields)
+    assert not [i for i in _issues(brief, plan) if i.startswith("30:")]

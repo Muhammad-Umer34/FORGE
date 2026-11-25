@@ -450,9 +450,10 @@ async def read_image_colours(http: Request, request_id: str = Depends(_owned_req
 
 
 @router.post("/{request_id}/preview")
-async def start_preview(request_id: str = Depends(_owned_request)):
+async def start_preview(project_id: str, request_id: str = Depends(_owned_request)):
     """The live preview of a built site, started again from its saved files (D-240): after a page reload or a server
-    restart the preview is gone (it lives in memory), but every file is in the file store."""
+    restart the preview is gone (it lives in memory), but every file is in the file store. A site with storage gets a
+    fresh preview key, so its forms save again (D-247)."""
     if not settings.FORGE_PREVIEW:
         raise HTTPException(status.HTTP_409_CONFLICT, "The live preview is switched off on this server.")
     running = preview.get(request_id)
@@ -466,6 +467,11 @@ async def start_preview(request_id: str = Depends(_owned_request)):
     files = {path: content for path, content in saved.items() if not path.startswith("forge/")}
     if "app/page.tsx" not in files:
         raise HTTPException(status.HTTP_409_CONFLICT, "This site has not been built yet.")
+    if settings.FORGE_DATABASE:
+        from agents.database_generator import provision
+        key = await run_in_threadpool(provision.new_preview_key, settings.SUPABASE_DB_URL, project_id)
+        if key:
+            preview.set_site_key(request_id, key)
     try:
         live = await run_in_threadpool(preview.start, request_id, files)
     except preview.PreviewError as error:

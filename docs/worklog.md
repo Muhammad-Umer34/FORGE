@@ -6,6 +6,105 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-25 · Backend Agent, day 6: the evaluation's backend stage (D2)
+
+**What**
+- `scripts/run_data_eval.py` backend stage: real site-data calls per planned site (saved, wrong key, rule broken).
+- Fixes found by it: long rule and trigger names (refused, and trigger order broken); GET routes on recipe tables
+  take no visitor fields.
+
+**Checked** D2: 7 of 12 planned, 36/36 rule tests, 8/8 owner answers, backend 23/24 (the groomer, fixed after,
+3/3 offline). Full suite 697 passed before the fixes; compile, planning, backend and data-check tests 129 passed
+after.
+
+Then D-251: code adds a field for a visitor detail no field holds. **D3: 12 of 12 planned, backend 42/42.**
+
+**Open** Commit; the Integration Agent plan.
+
+---
+
+## 2026-11-25 · Backend Agent, day 5: the owner's dashboard (D-250)
+
+**What**
+- Owner-only routes `/api/projects/{id}/data` (lists, rows, status moves, add, edit, remove, clear samples) in
+  `backend/routes/owner_data.py`, with the service functions in `backend/services/site_data.py`.
+- Studio page `/projects/{id}/data` (`SiteData.tsx`), reached from the header's "Site data" link.
+- Sample clearing keeps only the sample rows real rows still use, and says how many.
+
+**Checked** Live on Glow Salon: the real booking shown, New → Confirmed (only allowed moves offered), a stylist
+added, 14 sample rows removed and 2 kept, the public stylist list updated. Owner tests 6, studio type check and
+lint clean.
+
+**Open** Day 6: the evaluation's backend stage (D2), full suite.
+
+---
+
+## 2026-11-24 · Backend Agent, day 4: a live booking (D-247 - D-249)
+
+**What**
+- Migration 0009 on Supabase (with Umar's OK); local `forge_sites` for site storage; `.env` switches.
+- A fresh preview key when a project is reopened.
+- `DataForm` for any section a recipe POST route serves.
+- Keys cached and rate limits counted in memory (Supabase connections took about 7 s).
+- The site waits 20 s; missing fields get the owner's wording.
+
+**Checked** Live in the studio and the Glow Salon preview:
+- free times shown, a booking saved as New with its end time;
+- a double booking and a Sunday booking refused in plain words.
+
+Tests: backend agent 10, site data 16.
+
+**Open** KI-40 - KI-42; days 5-6.
+
+---
+
+## 2026-11-24 · Backend Agent, day 3: DataForm (D-249)
+
+**What** `site_template/components/DataForm.tsx`; the compiler renders it for recipe form sections and writes
+`lib/schemas.ts`.
+
+**Checked** A full salon site with `DataForm` type-checks and builds for production; full suite 688 passed; studio
+type check clean.
+
+**Open** Day 4 needs migration 0009 on FORGE's database and the `.env` switches.
+
+---
+
+## 2026-11-24 · Backend Agent, day 2: availability, the Backend Agent's files, the backend gate (D-247, D-248)
+
+**What**
+- `site_data.availability` and its route.
+- `agents/backend_generator/agent.py` and `gate.py`; the old stubs removed.
+- Site template: `lib/forge.ts`, `lib/schemas.ts`, `app/api/data/[table]/route.ts`, `.../availability/route.ts`;
+  `lib/store.ts` removed.
+- Planning: real route paths, missing recipe POST routes made by code.
+- `build_site` runs the Database, Backend and Frontend agents in turn.
+
+**Checked** `tests/test_backend_agent.py` (7, incl. a real type-check and the gate on local PostgreSQL); full suite
+687 passed.
+
+**Open** Days 3-6 (journal #34).
+
+---
+
+## 2026-11-24 · Backend Agent, day 1: storage registry and the site data API (D-247)
+
+**What**
+- Migration 0009 `site_storage`; `SiteStorage` table.
+- `provision.register` / `new_preview_key`; owners may delete rows of their own lists (grant).
+- `backend/services/site_data.py` and `backend/routes/site_data.py`.
+- The contract marks visitor fields.
+- Settings `SITE_DB_URL`, `FORGE_API_URL` and the site rate limits.
+- The preview gets `FORGE_SITE_KEY` from memory.
+
+**Why** The plan approved on 2026-11-24 (`D:\FYP\reports\FORGE Backend Agent plan.md`).
+
+**Checked** `tests/test_site_data.py` (14, local PostgreSQL); full suite 679 passed.
+
+**Open** Days 2-6 (journal #34).
+
+---
+
 ## 2026-11-23 · Details visitors give are kept (D-246)
 
 **What**

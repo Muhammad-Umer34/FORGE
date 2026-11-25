@@ -62,6 +62,22 @@ def _drain(preview: Preview, ready: threading.Event) -> None:
     ready.set()
 
 
+_site_keys: dict[str, str] = {}             # request id -> the preview key of its site's storage (D-247)
+
+
+def set_site_key(request_id: str, key: str) -> None:
+    """The key the preview's server sends to FORGE's site data API; kept only in memory, never written to a file."""
+    with _lock:
+        _site_keys[request_id] = key
+
+
+def site_env(request_id: str) -> dict[str, str]:
+    from backend.core.config import settings
+    with _lock:
+        key = _site_keys.get(request_id)
+    return {"FORGE_API_URL": settings.FORGE_API_URL, "FORGE_SITE_KEY": key} if key else {}
+
+
 def start(request_id: str, files: dict[str, str]) -> Preview:
     """A running preview of these files. Stops any other preview first."""
     stop_all()
@@ -72,7 +88,7 @@ def start(request_id: str, files: dict[str, str]) -> Preview:
         raise PreviewError(str(error)) from error
     port = _free_port()
     proc = subprocess.Popen([bw._tool(folder, "next"), "dev", "--webpack", "-p", str(port), "-H", "127.0.0.1"],
-                            cwd=folder, env=bw.build_env(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            cwd=folder, env={**bw.build_env(), **site_env(request_id)}, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             text=True, encoding="utf-8", errors="replace")
     preview, ready = Preview(request_id, folder, port, proc), threading.Event()
     threading.Thread(target=_drain, args=(preview, ready), daemon=True).start()

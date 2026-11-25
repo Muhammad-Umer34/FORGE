@@ -65,9 +65,10 @@ interface StudioHeaderProps {
   projectName?: string;        // shows "Projects / name" as a way back
   onStartOver?: () => void;
   busy?: boolean;
+  dataHref?: string;           // the project's "Your site's data" page (D-250)
 }
 
-export function StudioHeader({ step, projectName, onStartOver, busy }: StudioHeaderProps) {
+export function StudioHeader({ step, projectName, onStartOver, busy, dataHref }: StudioHeaderProps) {
   const current = step ? STEPS.findIndex((s) => s.id === step) : -1;
 
   return (
@@ -120,6 +121,14 @@ export function StudioHeader({ step, projectName, onStartOver, busy }: StudioHea
         )}
 
         <div className="flex shrink-0 items-center gap-1">
+          {dataHref && (
+            <Link
+              href={dataHref}
+              className="rounded-md px-3 py-2 text-[13px] font-medium text-ink-muted transition-colors duration-200 hover:bg-surface-sunk hover:text-ink"
+            >
+              Site data
+            </Link>
+          )}
           {onStartOver && (
             <button
               type="button"

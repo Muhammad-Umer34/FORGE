@@ -40,6 +40,7 @@ async function readError(response: Response): Promise<ApiError> {
   const detail = body?.detail;
   if (typeof detail === "string") return new ApiError(response.status, detail);
   if (detail && typeof detail.message === "string") return new ApiError(response.status, detail.message, detail.code);
+  if (typeof body?.message === "string") return new ApiError(response.status, body.message, body.field ?? undefined); // site data (D-250)
   if (Array.isArray(detail) && typeof detail[0]?.msg === "string") {
     return new ApiError(response.status, detail[0].msg.replace(/^Value error, /, ""), "invalid");
   }

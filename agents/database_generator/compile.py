@@ -15,6 +15,8 @@ from agents.planning.data_patterns import NAME, RESERVED
 from agents.state import DataEntity, DataField, DataRule
 
 SCHEMA_NAME = re.compile(r"^(site|check)_[a-z0-9_]{1,40}$")
+# names code builds from checked names (rules, triggers, constraints) may run to PostgreSQL's 63 characters
+CODE_NAME = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 TIMEZONE = re.compile(r"^[A-Za-z]+(/[A-Za-z_+-]+){1,2}$")
 SQL_TYPES = {"text": "text", "long_text": "text", "number": "numeric", "money": "numeric(12,2)", "date": "date",
              "time": "time", "datetime": "timestamptz", "email": "text", "phone": "text", "url": "text",
@@ -29,7 +31,7 @@ class UnsafeName(ValueError):
 
 
 def ident(name: str) -> str:
-    if not (NAME.match(name) or SCHEMA_NAME.match(name)) or name in RESERVED - {"id", "created_at", "is_sample"}:
+    if not (NAME.match(name) or SCHEMA_NAME.match(name) or CODE_NAME.match(name)) or name in RESERVED - {"id", "created_at", "is_sample"}:
         raise UnsafeName(f"unsafe identifier {name!r}")
     return f'"{name}"'
 
@@ -128,7 +130,8 @@ def _column(e: DataEntity, f: DataField) -> tuple[str, list[str]]:
 def _short(name: str) -> str:
     """Field constraint names, kept within PostgreSQL's 63 characters and the identifier pattern."""
     name = re.sub(r"[^a-z0-9_]", "_", name.lower())[:63]
-    return name if NAME.match(name) else "f_" + name[:60]
+    # no prefix on a valid name: triggers fire in name order (a_ fills the end time before c_ checks hours)
+    return name if CODE_NAME.match(name) else "f_" + name[:60]
 
 
 # ---------------------------------------------------------------- rules
@@ -389,12 +392,18 @@ def compile_schema(entities: list[DataEntity], schema: str, tz: str = "Asia/Kara
 def _contract(entities: list[DataEntity], schema: str, made: list[dict], tz: str) -> dict:
     """db/schema.json: what the Backend Agent reads (tables, columns, links, rules and their error names)."""
     by_rule = {m["rule_id"]: m for m in made}
+
+    def worked_out(e: DataEntity) -> set[str]:          # filled by code or a trigger, never sent by a visitor
+        return {"status"} | {r.params.get("end") for r in e.rules if r.kind == "end_from_duration" and r.enabled}
+
     return {"schema": schema, "time_zone": tz, "tables": [{
         "name": e.name, "label": e.label, "role": e.role, "pattern": e.pattern,
         "columns": [{"name": f.name, "label": f.label, "type": f.type, "required": f.required, "personal": f.personal,
                      "options": f.options, "multiple": f.multiple, "reference": f.reference, "default": f.default,
-                     "min": f.min, "max": f.max, "max_length": f.max_length} for f in e.fields],
-        "rules": [by_rule[r.rule_id] for r in e.rules if r.rule_id in by_rule]} for e in entities]}
+                     "min": f.min, "max": f.max, "max_length": f.max_length,
+                     "visitor": f.name not in worked_out(e)} for f in e.fields],
+        "rules": [{**by_rule[r.rule_id], "params": r.params} for r in e.rules if r.rule_id in by_rule]}
+        for e in entities]}
 
 
 def er_diagram(entities: list[DataEntity]) -> str:

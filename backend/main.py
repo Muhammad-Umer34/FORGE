@@ -13,6 +13,8 @@ from backend.db.checkpoints import open_checkpointer
 from backend.db.session import app_sessionmaker
 from backend.routes import auth_router, health_router, projects_router, requests_router
 from backend.routes.requests import repair_statuses
+from backend.routes.owner_data import router as owner_data_router
+from backend.routes.site_data import router as site_data_router
 from backend.services.generated_files import PostgresFileStore
 
 
@@ -58,6 +60,8 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(requests_router)
+app.include_router(site_data_router)
+app.include_router(owner_data_router)
 
 if __name__ == "__main__":
     # psycopg (the checkpointer) cannot run on Windows' default ProactorEventLoop

@@ -8,7 +8,11 @@ keep the owner's answers, and build storage whose every rule holds?
 
 Each request goes through clarification and planning with the strict simulated owner (scripts/run_eval.py), stopping
 at the plan screen (no build). Its data is then compiled and proved by the database gate on TEST_DATABASE_URL (a
-scratch schema, rolled back). Real Gemini calls are made. Results: scripts/runs/data_eval_<time>.json.
+scratch schema, rolled back). Then the backend stage (D-247, D2): the storage is made for a throwaway project, and
+FORGE's real site-data routes are called with its key: each form's sample submission must be saved, a wrong key
+refused (401), and one rule-breaking submission refused with the right code (a repeat for a table with a no-overlap
+or once-only rule, 409; otherwise a missing required field, 422). Real Gemini calls are made. Results:
+scripts/runs/data_eval_<time>.json.
 """
 import argparse
 import asyncio
@@ -29,7 +33,11 @@ from langgraph.types import Command  # noqa: E402
 
 import run_eval as ev  # noqa: E402
 from agents.database_generator.gate import run_gate  # noqa: E402
+from agents.backend_generator.agent import form_specs  # noqa: E402
+from agents.backend_generator.gate import sample_payload  # noqa: E402
+from agents.database_generator import provision  # noqa: E402
 from agents.database_generator.provision import plain_url  # noqa: E402
+from agents.database_generator.seed import seed_rows  # noqa: E402
 from agents.orchestrator import build_forge_graph  # noqa: E402
 from agents.state import RequestInfo, initial_state, msgpack_allowlist  # noqa: E402
 from backend.core.config import settings  # noqa: E402
@@ -126,7 +134,87 @@ def measure(brief: dict, values: dict, seconds: float, error: str | None) -> dic
         "gate_message": result.message, "gate_seconds": round(time.perf_counter() - gate_started, 1),
         "data_problems": list(plan.data_problems), "fix_rounds": p.fix_rounds_used,
     })
+    if result.ok:
+        row["backend"] = backend_stage(plan, brief["id"])
     return row
+
+
+REPEAT_REFUSED = {"no_overlap", "unique_together"}
+
+
+def backend_stage(plan, brief_id: str) -> dict:
+    """Real HTTP calls to FORGE's site-data routes (in process) on storage made for a throwaway project."""
+    import httpx
+    import psycopg
+    from fastapi import FastAPI
+
+    from backend.db.session import get_session
+    from backend.routes import site_data as routes
+    from backend.services import site_data
+    sys.path.insert(0, str(ROOT / "tests"))
+    from pg_support import new_engine, session_dependency
+
+    url = plain_url(settings.TEST_DATABASE_URL)
+    specs = {s["table"]: s for s in form_specs(plan).values()}
+    out = {"forms": len(specs), "checks": [], "error": None}
+    with psycopg.connect(url, autocommit=True) as conn:
+        user = conn.execute("INSERT INTO users (email, password_hash, display_name) VALUES (%s, 'x', 'Eval') "
+                            "RETURNING id", (f"deval-{uuid.uuid4().hex[:8]}@example.com",)).fetchone()[0]
+        project = str(conn.execute("INSERT INTO projects (owner_id, name) VALUES (%s, %s) RETURNING id",
+                                   (user, f"deval {brief_id}")).fetchone()[0])
+    site_data.use_pool(None)
+    site_data.pool(url)
+    routes._hits.clear()
+    try:
+        made = provision.provision(plan.data_entities, url, project)
+        key = provision.register(url, project, made, f"deval_{brief_id}")
+        rows = seed_rows(plan.data_entities, made["contract"].get("time_zone") or "Asia/Karachi")
+        by_name = {e.name: e for e in plan.data_entities}
+
+        async def calls():
+            engine = new_engine()
+            app = FastAPI()
+            app.include_router(routes.router)
+            app.dependency_overrides[get_session] = session_dependency(engine)
+            checks = []
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://forge") as client:
+                async def post(table, body, k=key):
+                    r = await client.post(f"/api/site-data/{table}", json=body, headers={"X-Forge-Site-Key": k})
+                    return r.status_code, (r.json().get("message") or "")
+
+                for table, spec in specs.items():
+                    payload = sample_payload(spec, rows, plan)
+                    code, message = await post(table, payload)
+                    saved = code == 201
+                    checks.append({"table": table, "check": "sample saved", "ok": saved, "got": f"{code} {message}"[:200]})
+                    code, _ = await post(table, payload, "fsk_wrong")
+                    checks.append({"table": table, "check": "wrong key refused", "ok": code == 401, "got": str(code)})
+                    kinds = {r.kind for r in by_name[table].rules if r.enabled} & REPEAT_REFUSED
+                    if kinds:
+                        code, message = await post(table, payload)
+                        checks.append({"table": table, "check": f"repeat refused ({sorted(kinds)[0]})",
+                                       "ok": saved and code == 409, "got": f"{code} {message}"[:200]})
+                        continue           # a refused first save makes the repeat's 409 meaningless, so it fails too
+                    required = next((f["name"] for f in spec["fields"] if f["required"] and f["name"] in payload), None)
+                    if required:
+                        code, message = await post(table, {k: v for k, v in payload.items() if k != required})
+                        checks.append({"table": table, "check": f"missing '{required}' refused", "ok": code == 422,
+                                       "got": f"{code} {message}"[:200]})
+            await engine.dispose()
+            return checks
+
+        out["checks"] = asyncio.run(calls(), loop_factory=asyncio.SelectorEventLoop)
+    except Exception as e:      # a crash here is a result too
+        out["error"] = f"{type(e).__name__}: {e}"[:300]
+    finally:
+        provision.drop(url, project)
+        with psycopg.connect(url, autocommit=True) as conn:
+            conn.execute("DELETE FROM users WHERE id = %s", (user,))
+        site_data.pool().close()
+        site_data.use_pool(None)
+    out["passed"] = sum(c["ok"] for c in out["checks"])
+    out["ok"] = not out["error"] and out["forms"] > 0 and out["passed"] == len(out["checks"])
+    return out
 
 
 def _recipe_fields(plan) -> set[str]:
@@ -154,6 +242,10 @@ def summary(rows: list[dict]) -> dict:
         "avg_gate_seconds": round(sum(r["gate_seconds"] for r in planned) / max(1, len(planned)), 2),
         "avg_cost_usd": round(sum(r["cost_usd"] for r in rows) / max(1, len(rows)), 4),
         "custom_record_types": sum(len(r["custom"]) for r in planned),
+        "backend_sites_ok": f"{sum(bool(r.get('backend', {}).get('ok')) for r in planned)}/{len(planned)}",
+        "backend_checks": f"{sum(r.get('backend', {}).get('passed', 0) for r in planned)}"
+                          f"/{sum(len(r.get('backend', {}).get('checks', [])) for r in planned)}",
+        "backend_forms": sum(r.get("backend", {}).get("forms", 0) for r in planned),
         "not_planned": [r["id"] for r in rows if not r["planned"]],
     }
 
@@ -181,7 +273,10 @@ async def main() -> None:
         row = await asyncio.to_thread(measure, brief, values, seconds, error)
         print(f"  {row['id']}: {'planned' if row['planned'] else 'NOT PLANNED'}"
               + (f", recipes {row['recipes']}, {row['tables']} tables, {row['rules']} rules, gate "
-                 f"{row['rule_tests_passed']}/{row['rule_tests']}, coverage {row['must_coverage']}" if row["planned"] else
+                 f"{row['rule_tests_passed']}/{row['rule_tests']}, coverage {row['must_coverage']}"
+                 + (f", backend {row['backend']['passed']}/{len(row['backend']['checks'])}"
+                    + (f" ({row['backend']['error']})" if row["backend"]["error"] else "") if "backend" in row else "")
+                 if row["planned"] else
                  f" ({row['error'] or row['failure']})"), flush=True)
         return row
 

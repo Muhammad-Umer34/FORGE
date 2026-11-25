@@ -5,6 +5,7 @@ from agents.clarification import build_clarification_graph
 from agents.planning import build_planning_graph
 from agents.retrieval.ranker import rank_and_retrieve_components
 from agents.frontend_generator import agent as frontend_agent
+from agents.backend_generator import agent as backend_agent
 from agents.database_generator import agent as database_agent
 from agents.state import GraphState, Stage, budget_left
 
@@ -52,16 +53,24 @@ def after_planning(state: GraphState) -> dict:
 
 def build_site(state: GraphState) -> dict:
     """The builder step (Phase 3): the database agent makes the site's storage from the plan's data (D-242 - D-245),
-    then the frontend agent writes the site (D-240), with a live preview and the build gate when the run's config
-    turns them on. The backend agent comes next. Repeat-safe: an unchanged file is not written again (P13)."""
+    the backend agent writes the site's form specs and checks, and proves them on that storage (D-247), then the
+    frontend agent writes the site (D-240), with a live preview and the build gate when the run's config turns them
+    on. Repeat-safe: an unchanged file is not written again (P13)."""
     brief = state.get("brief")
     request = state["request"]
+    stored: dict = {}
     database = database_agent.run(state["plan"], request.request_id, request.project_id, state["run_config"],
-                                  get_stream_writer())
+                                  get_stream_writer(), report=stored)
+    storage = None
+    if stored.get("db_schema"):
+        from backend.services.site_data import Storage
+        storage = Storage(request.project_id, stored["db_schema"], stored["db_role"], stored["db_contract"])
+    backend = backend_agent.run(state["plan"], request.request_id, request.project_id, state["run_config"],
+                                get_stream_writer(), storage)
     artifacts, usage = frontend_agent.run(state["plan"], brief.business_type if brief else None,
                                           state["request"].request_id, state["run_config"], get_stream_writer(),
                                           budget_left(state))   # custom parts spend only what the run has left
-    return {"artifacts": {"database": database, "frontend": artifacts}, "usage": usage}
+    return {"artifacts": {"database": database, "backend": backend, "frontend": artifacts}, "usage": usage}
 
 
 def _route_after_planning(state: GraphState) -> str:

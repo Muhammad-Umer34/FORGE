@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, MetaData, String, Text, func, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 NAMING = {
@@ -115,3 +115,19 @@ class RateLimit(Base):
     key: Mapped[str] = mapped_column(String(200), primary_key=True)
     window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
     count: Mapped[int] = mapped_column(Integer, server_default=text("0"))
+
+
+class SiteStorage(Base):
+    """A site's own storage (D-243, D-247): its schema and role, its data contract (db/schema.json) and the SHA-256
+    hashes of its keys. Only hashes are kept; the preview key changes every time the preview starts."""
+    __tablename__ = "site_storage"
+
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"),
+                                                  primary_key=True)
+    schema_name: Mapped[str] = mapped_column(String(63))
+    role_name: Mapped[str] = mapped_column(String(63))
+    contract: Mapped[dict] = mapped_column(JSONB)
+    key_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    preview_key_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    request_id: Mapped[str | None] = mapped_column(String(32))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

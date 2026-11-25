@@ -32,6 +32,14 @@ class Settings:
     # Both may be pooler URLs; the engine disables prepared-statement caching for that (backend/db/session.py).
     SUPABASE_DB_URL: str = os.getenv("SUPABASE_DB_URL", "")
     TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL", "")
+    # Where generated sites keep their data (D-243, D-247): defaults to the app database; set it to a local
+    # PostgreSQL to build and demo without touching Supabase (KI-35).
+    SITE_DB_URL: str = os.getenv("SITE_DB_URL", "")
+    # How a preview's server reaches FORGE's site data API (it runs on the same machine)
+    FORGE_API_URL: str = os.getenv("FORGE_API_URL", "http://127.0.0.1:8000")
+    # Site data API limits per site key (D-247)
+    LIMIT_SITE_WRITES_PER_10MIN: int = int(os.getenv("LIMIT_SITE_WRITES_PER_10MIN", "60"))
+    LIMIT_SITE_READS_PER_10MIN: int = int(os.getenv("LIMIT_SITE_READS_PER_10MIN", "600"))
     # How long project creation waits for the per-user lock before answering 503 (D-174)
     DB_LOCK_TIMEOUT_MS: int = int(os.getenv("DB_LOCK_TIMEOUT_MS", "3000"))
 

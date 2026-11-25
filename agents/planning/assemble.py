@@ -11,7 +11,7 @@ from agents.planning import data_patterns, direction, fixed
 from agents.planning.content_schema import derive_content_schema, load_needs, needs_of, sample_content
 from agents.planning.schemas import DataDesign, PlanPatch, SiteDesign
 from agents.state import (
-    Assumption, BuildPlan, DesignDirection, ClarifiedBrief, CustomComponentSpec, DashboardView, FormRule, Need, NotBuilt,
+    ApiRoute, Assumption, BuildPlan, DesignDirection, ClarifiedBrief, CustomComponentSpec, DashboardView, FormRule, Need, NotBuilt,
     PlannedComponent, PlannedPage, PlanTestLink, RetrievalResult, TextSlot, WorkTask,
 )
 
@@ -236,14 +236,39 @@ def route_fields(plan: BuildPlan, added: set[str] = frozenset()) -> None:
             r.request_fields = sent + [f.name for f in e.fields if f.name in names and f.name not in sent
                                        and ((f.required and f.default is None) or f"{e.name}.{f.name}" in added)]
         elif r.method == "GET":
+            r.request_fields = []               # code owns the query (a list, or a day's free times); live: 'date'
             r.response_fields = [f.name for f in e.fields if not f.personal]
+    renamed = _real_paths(plan, entities)
     routes = {r.route_id: r for r in plan.api_routes}
     for rule in plan.form_rules:
+        rule.route_id = renamed.get(rule.route_id, rule.route_id)
         route = routes.get(rule.route_id)
         e = entities.get(route.entity or "") if route else None
         if e and e.pattern:
             required = {f.name for f in e.fields if f.required}
             rule.required_fields = [f for f in route.request_fields if f in required]
+
+
+def _real_paths(plan: BuildPlan, entities: dict) -> dict[str, str]:
+    """D-247: routes of recipe record types get the paths every site really has: POST and GET /api/data/{table}, and
+    GET /api/data/{table}/availability for reading a booking table (its rows are never public). Routes that end up
+    the same are merged. Returns old route id -> new."""
+    renamed, kept = {}, {}
+    for r in plan.api_routes:
+        e = entities.get(r.entity or "")
+        if e and e.pattern:
+            tail = "/availability" if r.method == "GET" and e.role == "submission" else ""
+            old, r.path = r.route_id, f"/api/data/{e.name}{tail}"
+            r.route_id = renamed[old] = f"{r.method} {r.path}"
+        if r.route_id in kept:
+            same = kept[r.route_id]
+            same.used_by = list(dict.fromkeys(same.used_by + r.used_by))
+            same.satisfies = list(dict.fromkeys(same.satisfies + r.satisfies))
+            same.request_fields = list(dict.fromkeys(same.request_fields + r.request_fields))
+        else:
+            kept[r.route_id] = r
+    plan.api_routes = list(kept.values())
+    return renamed
 
 
 def complete_data(plan: BuildPlan) -> None:
@@ -291,8 +316,14 @@ def complete_data(plan: BuildPlan) -> None:
         route = (next((r for r in posts if sid in r.used_by), None)
                  or next((r for r in posts if entity_serves(r, sid)), None)
                  or (unclaimed[0] if len(unclaimed) == 1 else None))
-        if route is None:
-            continue
+        if route is None:                                # D-247: a recipe table serving this form gets its route
+            e = next((x for x in plan.data_entities if x.pattern and x.role == "submission"
+                      and feature_of.get(sid) in x.feature_ids and any(f.name == "status" for f in x.fields)), None)
+            if e is None:
+                continue
+            route = ApiRoute(route_id=f"POST /api/data/{e.name}", method="POST", path=f"/api/data/{e.name}",
+                             entity=e.name, used_by=[])
+            plan.api_routes.append(route)
         if sid not in route.used_by:
             route.used_by.append(sid)
         required = {f.name for f in entities[route.entity].fields if f.required}
@@ -324,6 +355,7 @@ def complete_data(plan: BuildPlan) -> None:
                       statuses=_status(e).options if _status(e) else ["New", "Done"],
                       default_status=(_status(e).default if _status(e) else None) or "New")
         for e in plan.data_entities if e.name not in viewed and any(f.personal for f in e.fields)]
+    route_fields(plan)                                   # routes made above get their fields and real paths too
 
 
 def _status(e):
@@ -395,6 +427,8 @@ def build_plan(brief: ClarifiedBrief, retrieval: RetrievalResult, site: SiteDesi
         elif c.component_id == "footer":
             c.settings["variant"] = plan.direction.footer_variant
     complete_data(plan)
+    if held := data_patterns.hold_details(plan, brief.visitor_details):      # check 30 by code (D-251)
+        route_fields(plan, held)
     entities = {e.name: e for e in plan.data_entities}
     routes = {r.route_id: r for r in plan.api_routes}
     slot_ids = {t.slot_id for t in plan.texts}
