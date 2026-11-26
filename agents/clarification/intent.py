@@ -53,6 +53,14 @@ REPLIES = {
         "I couldn't tell what you need. Try describing the website: what it's for and what visitors "
         "should be able to do."
     ),
+    "two_businesses": (                                  # D-255
+        "Each project builds one website for one business. Describe one of them here, and create a second "
+        "project from your Projects page for the other."
+    ),
+    "account_action": (
+        "I can't change your account from here. You can delete a project from your Projects page, and sign out "
+        "from the menu at the top."
+    ),
 }
 
 
@@ -68,7 +76,10 @@ def prefilter(text: str) -> str | None:
     return None
 
 
-def reply_for(kind: str, text: str) -> ReplyInfo:
+def reply_for(kind: str, text: str, category: str | None = None) -> ReplyInfo:
+    if kind == "prohibited":                              # D-255: the reason, in plain words
+        from agents.clarification.policy import refusal
+        return ReplyInfo(kind=kind, message=refusal(category or ""))
     message = REPLIES[kind]
     if kind == "greeting":
         if _HOW_ARE_YOU.search(text):

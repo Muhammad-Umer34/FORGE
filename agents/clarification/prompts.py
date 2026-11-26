@@ -30,8 +30,9 @@ _INSTRUCTION_LIKE = re.compile(
 
 def sanitise(text: str, max_chars: int) -> tuple[str, list[str]]:
     """Trim, remove control characters, cap the length, flag instruction-like text (flagged, never obeyed)."""
+    from agents.clarification import policy           # D-255
     flags: list[str] = []
-    clean = _CONTROL_CHARS.sub(" ", text or "")
+    clean = policy.mask_private(_CONTROL_CHARS.sub(" ", text or ""))
     clean = _DATA_TAG.sub(" ", clean)  # the text must stay inside its <user_text> block
     clean = re.sub(r"[ \t]+", " ", clean).strip()
     if len(clean) > max_chars:
@@ -39,6 +40,8 @@ def sanitise(text: str, max_chars: int) -> tuple[str, list[str]]:
         flags.append("truncated")
     if _INSTRUCTION_LIKE.search(clean):
         flags.append("instruction_like_text")
+    if category := policy.code_guard(clean):            # never passed on: a later answer or change is dropped
+        return "", flags + [f"prohibited:{category}"]
     return clean, flags
 
 
@@ -71,7 +74,20 @@ Rules:
 - message_kind: decide first whether the user wants a website. A greeting together with a website request is
   website_request. Questions about FORGE itself are about_forge. Maths, science, general knowledge, writing
   tasks and other unrelated questions are off_topic: do not answer them. When message_kind is not
-  website_request, return no items."""
+  website_request, return no items.
+- prohibited: ONLY when the site's own purpose is clearly harmful: collecting other people's passwords or copying a
+  real bank's or company's login (credential_theft); selling illegal goods such as unlicensed weapons, illegal
+  drugs or forged documents (illegal_trade); sexual or pornographic content (sexual_content); hate, harassment or
+  violence against people or a group (hate_or_violence); tricking people out of money (scam). Set
+  prohibited_category. These are LEGAL and are website_request, never prohibited: licensed gun shops and shooting
+  clubs, pharmacies, clinics and sexual-health clinics, bars, lingerie or swimwear shops, adult education, religious
+  centres of any faith, political parties, cyber-security or ethical-hacking courses, crime-awareness and anti-scam
+  sites, tattoo, vape and shisha shops, butchers, funeral services. When unsure, it is a website_request.
+- two_businesses: one site asked for two or more UNRELATED businesses (a bakery and a car garage). Related
+  offerings of one business (a cafe and bakery, a salon and spa, a clinic and its pharmacy) are one
+  website_request.
+- account_action: the user asks FORGE to delete, rename or change their projects, account or password, or to sign
+  them out."""
 
 
 def intake_user(request_text: str, feature_list: str, unsupported_list: str) -> str:

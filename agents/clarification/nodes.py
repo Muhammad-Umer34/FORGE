@@ -13,7 +13,7 @@ from typing import Any
 from langgraph.types import interrupt
 
 from agents.catalogue import Catalogue, load_catalogue
-from agents.clarification import acceptance, grounding, intent, prompts, slots
+from agents.clarification import acceptance, grounding, intent, policy, prompts, slots
 from agents.clarification import brief as briefs
 from agents.clarification.schemas import (
     NO_VISITOR_ACTION, AnswerInterpretation, BriefReview, ConfirmationDecision, EditInterpretation,
@@ -117,16 +117,18 @@ def sanitise_input(state: GraphState) -> dict:
     return {"clarification": c}
 
 
-def _reply(c: ClarificationState, kind: str, text: str) -> ClarificationState:
-    """Not a website request: a fixed reply, no build run (D-150)."""
+def _reply(c: ClarificationState, kind: str, text: str, category: str | None = None) -> ClarificationState:
+    """Not a website request (or one FORGE will not build, D-255): a fixed reply, no build run (D-150)."""
     c.is_website_request = False
-    c.reply = intent.reply_for(kind, text)
+    c.reply = intent.reply_for(kind, text, category)
     c.status = "replied"
     return c
 
 
 def intake(state: GraphState) -> dict:
     c, limits, cat = _ctx(state)
+    if category := policy.code_guard(policy.mask_private(state["request"].prompt)):     # D-255, layer 1
+        return {"clarification": _reply(c, "prohibited", "", category)}
     text = _prompt(state)
     obvious = intent.prefilter(text)          # greetings and word-less text: no model call (D-151)
     if obvious:
@@ -138,7 +140,7 @@ def intake(state: GraphState) -> dict:
         return {"clarification": _fail(c, "intake", "understanding", str(error))}
 
     if out.message_kind != "website_request":    # N3: greeting, question about FORGE, off-topic, unclear
-        return {"clarification": _reply(c, out.message_kind, text), "usage": usage}
+        return {"clarification": _reply(c, out.message_kind, text, out.prohibited_category), "usage": usage}
     c.is_website_request = True
 
     c.detected_language, c.romanized = out.detected_language, out.romanized

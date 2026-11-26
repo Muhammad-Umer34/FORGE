@@ -29,6 +29,30 @@ Each entry:
 
 ---
 
+## 36. An examiner could make FORGE build a hate site
+**Symptom** Testing FORGE as an evaluator would (`docs/examiner-testing.md`), 32 tricky messages: off-topic chat,
+injection and gibberish were handled well, but a hate site, an unlicensed-firearms shop and an adult site went
+through to the "Here's what FORGE will build" summary. A phishing request was refused only by luck, with the
+wrong reason. Card numbers and CNICs in a request went to the model and the database.
+
+**Steps**
+1. `scripts/probe_chatbot.py`: real graph, real model, the user's first screen; `--deep` answers the questions as
+   the simulated owner and stops at the summary.
+2. Root cause: intake only decided *website request or not*; nothing defined what FORGE must not build.
+3. **Umar's condition: "do not stop valid requests."** Two narrow layers (D-255): a code guard that needs the
+   harmful intent next to its target, and a model rule with an explicit list of legal businesses it must allow.
+   Plus masking (cards with the Luhn check, CNICs), a social-network entry in the unsupported list, and replies
+   for two businesses and account actions.
+4. Unit tests first: 11 harmful caught, 30 legal never stopped, all green at once.
+5. **Round 2, live: every harmful request refused with the right reason; 19 of 20 legal ones continued.** V09
+   ("teaches people how to spot online scams and phishing") was refused by the code guard: the bare word
+   "phishing". Narrowed to a phishing site, page or kit; V09 and a phishing-awareness course continue, P16 still
+   refused.
+
+**Status** Done for the chatbot. Next: Round 3, the studio UI.
+
+---
+
 ## 35. The parts must fit together (the Integration Agent)
 **Symptom** Each builder agent proves its own part (the database gate, the backend gate, the build gate), but nothing
 checked that the parts fit: a page could show a form for a table that does not exist, or a route could point at the

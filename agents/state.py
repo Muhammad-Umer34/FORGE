@@ -196,7 +196,7 @@ class FailureInfo(BaseModel):
 
 class ReplyInfo(BaseModel):
     """A message that is not a website request gets a fixed reply chosen by code (D-150); no build run follows."""
-    kind: Literal["greeting", "about_forge", "off_topic", "unclear"]
+    kind: Literal["greeting", "about_forge", "off_topic", "unclear", "prohibited", "two_businesses", "account_action"]
     message: str                               # plain-language text shown to the user
 
 

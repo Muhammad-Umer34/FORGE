@@ -33,11 +33,16 @@ class IntakeItem(BaseModel):
 
 
 class IntakeOutput(BaseModel):
-    message_kind: Literal["website_request", "greeting", "about_forge", "off_topic", "unclear"] = Field(
+    message_kind: Literal["website_request", "greeting", "about_forge", "off_topic", "unclear", "prohibited",
+                          "two_businesses", "account_action"] = Field(
         description="website_request: the user wants a website built or changed (even if the message also greets). "
                     "greeting: hello or small talk only. about_forge: a question about FORGE itself (what it can build, "
                     "how it works, prices, payments). off_topic: anything else, such as maths, science, general "
-                    "knowledge or writing tasks. unclear: cannot tell what the user wants.")
+                    "knowledge or writing tasks. unclear: cannot tell what the user wants. prohibited, "
+                    "two_businesses, account_action: see the rules.")
+    prohibited_category: Optional[Literal["credential_theft", "illegal_trade", "sexual_content", "hate_or_violence",
+                                          "scam"]] = Field(
+        default=None, description="Only when message_kind is prohibited: why. Otherwise null.")
     detected_language: str = Field(description="Language of the request, e.g. 'en', 'ur', 'ur-Latn' for Roman Urdu.")
     romanized: bool = Field(description="True if a non-English language is written in Latin letters.")
     purpose_known: bool = Field(description="True if the request says what the site is for or what the business is.")

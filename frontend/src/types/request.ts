@@ -124,7 +124,7 @@ export interface FailedData {
 
 /** A message that was not a website request (greeting, question about FORGE, off-topic, unclear). */
 export interface ReplyData {
-  kind: "greeting" | "about_forge" | "off_topic" | "unclear";
+  kind: "greeting" | "about_forge" | "off_topic" | "unclear" | "prohibited" | "two_businesses" | "account_action";
   message: string;
 }
 

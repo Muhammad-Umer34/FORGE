@@ -6,6 +6,22 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-26 · Examiner testing, rounds 1-2: what FORGE will not build (D-255)
+
+**What**
+- `scripts/probe_chatbot.py` (examiner probes through the real graph) and `docs/examiner-testing.md` (the record).
+- `agents/clarification/policy.py`: narrow code guard and card/CNIC masking; intake's `prohibited`,
+  `two_businesses` and `account_action` kinds with plain replies; the API masks requests before storing them;
+  "social-network" in the unsupported list.
+
+**Checked** Round 1: 10 weaknesses (4 critical or high). Round 2: all harmful requests refused with the reason; 20
+legal-but-sensitive businesses continue (one false refusal found and fixed); `tests/test_policy.py` 47 passed;
+flow tests 66 passed.
+
+**Open** Round 3 (the studio UI).
+
+---
+
 ## 2026-11-25 · Integration Agent, day 4: the integration evaluation (I1)
 
 **What** `scripts/run_integration_eval.py` (plans, builds for real with storage and a live preview, records checks,

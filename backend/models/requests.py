@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from agents.clarification.prompts import MAX_PROMPT_CHARS
 
@@ -24,6 +24,12 @@ RequestStatus = Literal[
 class CreateRequest(BaseModel):
     """The project comes from the URL (/api/projects/{project_id}/requests), D-179."""
     prompt: str = Field(..., min_length=1, max_length=MAX_PROMPT_CHARS, description="The user's website request, in plain words")
+
+    @field_validator("prompt")
+    @classmethod
+    def _no_private_numbers(cls, value: str) -> str:
+        from agents.clarification.policy import mask_private
+        return mask_private(value)                     # before it is stored or sent anywhere (D-255)
 
 
 class RequestEnvelope(BaseModel):

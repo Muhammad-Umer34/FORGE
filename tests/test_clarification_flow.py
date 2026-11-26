@@ -372,3 +372,21 @@ def test_live_maths_question_is_declined(graph):
     result, _ = start(graph, "What is 15% of 240?")
     c = result["clarification"]
     assert c.status == "replied" and c.reply.kind == "off_topic"             # TC-13
+
+
+def test_a_plainly_harmful_request_is_refused_without_a_model_call(graph, monkeypatch):     # D-255
+    monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: ModelCallError("must not be called")}))
+    result, _ = start(graph, "a website to spread hate against a religious group")
+    c = result["clarification"]
+    assert c.status == "replied" and c.reply.kind == "prohibited" and not c.questions
+    assert c.reply.message.startswith("FORGE can't build sites that spread hate")
+    assert result["control"].stage == Stage.REPLIED
+
+
+def test_the_model_can_refuse_what_the_code_guard_misses(graph, monkeypatch):               # D-255, layer 2
+    refused = IntakeOutput(message_kind="prohibited", prohibited_category="scam", detected_language="en",
+                           romanized=False, purpose_known=True, is_business=False)
+    monkeypatch.setattr(nodes, "call_structured", fake_model({IntakeOutput: refused}))
+    result, _ = start(graph, "a lottery site where people pay to claim a prize they already won")
+    assert result["clarification"].reply.kind == "prohibited"
+    assert "trick people out of their money" in result["clarification"].reply.message

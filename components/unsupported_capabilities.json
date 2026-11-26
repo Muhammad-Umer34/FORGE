@@ -240,6 +240,33 @@
     "alternativeText": "Owner-curated testimonials, with a contact form for feedback."
   },
   {
+    "capability_id": "social-network",
+    "group": "feature",
+    "tier": "unsupported",
+    "phrases": [
+      "social network",
+      "social media platform",
+      "facebook clone",
+      "instagram clone",
+      "twitter clone",
+      "friends list",
+      "add friends",
+      "follow other users",
+      "user profiles",
+      "member profiles",
+      "chat between users",
+      "messages between members",
+      "private messaging",
+      "news feed of posts"
+    ],
+    "reason": "Visitors cannot have accounts, profiles or friends, or message each other (D-255).",
+    "alternativeComponents": [
+      "contact-form",
+      "blog-list"
+    ],
+    "alternativeText": "A site about your community with a contact form; posts and news are added by the owner."
+  },
+  {
     "capability_id": "inventory-delivery-tracking",
     "group": "feature",
     "tier": "unsupported",
