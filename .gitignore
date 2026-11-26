@@ -43,3 +43,6 @@ site_template/.next/
 site_template/next-env.d.ts
 site_template/tsconfig.tsbuildinfo
 builds/
+
+# Sharing a local studio (scripts/share.py)
+.forge_share.json

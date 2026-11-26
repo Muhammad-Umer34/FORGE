@@ -77,7 +77,7 @@ def _live(plan: BuildPlan, request_id: str, files: dict[str, str], artifacts: di
     tz = contract.get("time_zone") or "Asia/Karachi"
     rows = seed_rows(plan.data_entities, tz)
     say("Integration: trying your forms through the site itself")
-    result = check_live(running.url, forms, {t["name"]: t for t in contract["tables"]}, contract["schema"],
+    result = check_live(running.local_url, forms, {t["name"]: t for t in contract["tables"]}, contract["schema"],
                         database_url(), lambda spec: sample_payload(spec, rows, plan), tz)
     for what, ok, detail in result.steps:
         if not ok:

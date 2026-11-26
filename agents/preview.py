@@ -6,6 +6,7 @@ written later go into the same folder, and the dev server's WebSocket updates th
 the site appear page by page. Uses webpack, as in the WebContainers spike (Turbopack refuses the linked packages
 in dev). Every file is made by code (no model-written code yet), and the server listens on 127.0.0.1 only.
 """
+import json
 import socket
 import subprocess
 import threading
@@ -22,6 +23,18 @@ READY_TIMEOUT_SECONDS = 120        # PLACEHOLDER: first start of next dev took a
 _running: dict[str, "Preview"] = {}
 _lock = threading.Lock()
 
+# Sharing (D-256): scripts/share.py tunnels the studio and the preview to public addresses and writes this file;
+# while it exists the preview uses its fixed port and the studio shows its public address. Read on every use, so
+# starting or stopping sharing needs no restart. The file holds addresses only, never keys.
+SHARE_FILE = bw.ROOT / ".forge_share.json"
+
+
+def sharing() -> dict:
+    try:
+        return json.loads(SHARE_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
 
 class PreviewError(Exception):
     """The preview could not start. The run carries on without it."""
@@ -36,8 +49,15 @@ class Preview:
     log: deque = field(default_factory=lambda: deque(maxlen=60))
 
     @property
-    def url(self) -> str:
+    def local_url(self) -> str:
+        """Where FORGE itself reaches the preview (the integration live check)."""
         return f"http://localhost:{self.port}"
+
+    @property
+    def url(self) -> str:
+        """Where the owner's browser reaches it: the public address while sharing (D-256)."""
+        public = sharing().get("preview_url")
+        return public if public and self.port == sharing().get("preview_port") else self.local_url
 
     def write(self, files: dict[str, str]) -> None:
         """Write files into the running site; the dev server picks them up and updates the open page."""
@@ -48,6 +68,8 @@ class Preview:
 
 
 def _free_port() -> int:
+    if port := sharing().get("preview_port"):           # sharing: the port the tunnel points at
+        return int(port)
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         return s.getsockname()[1]

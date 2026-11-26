@@ -6,6 +6,17 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-26 · Sharing the studio for testing (D-256)
+
+**What** `scripts/share.py` starts two Cloudflare quick tunnels (studio, preview) and writes `.forge_share.json`;
+while it exists the preview uses port 3100 and the studio shows its public address; the integration live check
+keeps the local one. Both Next apps accept tunnel addresses in development. Guide in `docs/README.md`.
+
+**Checked** `tests/test_preview_share.py` 2 passed; live integration and parallel tests 5 passed; studio type check
+clean. Not yet tried through a real tunnel (cloudflared not installed).
+
+---
+
 ## 2026-11-26 · Examiner testing, rounds 1-2: what FORGE will not build (D-255)
 
 **What**

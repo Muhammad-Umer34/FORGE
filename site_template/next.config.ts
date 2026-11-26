@@ -6,6 +6,8 @@ import type { NextConfig } from "next"
 // A published site never has it set.
 const nextConfig: NextConfig = {
   images: { unoptimized: true },
+  // FORGE's preview shared through a tunnel (D-256): next dev accepts these addresses. No effect in production.
+  allowedDevOrigins: ["*.trycloudflare.com", "*.ngrok-free.app"],
   ...(process.env.FORGE_TURBOPACK_ROOT ? { turbopack: { root: process.env.FORGE_TURBOPACK_ROOT } } : {}),
 }
 

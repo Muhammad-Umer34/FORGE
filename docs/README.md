@@ -42,3 +42,17 @@ Code-level documentation: `agents/README.md` (the run and each agent's modules),
 
 Status values in the decision log: **Implemented** (done and checked), **Approved** (agreed, not built),
 **Proposed** (waiting for approval), **Rejected**, **Superseded**.
+
+## Sharing the studio with someone else (D-256)
+
+To let a supervisor or evaluator try FORGE running on this laptop, for as long as you keep it open:
+
+1. Install the tunnel once: `winget install --id Cloudflare.cloudflared` (then open a new terminal).
+2. Start the backend (port 8000) and the studio (port 3000) as usual.
+3. Run `python scripts/share.py` and send the "Share this link" address it prints.
+4. Open a project again (or start a build) so its live preview moves to the shared port.
+5. Press Ctrl+C to stop sharing; previews go back to private local ports.
+
+Notes: the laptop must stay on; the links change each time; the tester needs an account (sign-up sends a
+verification email); their requests spend this account's model credits (the per-user limits still apply); one
+live preview runs at a time, so two people building at once replace each other's preview.

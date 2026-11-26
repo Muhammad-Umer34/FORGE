@@ -7,6 +7,8 @@ const BACKEND_URL = process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_BACKEND_U
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
+  // Sharing through a tunnel (D-256): the studio's dev server accepts requests from these addresses.
+  allowedDevOrigins: ["*.trycloudflare.com", "*.ngrok-free.app"],
   partialPrefetching: true,
   experimental: {
     // An agent step can take up to about a minute (model calls with retries); the default is 30 s.
