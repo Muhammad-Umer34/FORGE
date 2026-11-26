@@ -71,6 +71,11 @@ def set_site_key(request_id: str, key: str) -> None:
         _site_keys[request_id] = key
 
 
+def site_key(request_id: str) -> str | None:
+    with _lock:
+        return _site_keys.get(request_id)
+
+
 def site_env(request_id: str) -> dict[str, str]:
     from backend.core.config import settings
     with _lock:

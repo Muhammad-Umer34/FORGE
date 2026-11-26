@@ -618,7 +618,7 @@ class FileRef(BaseModel):
     """One entry of the manifest: the file itself is in the file store, never in the state (D-234)."""
     path: str                                  # path inside the site, e.g. "app/page.tsx"
     sha256: str
-    kind: Literal["frontend", "backend", "database", "scaffold", "other"]
+    kind: Literal["frontend", "backend", "database", "integration", "scaffold", "other"]
     written_by: Literal["code", "model"] = "code"
 
 

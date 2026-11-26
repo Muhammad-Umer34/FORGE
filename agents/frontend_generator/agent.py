@@ -104,7 +104,7 @@ def run(plan: BuildPlan, business_type: str | None, request_id: str, config: Run
         refs += store.put(request_id, {p: files[p] for p in sorted(model_paths)}, "model")
     stats.update(status=status, model_files=len(model_paths), code_files=len(files) - len(model_paths),
                  in_site=sum(1 for p in written.values() if any(m.startswith(p.folder) for m in model_paths)))
-    say("Your site is ready" if status == "done" else "Stopped")
+    say("Frontend: done" if status == "done" else "Frontend: stopped")   # "ready" comes after integration
     return AgentArtifacts(agent="frontend", status=status, files=refs), _total(usages)
 
 

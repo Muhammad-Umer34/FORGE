@@ -65,6 +65,19 @@ field, 422).
 | D2 | 2026-11-25 | D-246 - D-250 (uncommitted) | 12 | 7 | 7 / 7 | 7 / 7 | 36 / 36 | 8 / 8 | 100% | 4.0 / 5.1 | 63 s | $0.027 | 6 / 7 sites, 23 / 24 checks | First run with check 30 (D-246) and the backend stage. Not planned: d-restaurant, d-contractor, d-tutor, d-car-rental (check 30: a detail's words not in any field, e.g. 'number of people' against a guests field; issue 41, open); d-clinic (check 9: the free-times route 'sent' date, issue 40, fixed after the run). Backend: d-pet-groomer's sample booking refused as closed (issue 39, fixed after the run, 3/3 offline). A first run crashed on the groomer's 42-character rule name (issue 39) |
 | D3 | 2026-11-25 | D-246 - D-251 (uncommitted) | 12 | 12 | 12 / 12 | 12 / 12 | 60 / 60 | 18 / 18 | 100% | 3.2 / 5.0 | 48 s | $0.015 | 12 / 12 sites, 42 / 42 checks | After the D2 fixes: long rule names and trigger order (issue 39), free-times routes take no visitor fields (issue 40), code adds a field for a visitor detail no field holds (issue 41, D-251). Every request planned; every site saves a booking or form, refuses a wrong key and refuses a broken rule in plain words. Gate 0.18 s per site |
 
+### Integration scoreboard (Integration Agent)
+
+The same 12 data requests (`scripts/data_briefs.json`), run with `scripts/run_integration_eval.py`: each is
+clarified and planned with the strict simulated owner, then the real build step runs with its storage on the test
+database (a throwaway project), the live preview on and the build gate off (it has its own scoreboard). FORGE's
+site-data API runs on a local port, so the preview's own routes reach it. Recorded: the integration checks (I1-I12),
+the live check through the site (lists, free times, a submission saved, a broken one refused, test rows removed),
+and each branch's time.
+
+| # | Date | Commit | Requests | Planned and built | All checks passed | Links checked | Live check through the site | "Your site is ready" | Avg data / frontend branch | What changed |
+|---|---|---|---|---|---|---|---|---|---|---|
+| I1 | 2026-11-25 | D-252 - D-254 (uncommitted) | 12 | 10 | 10 / 10 | 386 / 386 | 10 / 10 | 10 / 10 | 0.8 s / 1.9 s | First integration run. A first salon try failed check I3: the planner's GET route on contact messages (no free times, private rows); code now drops it (issue 42). Not planned (planning, before any build): d-car-rental (checks 3 and 13: no booking section), d-jobs (check 6: a custom job list with no route); both planned in D3, so model variation (issue 43). The data branch runs entirely within the frontend's time |
+
 ## 2. Issues met and how they were fixed
 
 Newest first. **Found by**: how the issue showed up. Each fix links to its decision. The step-by-step path behind
@@ -72,6 +85,8 @@ each row (every try, wrong turns, how it was checked) is in `problem-journal.md`
 
 | # | Date | Issue | Found by | Cause | Fix | Decision |
 |---|---|---|---|---|---|---|
+| 43 | 2026-11-25 | Two requests that planned in D3 stopped at planning in I1 (car rental: no booking section; jobs: a custom job list with no route) | Integration evaluation I1 | The model's site design varies between runs; the plan checks stopped both before any build | Open: watch in the next runs; the checks did their job | - |
+| 42 | 2026-11-25 | The salon build stopped at integration: "GET /api/data/contact_messages/availability" is the wrong kind of route | Integration check I3, first evaluation try | The planner added a GET on contact messages; code turned every GET on a visitor table into free times, even with no booking rule | A GET on a visitor table without opening hours or no-overlap is dropped (test) | D-252 |
 | 41 | 2026-11-25 | Four data requests stopped at plan check 30 | Data evaluation D2 | The check wants the detail's own words in a field ('number of people' is not found in a guests field) and fix rounds did not add one | Code adds an optional text field with the visitor's words on the record type their form sends; D3 planned 12 of 12 | D-251 |
 | 40 | 2026-11-25 | The clinic plan failed check 9: the free-times route 'sends date' | Data evaluation D2 | The model's GET route on bookings listed its query value as a field; code owns that route since D-248 but left the model's fields | GET routes on recipe tables take no visitor fields | D-248 |
 | 39 | 2026-11-25 | The groomer's booking was refused as "closed" at 13:00 on a Thursday; a first run crashed on its rule name | Data evaluation D2, backend stage | Names over 41 characters were refused, and shortened trigger names got an f_ prefix, so the hours check (c_) fired before the end time was worked out (a_) | Names code builds may run to PostgreSQL's 63 characters, with no prefix; tests for both | D-243 |

@@ -47,12 +47,15 @@ BRIEFS = ROOT / "scripts" / "data_briefs.json"
 OUT = ROOT / "scripts" / "runs"
 
 
-async def plan_one(graph, brief: dict) -> tuple[dict, float, str | None]:
-    """Clarify and plan with the simulated owner; stop at the plan screen. Returns (state values, seconds, error)."""
-    request_id = f"deval_{brief['id']}_{uuid.uuid4().hex[:6]}"
+async def plan_one(graph, brief: dict, project_id: str = "eval", run_update: dict | None = None,
+                   request_id: str | None = None) -> tuple[dict, float, str | None]:
+    """Clarify and plan with the simulated owner; stop at the plan screen. Returns (state values, seconds, error).
+    `run_update` changes the run's config for a build that follows (the integration evaluation)."""
+    request_id = request_id or f"deval_{brief['id']}_{uuid.uuid4().hex[:6]}"
     config = {"configurable": {"thread_id": request_id}}
-    run_config = _run_config().model_copy(update={"preview": False, "build_gate": False, "database": False})
-    graph_input = initial_state(RequestInfo(request_id=request_id, user_id="eval", project_id="eval",
+    run_config = _run_config().model_copy(update={"preview": False, "build_gate": False, "database": False,
+                                                  **(run_update or {})})
+    graph_input = initial_state(RequestInfo(request_id=request_id, user_id="eval", project_id=project_id,
                                             prompt=brief["prompt"], created_at=datetime.now(timezone.utc)),
                                 config=run_config)
     started, error, values = time.perf_counter(), None, {}

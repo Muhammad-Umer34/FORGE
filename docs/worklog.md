@@ -6,6 +6,65 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-25 · Integration Agent, day 4: the integration evaluation (I1)
+
+**What** `scripts/run_integration_eval.py` (plans, builds for real with storage and a live preview, records checks,
+the live check and branch times). Fix it found: a GET route on a visitor table without a booking rule is dropped.
+
+**Checked** I1: 10 of 12 built, 386/386 links, live check 10/10, "ready" 10/10; 2 stopped at planning (model
+variation). Planning tests 81 passed.
+
+**Open** Commit; the report chapters (7, 9, 10) for the Database, Backend and Integration agents.
+
+---
+
+## 2026-11-25 · Integration Agent, day 3: the live check (D-254)
+
+**What** `agents/integration/live.py`: lists, free times, a submission and a refusal through the site's own
+routes on the preview, then the test rows deleted. Run by the Integration Agent after the code checks; the result
+goes into `forge/integration.json` and decides "Your site is ready".
+
+**Checked** `tests/test_integration_live.py` 2 passed (real preview, real API port, test database). Integration,
+parallel and flow tests 35 passed.
+
+Studio build (Glow Salon): 57/57 links, 2 test submissions saved through the site and removed, "Your site is ready".
+
+**Open** Day 4: the integration evaluation, parallel timing.
+
+---
+
+## 2026-11-25 · Integration Agent, day 2: the agents in parallel (D-253)
+
+**What**
+- The build is four LangGraph nodes: `prepare_build` → (`data_step` ‖ `frontend_step`) → `integrate`.
+- The preview key is made before the agents (memory only); `register` takes it.
+- A database or backend failure lets the frontend finish; integration reports it.
+- The studio's build panel shows one list per agent.
+
+**Checked** `tests/test_orchestrator_parallel.py` 3 passed (overlap on two threads, failure path, usage);
+the end-to-end flow test passes through the new nodes (40/40 links); studio type check and lint clean.
+
+**Open** Day 3: the live check; a studio build to see the four groups.
+
+---
+
+## 2026-11-25 · Integration Agent, day 1: join and checks (D-252)
+
+**What**
+- `agents/integration/join.py`: one file list from the three parts (a path two parts wrote must match),
+  `.env.example`, a manifest of every file and its writer.
+- `agents/integration/checks.py`: I1-I12 on the site's files (forms, routes, tables, lists, items, consent, zod
+  schemas, AI parts, page links, dashboard, environment).
+- Custom parts may not call an API: prompt line and `accept()` refusal. The empty stubs `wire.py` and
+  `env_builder.py` were removed.
+
+**Checked** `tests/test_integration_checks.py` 15 passed (4 real plans fit; 11 planted faults caught); frontend
+tests 74 passed.
+
+**Open** Days 2-4: parallel agents, the live check, the evaluation.
+
+---
+
 ## 2026-11-25 · Backend Agent, day 6: the evaluation's backend stage (D2)
 
 **What**

@@ -64,9 +64,9 @@ def run(plan: BuildPlan, request_id: str, project_id: str, config: RunConfig, pr
         report.update(db_role=made["role"], db_contract=made["contract"])
     if made["kept_old_schema"]:
         say(f"Database: your earlier data was kept in {made['kept_old_schema']}")
-    key = provision.register(registry_url or app_url(), project_id, made, request_id)
+    from agents import preview                          # the run may have made the key already (D-253)
+    key = provision.register(registry_url or app_url(), project_id, made, request_id, preview.site_key(request_id))
     if key:                                              # the live preview's server talks to FORGE with it (D-247)
-        from agents import preview
         preview.set_site_key(request_id, key)
     say("Database: site storage ready")
     return _save(request_id, {**made["files"], "db/seed.sql": made["seed"]}, "done", report, made["schema"])

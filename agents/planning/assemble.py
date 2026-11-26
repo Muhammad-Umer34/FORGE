@@ -257,6 +257,9 @@ def _real_paths(plan: BuildPlan, entities: dict) -> dict[str, str]:
     for r in plan.api_routes:
         e = entities.get(r.entity or "")
         if e and e.pattern:
+            booking = any(x.kind in ("within_hours", "no_overlap") and x.enabled for x in e.rules)
+            if r.method == "GET" and e.role == "submission" and not booking:
+                continue          # visitors' messages are private and have no free times (integration check I3, D2)
             tail = "/availability" if r.method == "GET" and e.role == "submission" else ""
             old, r.path = r.route_id, f"/api/data/{e.name}{tail}"
             r.route_id = renamed[old] = f"{r.method} {r.path}"

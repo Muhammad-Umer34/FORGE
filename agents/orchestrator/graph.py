@@ -7,7 +7,8 @@ from agents.retrieval.ranker import rank_and_retrieve_components
 from agents.frontend_generator import agent as frontend_agent
 from agents.backend_generator import agent as backend_agent
 from agents.database_generator import agent as database_agent
-from agents.state import GraphState, Stage, budget_left
+from agents.integration import agent as integration_agent
+from agents.state import AgentArtifacts, GraphState, Stage, budget_left
 
 # Clarification status -> Orchestrator stage. The Orchestrator is the only writer of `control`.
 _STAGE_AFTER_CLARIFICATION = {
@@ -51,30 +52,62 @@ def after_planning(state: GraphState) -> dict:
                       p.failure.message if p.failure else "The site could not be planned.")
 
 
-def build_site(state: GraphState) -> dict:
-    """The builder step (Phase 3): the database agent makes the site's storage from the plan's data (D-242 - D-245),
-    the backend agent writes the site's form specs and checks, and proves them on that storage (D-247), then the
-    frontend agent writes the site (D-240), with a live preview and the build gate when the run's config turns them
-    on. Repeat-safe: an unchanged file is not written again (P13)."""
-    brief = state.get("brief")
+# The build (D-253, FR-05): the data branch (database, then backend: its gate needs the storage) and the frontend run
+# side by side; the Integration Agent joins them when both are done. A restart resumes whichever node was cut off.
+BUILD_NODES = {"prepare_build", "data_step", "frontend_step", "integrate"}
+
+
+def prepare_build(state: GraphState) -> dict:
+    """Make the preview key before the agents start, so the frontend's preview and the database registry share it.
+    Kept only in memory (KI-40), never in the run's saved state."""
+    if state["run_config"].database:
+        from agents import preview
+        from agents.database_generator.provision import new_key
+        preview.set_site_key(state["request"].request_id, new_key()[0])
+    return {}
+
+
+def data_step(state: GraphState) -> dict:
+    """The Database Agent makes the site's storage (D-242 - D-245); the Backend Agent writes the form specs and proves
+    them on it (D-247). A failure here does not stop the frontend: the Integration Agent reports it."""
     request = state["request"]
     stored: dict = {}
-    database = database_agent.run(state["plan"], request.request_id, request.project_id, state["run_config"],
-                                  get_stream_writer(), report=stored)
+    try:
+        database = database_agent.run(state["plan"], request.request_id, request.project_id, state["run_config"],
+                                      get_stream_writer(), report=stored)
+    except database_agent.DatabaseBuildError:
+        return {"artifacts": {"database": AgentArtifacts(agent="database", status="failed")}}
     storage = None
-    if stored.get("db_schema"):
+    if stored.get("db_schema") and stored.get("db_role"):
         from backend.services.site_data import Storage
         storage = Storage(request.project_id, stored["db_schema"], stored["db_role"], stored["db_contract"])
-    backend = backend_agent.run(state["plan"], request.request_id, request.project_id, state["run_config"],
-                                get_stream_writer(), storage)
+    try:
+        backend = backend_agent.run(state["plan"], request.request_id, request.project_id, state["run_config"],
+                                    get_stream_writer(), storage)
+    except backend_agent.BackendBuildError:
+        backend = AgentArtifacts(agent="backend", status="failed")
+    return {"artifacts": {"database": database, "backend": backend}}
+
+
+def frontend_step(state: GraphState) -> dict:
+    """The Frontend Agent writes the site (D-240), with a live preview and the build gate when the run turns them on.
+    Repeat-safe: an unchanged file is not written again (P13)."""
+    brief = state.get("brief")
     artifacts, usage = frontend_agent.run(state["plan"], brief.business_type if brief else None,
                                           state["request"].request_id, state["run_config"], get_stream_writer(),
                                           budget_left(state))   # custom parts spend only what the run has left
-    return {"artifacts": {"database": database, "backend": backend, "frontend": artifacts}, "usage": usage}
+    return {"artifacts": {"frontend": artifacts}, "usage": usage}
+
+
+def integrate(state: GraphState) -> dict:
+    """The Integration Agent (D-252): one site from the three parts, and code checks that they fit."""
+    result = integration_agent.run(state["plan"], state["request"].request_id, state.get("artifacts") or {},
+                                   get_stream_writer())
+    return {"artifacts": {"integration": result}}
 
 
 def _route_after_planning(state: GraphState) -> str:
-    return "build_site" if state["control"].stage == Stage.GENERATING else END
+    return "prepare_build" if state["control"].stage == Stage.GENERATING else END
 
 
 def _route_after_clarification(state: GraphState) -> str:
@@ -93,12 +126,18 @@ def build_forge_graph():
     builder.add_node("retrieval", retrieval)
     builder.add_node("planning", build_planning_graph())
     builder.add_node("after_planning", after_planning)
-    builder.add_node("build_site", build_site)
+    builder.add_node("prepare_build", prepare_build)
+    builder.add_node("data_step", data_step)
+    builder.add_node("frontend_step", frontend_step)
+    builder.add_node("integrate", integrate)
     builder.add_edge(START, "clarification")
     builder.add_edge("clarification", "after_clarification")
     builder.add_conditional_edges("after_clarification", _route_after_clarification)
     builder.add_edge("retrieval", "planning")
     builder.add_edge("planning", "after_planning")
     builder.add_conditional_edges("after_planning", _route_after_planning)
-    builder.add_edge("build_site", END)
+    builder.add_edge("prepare_build", "data_step")
+    builder.add_edge("prepare_build", "frontend_step")
+    builder.add_edge(["data_step", "frontend_step"], "integrate")      # waits for both branches
+    builder.add_edge("integrate", END)
     return builder

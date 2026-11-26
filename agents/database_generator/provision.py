@@ -91,14 +91,14 @@ def new_key() -> tuple[str, str]:
     return key, hashlib.sha256(key.encode()).hexdigest()
 
 
-def register(app_url: str, project_id: str, made: dict, request_id: str) -> str | None:
-    """Record the site's storage in FORGE's own database and return a fresh preview key, or None when the project
-    is not a real one (tests, evaluations)."""
+def register(app_url: str, project_id: str, made: dict, request_id: str, key: str | None = None) -> str | None:
+    """Record the site's storage in FORGE's own database and return its preview key (`key` when the run made one
+    before the agents started, D-253), or None when the project is not a real one (tests, evaluations)."""
     try:
         project = uuid.UUID(str(project_id))
     except ValueError:
         return None
-    key, digest = new_key()
+    key, digest = (key, hashlib.sha256(key.encode()).hexdigest()) if key else new_key()
     with connect(app_url) as conn, conn.transaction():
         if not conn.execute("SELECT 1 FROM projects WHERE id = %s", (project,)).fetchone():
             return None

@@ -131,7 +131,10 @@ def test_vague_request_asks_then_confirms_then_freezes(graph, monkeypatch):
     assert result["usage"].calls == 2 + 3                                      # intake + tests, then 3 planning calls
     # the build step: the frontend agent writes the site (D-240); progress events, files in the store, only the
     # manifest in the state. Preview and gate are off in tests (RunConfig defaults).
-    assert events[0]["agent"] == "database" and events[0]["message"].startswith("Database: designing")   # D-243
+    # the data branch and the frontend run side by side (D-253): their lines interleave in any order
+    data = [e for e in events if e.get("agent") == "database"]
+    assert data[0]["message"].startswith("Database: designing")                               # D-243
+    assert events[-1]["message"] == "Your site is ready" and events[-1]["agent"] == "integration"
     first = next(e for e in events if e["message"].startswith("Frontend agent received the plan"))
     assert first["input"]["pages"]
     rid = result["request"].request_id

@@ -49,6 +49,8 @@ export function readImageColours(projectId: string, requestId: string, kind: "lo
 /** One progress event of a running build (D-233, D-240). `input`: what the frontend agent received; `url`: the live
  * preview; `file`: a page just written. */
 export type BuildEvent = {
+  agent?: "database" | "backend" | "integration";   // the frontend's lines carry `stage` instead
+  stage?: string;
   message?: string;
   url?: string;
   file?: string;

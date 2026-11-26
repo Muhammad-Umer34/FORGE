@@ -8,17 +8,28 @@ export function BuildPanel({ events, running }: { events: BuildEvent[]; running:
   const input = events.find((e) => e.input)?.input;
   const url = [...events].reverse().find((e) => e.url)?.url;
   const lines = events.filter((e) => e.message);
+  const last = lines[lines.length - 1];
+  // The data and frontend agents run side by side (D-253), so their lines come interleaved: one list per agent.
+  const groups = GROUPS.map((g) => ({ ...g, lines: lines.filter((e) => (e.agent ?? "frontend") === g.agent) }))
+    .filter((g) => g.lines.length);
 
   return (
     <section aria-label="Building your site" className="mb-10 space-y-6">
-      <ol aria-label="Build progress" aria-live="polite" className="space-y-1 text-[14px] text-ink-muted">
-        {lines.map((e, i) => (
-          <li key={i} className="animate-rise">
-            {e.message}
-            {running && i === lines.length - 1 && <span className="ml-1 animate-pulse">…</span>}
-          </li>
+      <div aria-live="polite" className="grid gap-5 sm:grid-cols-2">
+        {groups.map((g) => (
+          <div key={g.agent}>
+            <h3 className="text-[12px] font-medium uppercase tracking-wide text-ink-faint">{g.title}</h3>
+            <ol aria-label={`${g.title} progress`} className="mt-1.5 space-y-1 text-[14px] text-ink-muted">
+              {g.lines.map((e, i) => (
+                <li key={i} className="animate-rise">
+                  {e.message}
+                  {running && e === last && <span className="ml-1 animate-pulse">…</span>}
+                </li>
+              ))}
+            </ol>
+          </div>
         ))}
-      </ol>
+      </div>
 
       {input && <AgentInput input={input} />}
 
@@ -45,6 +56,13 @@ export function BuildPanel({ events, running }: { events: BuildEvent[]; running:
     </section>
   );
 }
+
+const GROUPS = [
+  { agent: "database", title: "Database" },
+  { agent: "backend", title: "Backend" },
+  { agent: "frontend", title: "Frontend" },
+  { agent: "integration", title: "Integration" },
+];
 
 function AgentInput({ input }: { input: FrontendInput }) {
   const sections = input.pages.reduce((n, p) => n + p.sections.length, 0);

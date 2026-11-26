@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents import file_store, logo_colours, preview, tracing
 
+from agents.orchestrator.graph import BUILD_NODES
 from agents.catalogue import load_catalogue
 from agents.clarification import slots
 from agents.clarification.prompts import PROMPT_VERSIONS
@@ -157,7 +158,7 @@ async def repair_statuses(graph, session: AsyncSession, app=None) -> None:
     for request_id in await service.processing_request_ids(session):
         envelope = await _current(graph, session, request_id, count_running=False)
         snapshot = await graph.aget_state(_config(request_id))
-        if envelope.status == "paused" and app is not None and "build_site" in snapshot.next:
+        if envelope.status == "paused" and app is not None and BUILD_NODES & set(snapshot.next):
             held = service.one_step_at_a_time(request_id)        # a build cut off by a restart goes on (D-233)
             await held.__aenter__()
             start_in_background(app, request_id, None, held)

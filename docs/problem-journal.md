@@ -29,6 +29,92 @@ Each entry:
 
 ---
 
+## 35. The parts must fit together (the Integration Agent)
+**Symptom** Each builder agent proves its own part (the database gate, the backend gate, the build gate), but nothing
+checked that the parts fit: a page could show a form for a table that does not exist, or a route could point at the
+wrong table, and every gate would still pass. The proposal promises an Integration Agent in FYP-1 (FR-05); its
+folder held two empty stubs.
+
+**Steps**
+1. **Plan** (`reports/FORGE Integration Agent plan.md`, approved by Umar 2026-11-25): join the three parts, check
+   the joins by code (I1-I12), prove it live through the site's own route, run the agents in parallel.
+2. **Found while reading:** `lib/schemas.ts` is written twice, by the Backend Agent and by the frontend compiler.
+   Both use the same function today; the join now refuses two different texts for one path.
+3. **Day 1: join and checks** (`agents/integration/join.py`, `checks.py`, D-252). The checks read only the site's
+   files: the forms placed on pages (the spec is JSON inside the page), `lib/forms.json`, `api/contract.json`,
+   `db/schema.json`, `lib/schemas.ts`.
+   - First run: the four test plans failed I8 because the zod schema has a `consent` field when the form has the
+     box. The check now expects it.
+   - Model-written parts may not call an API (I9). The custom-part prompt says so, and `accept()` refuses such a
+     file at once, so the part gets its plain section.
+4. **Result:** salon 36/36, bakery 27/27, yoga 24/24, jobs 27/27; every planted fault caught (a missing route, a
+   public list of bookings, a field the table lacks, a required column left out, a choice from a private list,
+   unlinked order items, no consent box, a page form without its spec, a stale zod schema, an AI part calling
+   `/api/`, a link to a missing page, a missing page file, two parts disagreeing).
+
+5. **Day 2: the agents in parallel** (D-253). `build_site` became four nodes: `prepare_build` fans out to
+   `data_step` (database, then backend, whose gate needs the storage) and `frontend_step`; `integrate` waits for
+   both. The graph's reducers (`merge_dict`, `sum_usage`) already merged parallel writes.
+   - **The preview key had to come first.** It used to be made when the database registered the storage, then
+     handed to the preview. In parallel the preview may start first, so `prepare_build` makes the key (in memory
+     only, never in the saved run) and `register(..., key)` stores its hash.
+   - **A data failure no longer stops the run.** `data_step` catches the database and backend errors, so the
+     frontend finishes, and the Integration Agent reports "the database part did not finish".
+   - The restart logic looked for the node name `build_site`; it now looks for any build node.
+   - First full run: the integration files could not be saved, because the file kind `integration` was not an
+     allowed value. Added. Then the flow test passed through all four nodes: 40/40 links checked.
+   - "Your site is ready" moved from the frontend to the end of integration; the studio groups the lines by agent
+     (Database, Backend, Frontend, Integration), as they now arrive interleaved.
+6. **Checked:** a test with both agents slowed down shows their spans overlap on two threads; a database failure
+   still gives a finished frontend and a failed integration; usage from both branches adds up.
+   - The full suite found one test that expected the database's line first; in parallel the frontend's can come
+     first (it passed once, then failed). The test now finds the database's line wherever it is, and expects
+     "Your site is ready" last, from integration. Full suite: 717 passed before this fix, then the flow tests 3
+     runs green.
+
+7. **Day 3: the live check** (`agents/integration/live.py`, D-254). After the code checks pass, when the site has
+   storage and a running preview with its key, the Integration Agent tries each form through the site's own
+   routes on the preview: its lists, its free times (the next 14 days), a submission (201), then a refusal (the
+   same time again, 409 from the database; else a missing required field, 422 from the site's zod check). The
+   saved rows are deleted as the schema's owner, order items first, even when a step fails.
+   - Dropdown values come from the live lists, not the seed rows: the owner may have removed the samples.
+   - **First live test: "422 Please tick the box to agree."** The backend gate calls FORGE's service directly, so
+     its sample never needed the consent tick; through the site, zod asks for it as a visitor's form does. The
+     live check now ticks it when the form has the box.
+   - The live test runs nothing fake: the salon's storage on the test database, FORGE's site-data routes on a real
+     port, and the site in a real `next dev` preview forwarding to it (~27 s).
+8. **Result:** lists 200, free times found, booking saved through the site (201), the same time refused ("That
+   time is already taken"), a missing phone refused by the site (422), no "FORGE test" row left.
+
+9. **Studio build** (Glow Salon, started over with Umar's OK; local storage; build gate on). Clarification asked
+   3 data questions, planning made 4 pages and 6 tables. The build panel showed four groups:
+   - Database: 8/8 rule tests passed; the earlier data kept in a renamed schema; storage ready;
+   - Backend: 2 forms on 4 routes, 10/10 checks passed;
+   - Frontend: 11 files, live preview, type check and production build passed;
+   - Integration: 3 parts joined, **57/57 links checked**, **2 test submissions saved through the site, then
+     removed**, "Your site is ready".
+
+10. **Day 4: the integration evaluation** (`scripts/run_integration_eval.py`). It plans each of the 12 data
+    requests with the simulated owner, then runs the real build for a throwaway project on the test database,
+    with FORGE's site-data API on a local port and the live preview on.
+    - The first try crashed at start-up: alembic runs its own event loop. The migration now runs before the
+      script's loop.
+    - **First salon try: 42/43, and the check was right.** The planner had added a GET route on contact messages.
+      Code turned every GET on a visitor table into `/availability`, but messages have no times and are private.
+      Fix in planning: such a route is dropped (test). Rerun: 41/41, live booking through the site, ready.
+11. **I1: 10 of 12 planned and built; all 10 passed every check (386/386), the live check (10/10) and said "Your
+    site is ready".** The two others stopped at planning before any build: the car rental had no booking section
+    (checks 3 and 13), the jobs site a custom job list with no route (check 6). Both planned in D3, so the model
+    varies; the checks did their job.
+12. **Parallel timing.** With the build gate off, the data branch took 0.5-1.3 s and the frontend 1.4-2.2 s; the
+    data branch ran entirely within the frontend's time, so a site is ready that much sooner. With Supabase
+    storage (connections ~7 s, KI-42) and the build gate on (minutes), the gap is larger; the studio build showed
+    the same interleaving.
+
+**Status** Done: the Integration Agent's four days. Not committed yet.
+
+---
+
 ## 34. Forms that really save (the Backend Agent)
 **Symptom** The Database Agent gave each site its own tested database, but nothing used it:
 - the site's forms saved nothing (KI-30);

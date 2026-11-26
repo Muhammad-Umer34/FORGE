@@ -139,7 +139,8 @@ Tailwind CSS 4. Rules:
   Never raw colours: no gray-500, no blue-600, no hex values.
 - Imports allowed: react; next/link; lucide-react icons; @/lib/utils (cn); these interface parts:
 {ui}
-  Nothing else: no other custom part, no next/image (use <img>), no network calls, no external URLs.
+  Nothing else: no other custom part, no next/image (use <img>), no network calls (no fetch, no /api/ paths,
+  no process.env), no external URLs.
 - A part that sends something is a form: labelled fields and, on submit, a thank-you message. It sends nothing yet.
 - Accessible: semantic HTML, a label for every input, alt text on images, buttons with visible text. Anything
   clickable is a <button type="button"> or a checkbox <input> with a <label>, never a <div onClick>: a keyboard
@@ -164,6 +165,10 @@ def accept(part: Part, files: dict[str, str]) -> tuple[dict[str, str] | None, st
         return None, f"did not write {part.file}"
     if not re.search(rf"export\s+(?:function|const)\s+{part.export_name}\b", main):
         return None, f"does not export {part.export_name}"
+    from agents.integration.checks import FORBIDDEN_IN_MODEL_PARTS      # integration check I9, enforced here first
+    for path, text in files.items():
+        if hit := FORBIDDEN_IN_MODEL_PARTS.search(text):
+            return None, f"{path} uses '{hit.group(0)}': only FORGE's own forms may reach the API"
     return files, ""
 
 

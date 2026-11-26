@@ -896,3 +896,18 @@ def test_a_detail_visitors_give_gets_a_field_by_code():
     post = next(r for r in plan.api_routes if r.route_id == "POST /api/data/appointments")
     assert {"number_people", "pet_breed"} <= set(post.request_fields)
     assert not [i for i in _issues(brief, plan) if i.startswith("30:")]
+
+
+def test_a_list_route_on_private_messages_is_dropped():
+    """Integration evaluation (D-252, check I3): the model added GET on contact messages; there are no free times to
+    ask for and the messages are private, so code drops the route."""
+    brief = _live_brief("salon", [("contact-form", "must")], ["home", "contact"], ["contact-form"])
+    site = SiteDesign(direction=CHOSEN, pages=[page("home", "/", "Home"), page("contact", "/contact", "Contact")],
+                      sections=_sections(("contact", "contact-form", "contact-form")))
+    data = DataDesign(recipes=[RecipeChoice(pattern="contact", feature_ids=["contact-form"])],
+                      routes=[ApiRoute(route_id="GET /api/messages", method="GET", path="/api/messages",
+                                       entity="contact_messages", used_by=["contact.contact-form"])])
+    _, plan = built_plan(brief, site, data)
+    assert [r.route_id for r in plan.api_routes if r.method == "GET"] == []
+    assert any(r.route_id.startswith("POST /api/data/") for r in plan.api_routes)
+    assert not [i for i in _issues(brief, plan) if i.startswith(("8:", "9:", "13:"))]
