@@ -132,5 +132,71 @@ through. The message ("trick people out of their money") fits loosely; noted, no
 
 ## Round 3: the studio UI
 
-_Next: empty and over-long requests, double clicks, refreshing mid-question, the back button, two tabs, signing
-out mid-build. The browser pane was hidden during Round 2._
+**Method.** By hand in the studio (the built-in browser), as an evaluator would click around, plus a few calls
+straight to the API where an examiner could skip the UI. Project used: "Dental Care." (Umar's choice; its old site
+was replaced). Date: 2026-11-26.
+
+### What worked well
+
+| Id | Test | Result |
+|---|---|---|
+| U1 | Create a 4th project (limit is 3): in the UI, then straight to the API | UI: "Delete a project to create another"; API: 409 "You can have up to 3 projects" |
+| U2 | Open a project that does not exist, or a made-up address | "Project not found. It may have been deleted, or it belongs to another account." |
+| U3 | Open "Site data" for a project with no storage | "This site keeps no data yet..." |
+| U4 | Click Start with an empty box | Start is disabled |
+| U5 | Only spaces in the box | Start stays disabled |
+| U6 | 2,001 characters, a 30 KB body, no prompt (API) | 422 each; nothing created |
+| U8 | Double-click, then a third click on Start | One request sent |
+| U9 | Refresh in the middle of question 1 | The same question comes back ("Picking up where you left off") |
+| U10 | Continue with nothing chosen | Continue is disabled until an option is picked |
+| U12 | Answer the same question in two tabs | The server refuses the stale answer; the run is not corrupted |
+| U14 | Sign out in another tab while the site is being built | The build finished anyway: 34/34 links, a live booking through the site, "Your site is ready"; on reload the tab goes to sign-in |
+| U15 | Phone width (375 px) | Sign-in and forgot-password pages fit with no sideways scroll |
+
+### Weaknesses found
+
+| # | Severity | Test | What happened | Why it matters |
+|---|---|---|---|---|
+| R1 | Medium | U12: answer in a second, out-of-date tab | It shows a developer's message, "answer is for q1, but the open question is q2", and stays on the old question | An evaluator with two tabs sees an internal error and is stuck until they refresh |
+| R2 | Medium | U16: the backend is down, then a form is sent | "FORGE returned an error (500). Please try again." | The code has a clear message for this ("We couldn't reach FORGE...") but never shows it: the studio's proxy turns "cannot connect" into a 500. This was also the untraced 500 seen earlier |
+| R3 | Low | U9: refresh during a run | For about 10 s an empty request box shows under "Picking up where you left off..." | The user can type and start a new request while their real one is loading |
+| R4 | Low | U7: a request of only spaces, straight to the API | Accepted and stored; the reply was "I couldn't tell what you need" | The UI blocks it; the API should too |
+| R5 | Low | Planning the dental site | About 2 minutes with only "Checking the plan..." on screen; opening a project takes ~7 s (Supabase, KI-42) | Long silent waits look like a hang during a demo |
+| R6 | Low | U3: "Site data" with no storage | The intro still says "Sample rows were added so the preview works" | Contradicts the message below it |
+| R8 | Low | Start over after a build (found while checking the fixes) | The old site's build progress and preview stayed above the new, empty request | Looks like the new request is already building |
+| R7 | Note | U14: sign out in one tab | Another open tab keeps working until it reloads or its access token ends (15 minutes) | Normal for short-lived tokens; worth knowing for the viva |
+
+### Fixes (approved by Umar 2026-11-26, built and checked the same day, D-257)
+
+| Fix | For | What |
+|---|---|---|
+| G1 | R1 | When an answer is refused because the question moved on, the studio reloads the run and shows the current question with "This was already answered in another tab." (the 409 path already does this for other screens, D-207) |
+| G2 | R2 | The studio's API client treats a 500/502/503/504 that carries no FORGE error body as "We couldn't reach FORGE. Check that the server is running, then try again." |
+| G3 | R3 | While a run is loading, the request box is hidden; only "Picking up where you left off..." shows |
+| G4 | R4 | The API trims the request and refuses one with no text ("Please describe the website you need.") |
+| G5 | R6 | The "Site data" intro shows only when the site has storage |
+| G6 | R5 | The planning wait shows what is happening ("Designing the pages", "Checking the plan, fixing 2 problems") from the planning steps' progress; a small change if the steps already report it, else a note for FYP-2 |
+| G7 | R8 | "Start over" clears the old build's progress and preview |
+
+G6 was built in its smaller form: long steps show the time so far and how long they usually take ("Planning what
+your site stores... 15 s. Planning usually takes 1 to 2 minutes."). Showing the planning agent's real steps needs
+the planning nodes to stream progress like the build does; left for FYP-2.
+
+### Checked after the fixes (in the studio, signed in, Dental Care)
+
+| Fix | Check | Result |
+|---|---|---|
+| G1 | Two tabs; question 1 answered in tab A, then again in the stale tab B | Tab B moved to question 2 with "This question was already answered in another tab. Here is the next step." |
+| G2 | Backend stopped; forgot-password form sent | "We couldn't reach FORGE. Check that the server is running, then try again." |
+| G3 | Open a project with a request in progress | No request box at any moment; "Picking up where you left off...", then the plan screen |
+| G4 | A request of spaces, straight to the API | 422 "Please describe the website you need."; nothing stored (API test) |
+| G5 | "Site data" with and without storage | Intro and lists with storage; only "This site keeps no data yet" without |
+| G6 | Confirm, then watch the wait | 15 s: "Planning what your site stores... 15 s. Planning usually takes 1 to 2 minutes."; 45 s: still counting |
+| G7 | Start over after a plan with the old build shown | Old build lines and preview gone; a clean request box |
+
+Tests: `tests/test_project_requests.py` gains the stale-answer (409) and blank-request (422) cases; studio type
+check and lint clean.
+
+**Still open (low):** "Start over" waits ~8 s for the cancel with little feedback; opening a project waits ~7 s for
+the project list (Supabase, KI-42).
+

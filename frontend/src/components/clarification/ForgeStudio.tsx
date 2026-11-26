@@ -43,13 +43,25 @@ const ACTIVE: ReadonlyArray<RequestSummary["status"]> = [
   "processing", "needs_clarification", "awaiting_confirmation", "complete", "paused", "awaiting_plan_approval", "planned",
 ];
 
+// Steps that plan or build can run for minutes: say so, and show the time, so a long wait never looks frozen (R5).
+const EXPECTED: Partial<Record<Busy, string>> = {
+  confirm: "Planning usually takes 1 to 2 minutes.",
+  plan: "Replanning usually takes about a minute.",
+  approve: "Building usually takes 1 to 3 minutes.",
+};
+
 function ProgressNote({ busy }: { busy: Busy }) {
   const [index, setIndex] = useState(0);
+  const [seconds, setSeconds] = useState(0);
   const messages = PROGRESS[busy];
 
   useEffect(() => {
     const timer = window.setInterval(() => setIndex((i) => Math.min(i + 1, messages.length - 1)), 3500);
-    return () => window.clearInterval(timer);
+    const clock = window.setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => {
+      window.clearInterval(timer);
+      window.clearInterval(clock);
+    };
   }, [messages.length]);
 
   return (
@@ -64,6 +76,11 @@ function ProgressNote({ busy }: { busy: Busy }) {
         ))}
       </span>
       <span key={index} className="animate-rise">{messages[index]}…</span>
+      {EXPECTED[busy] && seconds >= 10 && (
+        <span className="text-ink-faint">
+          {Math.floor(seconds / 60) > 0 ? `${Math.floor(seconds / 60)} min ` : ""}{seconds % 60} s. {EXPECTED[busy]}
+        </span>
+      )}
     </div>
   );
 }
@@ -85,6 +102,7 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
   const [history, setHistory] = useState<RequestSummary[]>([]);
   const [envelope, setEnvelope] = useState<RequestEnvelope | null>(null);
   const [busy, setBusy] = useState<Busy | null>(null);
+  const [opening, setOpening] = useState(true);       // the project's current request is still loading (R3)
   const [error, setError] = useState<string | null>(null);
   const [lastPrompt, setLastPrompt] = useState("");
   const [reply, setReply] = useState<ComposerReply | null>(null);
@@ -115,6 +133,7 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
       if (err instanceof ApiError && err.status === 409 && envelope) {
         try {
           setEnvelope(await getRequest(projectId, envelope.request_id));
+          setError(err.message);                    // why the screen changed, e.g. answered in another tab
           return;
         } catch {
           /* fall through to the original message */
@@ -138,7 +157,10 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
       if (openedCurrent.current) return;
       openedCurrent.current = true;
       const current = list[0];
-      if (!current || !ACTIVE.includes(current.status)) return;
+      if (!current || !ACTIVE.includes(current.status)) {
+        setOpening(false);
+        return;
+      }
       setBusy("restore");
       try {
         const env = await getRequest(projectId, current.id);
@@ -146,7 +168,10 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
       } catch {
         /* deleted meanwhile, or not ours: the composer stays */
       } finally {
-        if (active) setBusy(null);
+        if (active) {
+          setBusy(null);
+          setOpening(false);
+        }
       }
     });
     return () => {
@@ -171,6 +196,8 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
     setError(null);
     setLastPrompt(""); // a fresh start gets an empty box; the prompt is kept only for "Try again"
     setReply(null);
+    setBuildEvents([]); // the old site's build progress and preview belong to the old request (examiner test R8)
+    replayed.current = null;
   };
 
   const requestStartOver = () => {
@@ -256,11 +283,11 @@ export default function ForgeStudio({ projectId, projectName }: ForgeStudioProps
       />
 
       <main id="main" className="relative z-[1] mx-auto w-full max-w-3xl flex-1 px-5 pt-12 pb-16 sm:px-8 sm:pt-16">
-        {busy && <ProgressNote key={busy} busy={busy} />}
+        {(busy || opening) && <ProgressNote key={busy ?? "restore"} busy={busy ?? "restore"} />}
         {buildEvents.length > 0 && <BuildPanel events={buildEvents} running={busy === "approve"} />}
 
         <div aria-busy={busy !== null} className={busy ? "pointer-events-none opacity-50 transition-opacity duration-300" : "transition-opacity duration-300"}>
-          {!envelope && (
+          {!envelope && !opening && (
             <>
               <RequestComposer
                 key={composerKey}

@@ -339,6 +339,9 @@ async def answer_question(body: UserAnswer, http: Request, request_id: str = Dep
     try:
         async with service.one_step_at_a_time(request_id):
             payload = await _pending(http, request_id, "question")
+            if body.question_id != payload.get("question_id"):   # answered in another tab (examiner test R1)
+                raise HTTPException(status.HTTP_409_CONFLICT,
+                                    "This question was already answered in another tab. Here is the next step.")
             question = Question.model_validate({k: v for k, v in payload.items() if k != "type"})
             error = slots.validate_answer(question, body)
             if error:

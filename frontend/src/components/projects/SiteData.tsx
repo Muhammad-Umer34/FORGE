@@ -151,10 +151,12 @@ export function SiteData({ params }: { params: Promise<{ projectId: string }> })
       <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-5 pt-10 pb-16 sm:px-8">
         <Link href={`/projects/${projectId}`} className={quiet}>← Back to the studio</Link>
         <h1 className="mt-4 font-display text-[2.2rem] leading-tight text-ink">Your site&apos;s data</h1>
-        <p className="mt-2 max-w-[62ch] text-[15px] text-ink-muted">
-          What visitors send through your site, and the lists your site shows. Sample rows were added so the preview
-          works; remove them when your own are in.
-        </p>
+        {!missing && (
+          <p className="mt-2 max-w-[62ch] text-[15px] text-ink-muted">
+            What visitors send through your site, and the lists your site shows. Sample rows were added so the
+            preview works; remove them when your own are in.
+          </p>
+        )}
 
         {missing ? (
           <p className="mt-8 rounded-lg border border-line bg-surface px-5 py-4 text-[15px] text-ink">{missing}</p>

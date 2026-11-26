@@ -6,6 +6,18 @@ Dates are the commit dates in git.
 
 ---
 
+## 2026-11-26 · Examiner testing, round 3: the studio UI (D-257)
+
+**What** Round 3 by hand in the studio: 12 checks passed, 8 weaknesses (2 medium). Fixes: a stale answer is a 409
+with a plain message and the studio shows the current question; "couldn't reach FORGE" when the backend is down; no
+request box while a request loads; the API refuses a blank request; the "Site data" intro only with storage; long
+waits show the time and the usual duration; "Start over" clears the old build.
+
+**Checked** Every fix in the studio (signed in); `tests/test_project_requests.py` 10 passed; studio type check and
+lint clean.
+
+---
+
 ## 2026-11-26 · Sharing the studio for testing (D-256)
 
 **What** `scripts/share.py` starts two Cloudflare quick tunnels (studio, preview) and writes `.forge_share.json`;

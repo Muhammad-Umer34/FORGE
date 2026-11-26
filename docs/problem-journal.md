@@ -29,6 +29,25 @@ Each entry:
 
 ---
 
+## 37. The studio under an examiner's hands
+**Symptom** Round 3 of examiner testing (`docs/examiner-testing.md`): the studio held up (limits, empty input,
+double clicks, refresh, signing out mid-build), but a second tab showed a developer's message and got stuck; a
+stopped backend showed "FORGE returned an error (500)"; a refresh showed an empty request box for ~10 s; the API took
+a request of spaces; planning waited 2 minutes in silence; "Site data" contradicted itself without storage.
+
+**Steps**
+1. Tested by hand in the studio, plus direct API calls where an examiner could skip the UI.
+2. Traced R2: the studio's Next.js proxy turns "cannot connect" into a 500 with no FORGE body, so the client's
+   friendly network message never showed. The same 500 had appeared, untraced, earlier in the round.
+3. Fixes G1-G7 (D-257). G1's first test failed with a 500: the route built the question model before comparing
+   ids, and the test's fake screen lacked the model's fields; comparing the ids first is simpler and fixes both.
+4. A rerun of the API tests took 78 minutes; the laptop had slept. Rerun: 31 s.
+5. While checking the fixes in the studio, R8 appeared (old build progress after "Start over") and was fixed (G7).
+
+**Status** Done. Every fix checked in the studio.
+
+---
+
 ## 36. An examiner could make FORGE build a hate site
 **Symptom** Testing FORGE as an evaluator would (`docs/examiner-testing.md`), 32 tricky messages: off-topic chat,
 injection and gibberish were handled well, but a hate site, an unlicensed-firearms shop and an adult site went

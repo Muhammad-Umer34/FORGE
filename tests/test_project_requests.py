@@ -280,3 +280,19 @@ def test_main_app_registers_projects_and_request_routes():
     assert "/api/projects" in paths and "/api/projects/{project_id}/requests/{request_id}/answer" in paths
     assert "/api/projects/{project_id}/requests/{request_id}/plan" in paths
     assert not any(p.startswith("/api/requests") for p in paths)  # the old anonymous routes are gone
+
+
+def test_an_answer_from_an_old_tab_and_a_blank_request_are_refused_plainly():
+    """Examiner testing R1 and R4: an answer to a question that has moved on is a conflict with a plain message
+    (the studio then shows the current question); a request of spaces is refused before anything is stored."""
+    async def scenario():
+        async with harness() as h:
+            uid, (pid,) = await h.user_with_projects()
+            blank = await h.start(uid, pid, "     ")
+            assert blank.status_code == 422 and "Please describe the website you need" in blank.text
+            assert await h.rows(pid) == []
+            rid = (await h.start(uid, pid)).json()["request_id"]
+            stale = await h.call("POST", uid, f"/api/projects/{pid}/requests/{rid}/answer",
+                                 json={"question_id": "q_old", "kind": "you_decide"})
+            assert stale.status_code == 409 and "already answered in another tab" in stale.json()["detail"]
+    run(scenario())

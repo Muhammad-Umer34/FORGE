@@ -29,6 +29,8 @@ class CreateRequest(BaseModel):
     @classmethod
     def _no_private_numbers(cls, value: str) -> str:
         from agents.clarification.policy import mask_private
+        if not value.strip():                          # the studio blocks it; the API must too (examiner test R4)
+            raise ValueError("Please describe the website you need.")
         return mask_private(value)                     # before it is stored or sent anywhere (D-255)
 
 

@@ -44,6 +44,8 @@ async function readError(response: Response): Promise<ApiError> {
   if (Array.isArray(detail) && typeof detail[0]?.msg === "string") {
     return new ApiError(response.status, detail[0].msg.replace(/^Value error, /, ""), "invalid");
   }
+  // A 5xx with no FORGE message: the studio could not reach the backend (examiner test R2).
+  if (response.status >= 500) return new ApiError(response.status, NETWORK_MESSAGE, "unreachable");
   return new ApiError(response.status, `FORGE returned an error (${response.status}). Please try again.`);
 }
 
